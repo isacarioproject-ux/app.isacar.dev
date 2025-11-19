@@ -146,7 +146,7 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
         storageKey={`projects-card-${finalWorkspaceId || 'default'}`}
       >
         <Card className="h-full flex flex-col">
-          <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               {/* Drag Handle */}
               <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
@@ -197,7 +197,7 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
             </div>
 
             {/* Botões de Ação */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {projects.length > 0 && (
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button

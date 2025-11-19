@@ -153,6 +153,27 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                 <GripVertical className="h-4 w-4 text-muted-foreground" />
               </div>
 
+              {/* Ícone */}
+              <motion.div
+                whileHover={{ rotate: 5 }}
+                transition={{ duration: 0.2 }}
+              >
+                <FolderKanban className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
+              </motion.div>
+
+              {/* Badge de Contagem */}
+              {projects.length > 0 && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 500 }}
+                >
+                  <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                    {projects.length}
+                  </Badge>
+                </motion.div>
+              )}
+
               {/* Nome Editável */}
               {isEditingName ? (
                 <Input
@@ -162,7 +183,7 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') setIsEditingName(false)
                   }}
-                  className="h-7 text-sm font-semibold"
+                  className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
                   autoFocus
                 />
               ) : (
@@ -173,31 +194,42 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                   {cardName}
                 </h3>
               )}
-
-              {/* Badge Workspace */}
-              {currentWorkspace && (
-                <Badge variant="secondary" className="text-xs shrink-0">
-                  {currentWorkspace.name}
-                </Badge>
-              )}
             </div>
 
             {/* Botões de Ação */}
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setIsExpanded(true)}
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-              </Button>
+              {projects.length > 0 && (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs hover:bg-accent/60"
+                    onClick={() => setIsExpanded(true)}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Novo
+                  </Button>
+                </motion.div>
+              )}
+
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-accent/60"
+                  onClick={() => setIsExpanded(true)}
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </Button>
+              </motion.div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <MoreVertical className="h-3.5 w-3.5" />
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </Button>
+                  </motion.div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleDuplicateCard}>
@@ -228,27 +260,42 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                 ))}
               </div>
             ) : projects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                  <FolderKanban className="h-6 w-6 text-primary" />
-                </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col items-center justify-center h-full text-center p-6"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
+                  className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mb-3"
+                >
+                  <FolderKanban className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </motion.div>
                 <h3 className="font-medium text-sm mb-1">Nenhum projeto ainda</h3>
                 <p className="text-xs text-muted-foreground mb-4">
                   Projetos organizam tarefas, documentos e progresso
                 </p>
-                <Button size="sm" onClick={() => setIsExpanded(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar projeto
-                </Button>
-              </div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button size="sm" onClick={() => setIsExpanded(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar projeto
+                  </Button>
+                </motion.div>
+              </motion.div>
             ) : (
               <div className="space-y-2">
-                {projects.slice(0, 5).map((project) => (
+                {projects.slice(0, 5).map((project, index) => (
                   <motion.div
                     key={project.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="group p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                    transition={{ delay: index * 0.05 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group p-3 rounded-lg border bg-card hover:bg-accent/50 transition-all cursor-pointer shadow-sm hover:shadow-md"
                     onClick={() => setIsExpanded(true)}
                   >
                     <div className="flex items-start gap-3">

@@ -41,11 +41,17 @@ export async function getCurrentUserId(): Promise<string> {
   return user.id;
 }
 
-export async function getCurrentWorkspaceId(): Promise<string> {
+export async function getCurrentWorkspaceId(): Promise<string | null> {
   // Buscar workspace ativo do localStorage
   const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
   
-  if (savedWorkspaceId && savedWorkspaceId !== 'null') {
+  // Se for 'null' (string), retornar null (modo Pessoal)
+  if (savedWorkspaceId === 'null') {
+    return null;
+  }
+  
+  // Se tiver um ID válido, retornar
+  if (savedWorkspaceId) {
     return savedWorkspaceId;
   }
   
@@ -60,8 +66,10 @@ export async function getCurrentWorkspaceId(): Promise<string> {
     .limit(1)
     .single();
 
+  // Se não encontrar workspace, retornar null (modo Pessoal)
   if (error || !data) {
-    throw new Error('Nenhum workspace ativo encontrado. Por favor, crie ou selecione um workspace.');
+    localStorage.setItem('currentWorkspaceId', 'null');
+    return null;
   }
 
   // Salvar no localStorage para próximas chamadas
@@ -103,11 +111,18 @@ export async function getUsers(): Promise<User[]> {
 export async function getTasks(): Promise<Task[]> {
   const workspaceId = await getCurrentWorkspaceId();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('tasks')
-    .select('*')
-    .eq('workspace_id', workspaceId)
-    .order('created_at', { ascending: false });
+    .select('*');
+
+  // Se workspaceId for null (modo Pessoal), buscar tasks sem workspace
+  if (workspaceId === null) {
+    query = query.is('workspace_id', null);
+  } else {
+    query = query.eq('workspace_id', workspaceId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) throw error;
 

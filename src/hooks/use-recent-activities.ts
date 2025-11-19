@@ -28,10 +28,11 @@ export const useRecentActivities = (limit: number = 50) => {
 
         const allActivities: RecentActivity[] = []
 
-        // 1. TAREFAS (tasks)
+        // 1. TAREFAS (tasks) - apenas do usuário logado
         const tasksQuery = supabase
           .from('tasks')
           .select('id, title, status, created_at, updated_at, created_by, completed_at')
+          .eq('created_by', user.id)
           .order('updated_at', { ascending: false })
           .limit(20)
 
@@ -73,10 +74,11 @@ export const useRecentActivities = (limit: number = 50) => {
           })
         }
 
-        // 2. DOCUMENTOS FINANCEIROS (finance_documents)
+        // 2. DOCUMENTOS FINANCEIROS (finance_documents) - apenas do usuário logado
         const financeQuery = supabase
           .from('finance_documents')
           .select('id, name, created_at, updated_at, user_id')
+          .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(15)
 
@@ -103,15 +105,18 @@ export const useRecentActivities = (limit: number = 50) => {
           })
         }
 
-        // 3. PROJETOS (projects)
+        // 3. PROJETOS (projects) - apenas do usuário logado
         const projectsQuery = supabase
           .from('projects')
-          .select('id, name, created_at, updated_at')
+          .select('id, name, created_at, updated_at, user_id')
+          .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(10)
 
         if (currentWorkspace?.id) {
           projectsQuery.eq('workspace_id', currentWorkspace.id)
+        } else {
+          projectsQuery.is('workspace_id', null)  // ✅ Modo Pessoal
         }
 
         const { data: projects } = await projectsQuery
@@ -131,38 +136,19 @@ export const useRecentActivities = (limit: number = 50) => {
           })
         }
 
-        // 4. WHITEBOARDS
-        const whiteboardsQuery = supabase
-          .from('whiteboards')
-          .select('id, name, created_at, updated_at')
-          .order('updated_at', { ascending: false })
-          .limit(10)
-
-        if (currentWorkspace?.id) {
-          whiteboardsQuery.eq('workspace_id', currentWorkspace.id)
-        }
-
-        const { data: whiteboards } = await whiteboardsQuery
-
-        if (whiteboards) {
-          whiteboards.forEach(wb => {
-            allActivities.push({
-              id: `whiteboard-${wb.id}`,
-              type: 'whiteboard',
-              action: 'created',
-              user_name: 'Você',
-              user_id: user.id,
-              details: 'criou o quadro',
-              entity_name: wb.name,
-              created_at: wb.created_at,
-            })
-          })
-        }
-
-        // 5. TRANSAÇÕES FINANCEIRAS (finance_transactions) - mais recentes
+        // 4. TRANSAÇÕES FINANCEIRAS (finance_transactions) - apenas do usuário logado
+        // Buscar via finance_documents para filtrar por user_id
         const transactionsQuery = supabase
           .from('finance_transactions')
-          .select('id, description, type, amount, created_at')
+          .select(`
+            id, 
+            description, 
+            type, 
+            amount, 
+            created_at,
+            finance_documents!inner(user_id)
+          `)
+          .eq('finance_documents.user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(10)
 
@@ -185,15 +171,18 @@ export const useRecentActivities = (limit: number = 50) => {
           })
         }
 
-        // 6. EMPRESAS (companies)
+        // 5. EMPRESAS (companies) - apenas do usuário logado
         const companiesQuery = supabase
           .from('companies')
           .select('id, name, created_by, created_at')
+          .eq('created_by', user.id)
           .order('created_at', { ascending: false })
           .limit(5)
 
         if (currentWorkspace?.id) {
           companiesQuery.eq('workspace_id', currentWorkspace.id)
+        } else {
+          companiesQuery.is('workspace_id', null)  // ✅ Modo Pessoal
         }
 
         const { data: companies } = await companiesQuery

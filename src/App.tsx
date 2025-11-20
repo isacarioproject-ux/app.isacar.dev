@@ -12,6 +12,9 @@ import { ProtectedRoute } from '@/components/protected-route'
 import { initIntegrations } from '@/integrations'
 import { useEffect } from 'react'
 
+// Import direto do onboarding (SEM lazy) para não mostrar preload
+import OnboardingPage from '@/pages/onboarding'
+
 // Lazy load pages for code splitting
 const AuthPage = lazy(() => import('@/pages/auth'))
 const AuthCallbackPage = lazy(() => import('@/pages/auth/callback'))
@@ -19,6 +22,7 @@ const DashboardPage = lazy(() => import('@/pages/dashboard'))
 const MyWorkPage = lazy(() => import('@/pages/my-work'))
 const MyFinancePage = lazy(() => import('@/pages/my-finance'))
 const MyBudgetPage = lazy(() => import('@/pages/my-budget'))
+const ProjectManagerPage = lazy(() => import('@/pages/project-manager'))
 // const MyCompanyPage = lazy(() => import('@/pages/my-company')) // REMOVIDO - Whiteboard
 const ProfilePage = lazy(() => import('@/pages/settings/profile'))
 const NotificationsPage = lazy(() => import('@/pages/settings/notifications'))
@@ -30,6 +34,7 @@ const TermsOfServicePage = lazy(() => import('@/pages/terms-of-service'))
 const AcceptInvitePage = lazy(() => import('@/pages/accept-invite'))
 const GoogleIntegrationCallback = lazy(() => import('@/pages/integrations/google-callback'))
 const ImportGmailPage = lazy(() => import('@/pages/finance/import-gmail'))
+const OnboardingAnalyticsPage = lazy(() => import('@/pages/admin/onboarding-analytics'))
 
 // Loader minimalista para lazy loading de páginas
 const PageLoader = () => <InitialPreload />
@@ -56,6 +61,10 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           
+          {/* Onboarding */}
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/admin/onboarding-analytics" element={<ProtectedRoute><OnboardingAnalyticsPage /></ProtectedRoute>} />
+          
           {/* Legal Pages */}
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms-of-service" element={<TermsOfServicePage />} />
@@ -74,6 +83,7 @@ function App() {
           <Route path="/meu-trabalho" element={<ProtectedRoute><MyWorkPage /></ProtectedRoute>} />
           <Route path="/minha-financa" element={<ProtectedRoute><MyFinancePage /></ProtectedRoute>} />
           <Route path="/meu-gerenciador" element={<ProtectedRoute><MyBudgetPage /></ProtectedRoute>} />
+          <Route path="/meus-projetos" element={<ProtectedRoute><ProjectManagerPage /></ProtectedRoute>} />
           {/* <Route path="/minha-empresa" element={<ProtectedRoute><MyCompanyPage /></ProtectedRoute>} /> */}
           
           {/* Settings Routes */}
@@ -83,8 +93,8 @@ function App() {
           <Route path="/settings/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
           <Route path="/settings/integrations" element={<ProtectedRoute><IntegrationsPage /></ProtectedRoute>} />
           
-          {/* Redirects - apenas home */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Redirects - AuthContext vai redirecionar para onboarding ou dashboard */}
+          <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             </Routes>
             </Suspense>
             

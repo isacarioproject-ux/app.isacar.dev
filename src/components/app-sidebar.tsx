@@ -36,6 +36,7 @@ import {
   Wallet,
   Building2,
   GitBranch,
+  FolderKanban,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
@@ -59,6 +60,11 @@ export function AppSidebar() {
       title: t('nav.myWork'),
       icon: CheckSquare,
       href: '/meu-trabalho',
+    },
+    {
+      title: 'Meus Projetos',
+      icon: FolderKanban,
+      href: '/meus-projetos',
     },
     {
       title: t('nav.myFinance'),

@@ -95,7 +95,7 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>(task.tag_ids || []);
   const [financeDocuments, setFinanceDocuments] = useState<any[]>([]); // ✨ Documentos financeiros
   const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [attachments, setAttachments] = useState<Array<{name: string; url: string}>>([]);
+  const [attachments, setAttachments] = useState<Array<{name: string; url: string}>>((task as any).attachments || []);
   const [isStartDateOpen, setIsStartDateOpen] = useState(false);
   const [isDueDateOpen, setIsDueDateOpen] = useState(false);
   const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
@@ -121,6 +121,20 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
     );
   };
   const subtasks = allTasks.filter(t => t.parent_task_id === task.id);
+
+  // Função para salvar anexos no banco
+  const saveAttachments = async (newAttachments: Array<{name: string; url: string}>) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ attachments: newAttachments, updated_at: new Date().toISOString() })
+        .eq('id', task.id);
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erro ao salvar anexos:', error);
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -799,7 +813,9 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
               });
 
               const uploadedFiles = await Promise.all(uploadPromises);
-              setAttachments(prev => [...prev, ...uploadedFiles]);
+              const newAttachments = [...attachments, ...uploadedFiles];
+              setAttachments(newAttachments);
+              await saveAttachments(newAttachments);
               
               toast.success(`${files.length} arquivo(s) enviado(s) com sucesso!`);
             } catch (error: any) {
@@ -832,8 +848,10 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0"
-                  onClick={() => {
-                    setAttachments(prev => prev.filter((_, i) => i !== index));
+                  onClick={async () => {
+                    const newAttachments = attachments.filter((_, i) => i !== index);
+                    setAttachments(newAttachments);
+                    await saveAttachments(newAttachments);
                     toast.success('Anexo removido');
                   }}
                 >

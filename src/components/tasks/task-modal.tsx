@@ -9,7 +9,7 @@ import { getTaskWithDetails, getTasks, deleteTask } from '@/lib/tasks/tasks-stor
 import { TaskDetailView } from '@/components/tasks/task-detail-view';
 import { TaskActivitySidebar } from '@/components/tasks/task-activity-sidebar';
 import { TaskModalSkeleton } from '@/components/tasks/task-modal-skeleton';
-import { ChevronLeft, ChevronRight, Share2, X, MoreVertical, Maximize2, Minimize2, ListChecks, Star, Grid3x3, CheckSquare, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, X, MoreVertical, Maximize2, Minimize2, ListChecks, Star, Grid3x3, CheckSquare, Trash2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useI18n } from '@/hooks/use-i18n';
+import { supabase } from '@/lib/supabase';
 
 interface TaskModalProps {
   taskId: string | null;
@@ -39,6 +40,61 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+
+  // Função para gerar link público de compartilhamento
+  const handleShare = async () => {
+    if (!task?.id) return;
+    
+    setIsSharing(true);
+    try {
+      // Verificar se já existe um share para esta tarefa
+      const { data: existingShare } = await supabase
+        .from('task_shares')
+        .select('token')
+        .eq('task_id', task.id)
+        .eq('is_active', true)
+        .single();
+
+      let shareToken: string;
+
+      if (existingShare?.token) {
+        // Usar token existente
+        shareToken = existingShare.token;
+      } else {
+        // Gerar novo token
+        shareToken = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast.error('Você precisa estar logado');
+          return;
+        }
+
+        // Criar novo share
+        const { error } = await supabase
+          .from('task_shares')
+          .insert({
+            task_id: task.id,
+            token: shareToken,
+            created_by: user.id,
+            expires_at: null, // Sem expiração
+          });
+
+        if (error) throw error;
+      }
+
+      // Gerar URL e copiar
+      const shareUrl = `${window.location.origin}/share/${shareToken}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success(t('tasks.modal.publicLinkCopied'));
+    } catch (error: any) {
+      console.error('Erro ao compartilhar:', error);
+      toast.error('Erro ao gerar link de compartilhamento');
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -317,7 +373,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
               <TooltipContent>{isMaximized ? t('tasks.modal.restore') : t('tasks.modal.maximize')}</TooltipContent>
             </Tooltip>
 
-            {/* Compartilhar - Copia link */}
+            {/* Compartilhar - Gera link público */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -325,17 +381,18 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
                     variant="ghost" 
                     size="icon" 
                     className="h-8 w-8 md:h-10 md:w-10"
-                    onClick={() => {
-                      const url = `${window.location.origin}/tasks/${task?.id}`;
-                      navigator.clipboard.writeText(url);
-                      toast.success(t('tasks.modal.linkCopied'));
-                    }}
+                    onClick={handleShare}
+                    disabled={isSharing}
                   >
-                    <Share2 className="size-4" />
+                    {isSharing ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Share2 className="size-4" />
+                    )}
                   </Button>
                 </motion.div>
               </TooltipTrigger>
-              <TooltipContent>{t('tasks.modal.share')}</TooltipContent>
+              <TooltipContent>{t('tasks.modal.sharePublic')}</TooltipContent>
             </Tooltip>
 
             {/* Menu 3 Pontos com Animação */}

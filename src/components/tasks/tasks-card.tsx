@@ -339,7 +339,7 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Sincronização em tempo real com {memberCount} membros</p>
+                      <p>{t('tasks.card.realtimeSync')} {memberCount} {t('tasks.card.members')}</p>
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -415,7 +415,7 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
                   </motion.div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Templates</p>
+                  <p>{t('tasks.card.templates')}</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -456,8 +456,7 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
                 </Tooltip>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem>{t('tasks.card.settings')}</DropdownMenuItem>
-                  <DropdownMenuItem>{t('common.filter')}</DropdownMenuItem>
-                  <DropdownMenuItem>{t('common.export')}</DropdownMenuItem>
+                                    <DropdownMenuItem>{t('common.export')}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

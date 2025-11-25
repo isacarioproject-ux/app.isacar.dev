@@ -49,9 +49,17 @@ export function TasksGroupView({
   const { t } = useI18n();
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [quickAddInitialTab, setQuickAddInitialTab] = useState<'tarefa' | 'lembrete'>('tarefa');
 
   const handleAddTask = (groupKey: string) => {
     setSelectedGroup(groupKey);
+    setQuickAddInitialTab('tarefa');
+    setIsQuickAddOpen(true);
+  };
+
+  const handleAddReminder = (groupKey: string) => {
+    setSelectedGroup(groupKey);
+    setQuickAddInitialTab('lembrete');
     setIsQuickAddOpen(true);
   };
 
@@ -161,7 +169,7 @@ export function TasksGroupView({
                     <Plus className="size-4 mr-2" />
                     {t('tasks.group.addTask')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddReminder(groupKey)}>
                     <Bell className="size-4 mr-2" />
                     {t('tasks.group.addReminder')}
                   </DropdownMenuItem>
@@ -201,7 +209,7 @@ export function TasksGroupView({
 
       {Object.values(groups).every(g => g.length === 0) && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <p>Nenhuma tarefa pendente</p>
+          <p>{t('tasks.reminder.noTasks')}</p>
         </div>
       )}
 
@@ -210,7 +218,9 @@ export function TasksGroupView({
         onClose={() => setIsQuickAddOpen(false)}
         onCreateTask={handleCreateTask}
         onCreateAndOpen={handleCreateAndOpenTask}
+        onCreateReminder={async () => { onUpdate(); }}
         defaultGroup={selectedGroup}
+        initialTab={quickAddInitialTab}
       />
     </div>
   );

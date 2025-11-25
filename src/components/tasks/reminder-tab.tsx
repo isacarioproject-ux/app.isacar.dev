@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { 
   Calendar as CalendarIcon, 
@@ -24,7 +24,9 @@ import {
   Plus,
   X,
   Check,
-  AlertCircle
+  AlertCircle,
+  Image,
+  FileUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -62,6 +64,8 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
   const [showRecurrence, setShowRecurrence] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showLocationSettings, setShowLocationSettings] = useState(false);
+  const [showMediaSettings, setShowMediaSettings] = useState(false);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [locationPermission, setLocationPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -119,22 +123,78 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
   ];
 
   const handleRequestNotificationPermission = async () => {
-    const permission = await reminderNotificationService.requestPermission();
-    setNotificationPermission(permission);
-    if (permission === 'granted') {
-      toast.success(t('tasks.reminder.permissionGranted'));
-    } else {
-      toast.error(t('tasks.reminder.permissionDenied'));
+    // Verificar suporte
+    if (!('Notification' in window)) {
+      toast.error(`${t('tasks.reminder.browserNoSupport')} notificações`);
+      return;
+    }
+
+    // Verificar se já foi bloqueado anteriormente
+    if (Notification.permission === 'denied') {
+      toast.error(t('tasks.reminder.locationBlocked').replace('Localização', 'Notificações'));
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      
+      if (permission === 'granted') {
+        toast.success(t('tasks.reminder.notificationsActivated'));
+        // Mostrar notificação de teste
+        new Notification('Isacar', {
+          body: t('tasks.reminder.notificationsTest'),
+          icon: '/pwa-192x192.png'
+        });
+      } else if (permission === 'denied') {
+        toast.error(t('tasks.reminder.notificationsBlockedDesc'));
+      } else {
+        toast.info(t('tasks.reminder.clickAllow'));
+      }
+    } catch (error) {
+      console.error('Erro ao solicitar permissão:', error);
+      toast.error(t('tasks.reminder.errorRequestingPermission'));
     }
   };
 
   const handleRequestLocationPermission = async () => {
-    const granted = await reminderLocationService.initialize();
-    setLocationPermission(granted);
-    if (granted) {
-      toast.success(t('tasks.reminder.locationGranted'));
-    } else {
-      toast.error(t('tasks.reminder.locationDenied'));
+    console.log('🔵 handleRequestLocationPermission chamada');
+    toast.info(t('tasks.reminder.requestingLocation'));
+    
+    // Verificar suporte
+    if (!('geolocation' in navigator)) {
+      toast.error(`${t('tasks.reminder.browserNoSupport')} geolocalização`);
+      return;
+    }
+
+    try {
+      // Solicitar permissão de localização
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      setLocationPermission(true);
+      toast.success(`${t('tasks.reminder.locationActivated')} (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`);
+    } catch (error: any) {
+      console.error('Erro de geolocalização:', error);
+      setLocationPermission(false);
+      
+      if (error.code === 1) {
+        // PERMISSION_DENIED
+        toast.error(t('tasks.reminder.locationBlocked'));
+      } else if (error.code === 2) {
+        // POSITION_UNAVAILABLE
+        toast.error(t('tasks.reminder.locationUnavailable'));
+      } else if (error.code === 3) {
+        // TIMEOUT
+        toast.error(t('tasks.reminder.locationTimeout'));
+      } else {
+        toast.error(t('tasks.reminder.locationError'));
+      }
     }
   };
 
@@ -259,6 +319,7 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
   }
 
   return (
+    <TooltipProvider>
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -290,7 +351,11 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
         {/* Data e Hora */}
         <Popover open={showCalendar} onOpenChange={setShowCalendar}>
           <PopoverTrigger asChild>
-            <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5">
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5 transition-all hover:scale-105"
+              title={t('tasks.reminder.dateTimeTooltip')}
+            >
               <CalendarIcon className="size-3" />
               {selectedDate ? format(selectedDate, 'dd/MM/yyyy', { locale: dateFnsLocale }) : t('tasks.reminder.selectDate')}
               {selectedTime && ` ${t('tasks.reminder.at')} ${selectedTime}`}
@@ -349,7 +414,11 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
         {/* Recorrência */}
         <Popover open={showRecurrence} onOpenChange={setShowRecurrence}>
           <PopoverTrigger asChild>
-            <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5">
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5 transition-all hover:scale-105"
+              title={t('tasks.reminder.repeatTooltip')}
+            >
               <Repeat className="size-3" />
               {recurrenceType === 'none' ? t('tasks.reminder.noRepeat') : recurrenceOptions.find(o => o.value === recurrenceType)?.label}
             </Badge>
@@ -392,7 +461,11 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
         {/* Notificações */}
         <Popover open={showNotificationSettings} onOpenChange={setShowNotificationSettings}>
           <PopoverTrigger asChild>
-            <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5">
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5 transition-all hover:scale-105"
+              title={t('tasks.reminder.notificationsTooltip')}
+            >
               <Bell className="size-3" />
               {t('tasks.reminder.notifications')}
               {notificationPermission !== 'granted' && (
@@ -400,7 +473,12 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
               )}
             </Badge>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-3" align="start">
+          <PopoverContent 
+            className="w-64 p-3" 
+            align="start"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+          >
             <div className="space-y-3">
               {notificationPermission !== 'granted' && (
                 <motion.div
@@ -408,15 +486,29 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
                   animate={{ opacity: 1, y: 0 }}
                   className="p-2 bg-yellow-50 dark:bg-yellow-950 rounded text-xs text-yellow-800 dark:text-yellow-200"
                 >
-                  <p className="mb-2">{t('tasks.reminder.notificationPermission')}</p>
-                      <Button
+                  <p className="mb-2 font-medium">
+                    {notificationPermission === 'denied' 
+                      ? t('tasks.reminder.notificationsBlocked')
+                      : t('tasks.reminder.enableNotificationsTitle')}
+                  </p>
+                  <p className="mb-2 text-[11px] opacity-80">
+                    {notificationPermission === 'denied'
+                      ? t('tasks.reminder.notificationsBlockedDesc')
+                      : t('tasks.reminder.enableNotificationsDesc')}
+                  </p>
+                  <Button
                     size="sm"
-                    onClick={handleRequestNotificationPermission}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRequestNotificationPermission();
+                    }}
                     className="w-full"
                   >
-                    {t('tasks.reminder.requestPermission')}
-                      </Button>
-                    </motion.div>
+                    {notificationPermission === 'denied' ? t('tasks.reminder.seeInstructions') : t('tasks.reminder.allowNotifications')}
+                  </Button>
+                </motion.div>
               )}
 
               <div className="flex items-center justify-between">
@@ -468,13 +560,22 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
         {/* Localização */}
         <Popover open={showLocationSettings} onOpenChange={setShowLocationSettings}>
           <PopoverTrigger asChild>
-            <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5">
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5 transition-all hover:scale-105"
+              title={t('tasks.reminder.locationTooltip')}
+            >
               <MapPin className="size-3" />
               {t('tasks.reminder.location')}
               {locationEnabled && <Check className="size-3 text-green-500" />}
             </Badge>
           </PopoverTrigger>
-          <PopoverContent className="w-64 p-3" align="start">
+          <PopoverContent 
+            className="w-64 p-3" 
+            align="start"
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onInteractOutside={(e) => e.preventDefault()}
+          >
             <div className="space-y-3">
               {!locationPermission && (
                 <motion.div
@@ -482,13 +583,21 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
                   animate={{ opacity: 1, y: 0 }}
                   className="p-2 bg-yellow-50 dark:bg-yellow-950 rounded text-xs text-yellow-800 dark:text-yellow-200"
                 >
-                  <p className="mb-2">{t('tasks.reminder.locationPermission')}</p>
+                  <p className="mb-2 font-medium">{t('tasks.reminder.enableLocation')}</p>
+                  <p className="mb-2 text-[11px] opacity-80">
+                    {t('tasks.reminder.enableLocationDesc')}
+                  </p>
                   <Button
                     size="sm"
-                    onClick={handleRequestLocationPermission}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRequestLocationPermission();
+                    }}
                     className="w-full"
                   >
-                    {t('tasks.reminder.requestPermission')}
+                    {t('tasks.reminder.allowLocation')}
                   </Button>
                 </motion.div>
               )}
@@ -525,37 +634,99 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
           </PopoverContent>
         </Popover>
 
-        {/* Prioridade */}
-        <Popover>
+        {/* Mídia/Anexos */}
+        <Popover open={showMediaSettings} onOpenChange={setShowMediaSettings}>
           <PopoverTrigger asChild>
-            <Badge variant="outline" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5">
-              <span className={priorityOptions.find(o => o.value === priority)?.color}>
-                {priorityOptions.find(o => o.value === priority)?.label}
-              </span>
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 gap-1.5 transition-all hover:scale-105"
+              title={t('tasks.reminder.mediaTooltip')}
+            >
+              <Image className="size-3" />
+              {t('tasks.reminder.media')}
+              {mediaFiles.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full">
+                  {mediaFiles.length}
+                </span>
+              )}
             </Badge>
           </PopoverTrigger>
-          <PopoverContent className="w-48 p-2" align="start">
-            <div className="space-y-1">
-              {priorityOptions.map((option, idx) => (
-                <motion.button
-                  key={option.value}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setPriority(option.value)}
-                className={cn(
-                  'flex items-center justify-between w-full px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800',
-                    priority === option.value && 'bg-gray-100 dark:bg-gray-800'
-                  )}
+          <PopoverContent className="w-72 p-3" align="start">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="font-medium">{t('tasks.reminder.attachFiles')}</Label>
+              </div>
+              
+              {/* Área de Upload */}
+              <motion.label
+                whileHover={{ scale: 1.02, borderColor: '#3b82f6' }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <FileUp className="size-6 text-gray-400 mb-2" />
+                <span className="text-sm text-gray-500">{t('tasks.reminder.dropOrClick')}</span>
+                <span className="text-xs text-gray-400 mt-1">{t('tasks.reminder.maxSize')}</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setMediaFiles(prev => [...prev, ...files]);
+                    toast.success(t('tasks.reminder.filesAdded', { count: files.length }));
+                  }}
+                />
+              </motion.label>
+
+              {/* Lista de Arquivos */}
+              <AnimatePresence>
+                {mediaFiles.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2 max-h-32 overflow-y-auto"
+                  >
+                    {mediaFiles.map((file, idx) => (
+                      <motion.div
+                        key={`${file.name}-${idx}`}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded text-sm"
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {file.type.startsWith('image/') ? (
+                            <Image className="size-4 text-blue-500" />
+                          ) : (
+                            <Paperclip className="size-4 text-gray-500" />
+                          )}
+                          <span className="truncate max-w-[150px]">{file.name}</span>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => setMediaFiles(prev => prev.filter((_, i) => i !== idx))}
+                          className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded text-red-500"
+                        >
+                          <X className="size-3" />
+                        </motion.button>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              {mediaFiles.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs text-gray-500 text-center"
                 >
-                  <span className={option.color}>{option.label}</span>
-                  {priority === option.value && (
-                    <Check className="size-4 text-blue-600" />
-                  )}
-                </motion.button>
-              ))}
+                  {mediaFiles.length} {t('tasks.reminder.filesSelected')}
+                </motion.div>
+              )}
             </div>
           </PopoverContent>
         </Popover>
@@ -588,5 +759,6 @@ export function ReminderTab({ onCreateReminder }: ReminderTabProps) {
           </motion.div>
       </div>
     </motion.div>
+    </TooltipProvider>
   );
 }

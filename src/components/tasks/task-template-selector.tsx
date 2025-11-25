@@ -121,7 +121,11 @@ export function TaskTemplateSelector({ open, onClose, onSelect }: TaskTemplateSe
                       <p className="text-sm text-gray-600 dark:text-gray-400">{template.description}</p>
                       <div className="mt-2">
                         <span className="inline-block px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded">
-                          {template.category}
+                          {template.category === 'pessoal' ? t('tasks.template.personal') :
+                           template.category === 'trabalho' ? t('tasks.template.work') :
+                           template.category === 'ti' ? t('tasks.template.it') :
+                           template.category === 'geral' ? t('tasks.template.general') :
+                           template.category}
                         </span>
                       </div>
                     </div>

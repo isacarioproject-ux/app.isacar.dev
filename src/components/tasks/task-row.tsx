@@ -56,10 +56,10 @@ export function TaskRow({ task, onTaskClick, onUpdate, onToggleComplete, onDelet
   };
 
   const priorityLabels: Record<string, string> = {
-    urgent: 'Urgente',
-    high: 'Alta',
-    medium: 'Média',
-    low: 'Baixa',
+    urgent: t('tasks.priority.urgent'),
+    high: t('tasks.priority.high'),
+    medium: t('tasks.priority.medium'),
+    low: t('tasks.priority.low'),
   };
 
   const formatDate = (dateStr: string) => {

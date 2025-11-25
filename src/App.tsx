@@ -36,6 +36,8 @@ const GoogleIntegrationCallback = lazy(() => import('@/pages/integrations/google
 const ImportGmailPage = lazy(() => import('@/pages/finance/import-gmail'))
 const OnboardingAnalyticsPage = lazy(() => import('@/pages/admin/onboarding-analytics'))
 const GoogleAnalyticsPage = lazy(() => import('@/pages/analytics/google'))
+const TaskViewPage = lazy(() => import('@/pages/task-view'))
+const TaskSharePage = lazy(() => import('@/pages/task-share'))
 
 // Loader minimalista para lazy loading de páginas
 const PageLoader = () => <InitialPreload />
@@ -73,11 +75,17 @@ function App() {
           {/* Workspace Invite - ANTES dos redirects */}
           <Route path="/invite/:token" element={<AcceptInvitePage />} />
           
+          {/* Public Task Share - Não precisa de login */}
+          <Route path="/share/:token" element={<TaskSharePage />} />
+          
           {/* Google Integration Callback */}
           <Route path="/integrations/google/callback" element={<GoogleIntegrationCallback />} />
           
           {/* Gmail Import */}
           <Route path="/finance/import-gmail" element={<ProtectedRoute><ImportGmailPage /></ProtectedRoute>} />
+          
+          {/* Task Shared View */}
+          <Route path="/tasks/:taskId" element={<ProtectedRoute><TaskViewPage /></ProtectedRoute>} />
           
           {/* Protected Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

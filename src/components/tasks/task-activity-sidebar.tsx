@@ -45,6 +45,97 @@ export function TaskActivitySidebar({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Renderizar texto do comentário com suporte a imagens e links
+  const renderCommentText = (text: string) => {
+    // Regex para imagem markdown: ![alt](url)
+    const imageMarkdownRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+    // Regex para link markdown: [text](url)
+    const linkMarkdownRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    // Regex para link de arquivo: [📎 nome](url)
+    const fileMarkdownRegex = /\[📎\s*([^\]]+)\]\(([^)]+)\)/g;
+    
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    
+    // Primeiro, processar imagens
+    const processedText = text.replace(imageMarkdownRegex, (_, alt, url) => {
+      return `__IMAGE__${url}__ALT__${alt}__ENDIMAGE__`;
+    });
+    
+    // Depois, processar links de arquivo
+    const withFiles = processedText.replace(fileMarkdownRegex, (_, name, url) => {
+      return `__FILE__${url}__NAME__${name}__ENDFILE__`;
+    });
+    
+    // Por fim, processar links normais
+    const withLinks = withFiles.replace(linkMarkdownRegex, (_, text, url) => {
+      return `__LINK__${url}__TEXT__${text}__ENDLINK__`;
+    });
+    
+    // Agora renderizar
+    const segments = withLinks.split(/(__IMAGE__|__ENDIMAGE__|__FILE__|__ENDFILE__|__LINK__|__ENDLINK__)/);
+    let i = 0;
+    const result: React.ReactNode[] = [];
+    
+    while (i < segments.length) {
+      const segment = segments[i];
+      
+      if (segment === '__IMAGE__') {
+        const urlAndAlt = segments[i + 1];
+        const [url, alt] = urlAndAlt.split('__ALT__');
+        result.push(
+          <img 
+            key={`img-${i}`}
+            src={url} 
+            alt={alt || 'Imagem'} 
+            className="max-w-full rounded-lg mt-2 cursor-pointer hover:opacity-90 transition-opacity"
+            style={{ maxHeight: '200px', objectFit: 'contain' }}
+            onClick={() => window.open(url, '_blank')}
+          />
+        );
+        i += 3; // Pular __IMAGE__, conteúdo, __ENDIMAGE__
+      } else if (segment === '__FILE__') {
+        const urlAndName = segments[i + 1];
+        const [url, name] = urlAndName.split('__NAME__');
+        result.push(
+          <a 
+            key={`file-${i}`}
+            href={url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-blue-600 hover:underline mt-1"
+          >
+            📎 {name}
+          </a>
+        );
+        i += 3;
+      } else if (segment === '__LINK__') {
+        const urlAndText = segments[i + 1];
+        const [url, text] = urlAndText.split('__TEXT__');
+        result.push(
+          <a 
+            key={`link-${i}`}
+            href={url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            {text}
+          </a>
+        );
+        i += 3;
+      } else if (segment && !segment.startsWith('__')) {
+        result.push(<span key={`text-${i}`}>{segment}</span>);
+        i++;
+      } else {
+        i++;
+      }
+    }
+    
+    return result.length > 0 ? result : text;
+  };
+
   // Carregar usuários do workspace para menções
   useEffect(() => {
     const loadUsers = async () => {
@@ -300,7 +391,7 @@ export function TaskActivitySidebar({
                 <div className="flex-1 min-w-0">
                   <div className="text-sm dark:text-gray-100">{comment.user_name || 'Usuário'}</div>
                   <div className="mt-1 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-700">
-                    {comment.text}
+                    {renderCommentText(comment.text)}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {formatTimestamp(comment.created_at)}

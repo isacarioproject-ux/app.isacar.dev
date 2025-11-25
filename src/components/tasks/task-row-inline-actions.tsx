@@ -37,14 +37,14 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Deseja realmente excluir esta tarefa?')) {
+    if (confirm(t('tasks.actions.deleteConfirm'))) {
       try {
         await deleteTask(task.id);
-        toast.success('Tarefa excluída');
+        toast.success(t('tasks.actions.deleted'));
         onUpdate();
       } catch (error) {
         console.error('Erro ao excluir:', error);
-        toast.error('Erro ao excluir tarefa');
+        toast.error(t('tasks.actions.deleteError'));
       }
     }
   };
@@ -58,11 +58,11 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
     };
     try {
       await updateTask(task.id, updates);
-      toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
+      toast.success(newStatus === 'done' ? t('tasks.actions.completed') : t('tasks.actions.reopened'));
       onUpdate();
     } catch (error) {
       console.error('Erro ao atualizar:', error);
-      toast.error('Erro ao atualizar tarefa');
+      toast.error(t('tasks.actions.updateError'));
     }
   };
 
@@ -82,7 +82,7 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
             </motion.button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Excluir tarefa</p>
+            <p>{t('tasks.actions.delete')}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -102,13 +102,13 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
               </PopoverTrigger>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Atribuir responsável</p>
+              <p>{t('tasks.actions.assignee')}</p>
             </TooltipContent>
           </Tooltip>
           <PopoverContent className="w-64 p-2" align="start" side="left">
             <div className="space-y-1">
               <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                {currentWorkspace ? `Membros de ${currentWorkspace.name}` : 'Usuários'}
+                {currentWorkspace ? `${t('tasks.actions.workspaceMembers')} ${currentWorkspace.name}` : t('tasks.actions.users')}
               </div>
               {users.map((user) => (
                 <button
@@ -119,7 +119,7 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
                       ? task.assignee_ids.filter(id => id !== user.id)
                       : [...task.assignee_ids, user.id];
                     updateTask(task.id, { assignee_ids: newAssignees });
-                    toast.success(task.assignee_ids.includes(user.id) ? 'Atribuição removida' : 'Tarefa atribuída');
+                    toast.success(t('tasks.actions.assignedTo'));
                     onUpdate();
                     setShowAssignee(false);
                   }}
@@ -156,12 +156,12 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
               </PopoverTrigger>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Definir data de vencimento</p>
+              <p>{t('tasks.actions.dueDate')}</p>
             </TooltipContent>
           </Tooltip>
           <PopoverContent className="w-auto p-0 max-w-[95vw]" align="start" side="left">
             <div className="p-3 border-b dark:border-gray-700">
-              <p className="text-sm font-medium dark:text-white">Selecionar data</p>
+              <p className="text-sm font-medium dark:text-white">{t('tasks.reminder.selectDate')}</p>
             </div>
             <CalendarComponent
               mode="single"
@@ -170,7 +170,7 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
                 if (date) {
                   setSelectedDate(date);
                   updateTask(task.id, { due_date: format(date, 'yyyy-MM-dd') });
-                  toast.success('Data atualizada');
+                  toast.success(t('tasks.actions.dateSet'));
                   onUpdate();
                   setShowCalendar(false);
                 }
@@ -185,13 +185,13 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
                   const today = new Date();
                   setSelectedDate(today);
                   updateTask(task.id, { due_date: format(today, 'yyyy-MM-dd') });
-                  toast.success('Data definida para hoje');
+                  toast.success(t('tasks.actions.dateSet'));
                   onUpdate();
                   setShowCalendar(false);
                 }}
                 className="w-full px-3 py-1.5 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white"
               >
-                Hoje
+                {t('tasks.actions.today')}
               </button>
               <button
                 onClick={(e) => {
@@ -200,13 +200,13 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
                   tomorrow.setDate(tomorrow.getDate() + 1);
                   setSelectedDate(tomorrow);
                   updateTask(task.id, { due_date: format(tomorrow, 'yyyy-MM-dd') });
-                  toast.success('Data definida para amanhã');
+                  toast.success(t('tasks.actions.dateSet'));
                   onUpdate();
                   setShowCalendar(false);
                 }}
                 className="w-full px-3 py-1.5 text-sm text-left rounded hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white"
               >
-                Amanhã
+                {t('tasks.actions.tomorrow')}
               </button>
               {task.due_date && (
                 <button
@@ -214,13 +214,13 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
                     e.stopPropagation();
                     setSelectedDate(undefined);
                     updateTask(task.id, { due_date: null });
-                    toast.success('Data removida');
+                    toast.success(t('tasks.actions.dateRemoved'));
                     onUpdate();
                     setShowCalendar(false);
                   }}
                   className="w-full px-3 py-1.5 text-sm text-left rounded hover:bg-red-50 dark:hover:bg-red-950 text-red-600 dark:text-red-400"
                 >
-                  Remover data
+                  {t('tasks.actions.removeDate')}
                 </button>
               )}
             </div>
@@ -243,7 +243,7 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
               </PopoverTrigger>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Alterar prioridade</p>
+              <p>{t('tasks.actions.changePriority')}</p>
             </TooltipContent>
           </Tooltip>
           <PopoverContent className="w-56 p-2" align="start" side="left">
@@ -301,7 +301,7 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
             </motion.button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{task.status === 'done' ? 'Reabrir tarefa' : 'Marcar como concluída'}</p>
+            <p>{task.status === 'done' ? t('tasks.actions.reopenTask') : t('tasks.actions.markComplete')}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

@@ -13,7 +13,6 @@ import {
   FileText,
   MoreHorizontal,
   X,
-  Minimize2,
   Search,
   Check,
   ChevronDown,
@@ -266,33 +265,18 @@ export function QuickAddTaskDialog({
           </div>
 
           <TooltipProvider>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button variant="ghost" size="icon" className="size-8">
-                    <Minimize2 className="size-4" />
-                  </Button>
-                </motion.div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('tasks.quickAdd.minimize')}</p>
-              </TooltipContent>
-            </Tooltip>
-            
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button variant="ghost" size="icon" className="size-8" onClick={handleClose}>
-                    <X className="size-4" />
-                  </Button>
-                </motion.div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('tasks.quickAdd.close')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button variant="ghost" size="icon" className="size-8" onClick={handleClose}>
+                  <X className="size-4" />
+                </Button>
+              </motion.div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('tasks.quickAdd.close')}</p>
+            </TooltipContent>
+          </Tooltip>
           </TooltipProvider>
         </div>
 

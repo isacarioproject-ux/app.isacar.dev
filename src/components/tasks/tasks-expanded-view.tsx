@@ -205,7 +205,7 @@ export function TasksExpandedView({
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                      <span>Hoje</span>
+                      <span>{t('tasks.expanded.today')}</span>
                       <span className="text-xs font-normal text-gray-500">
                         {pendingTasks.length}
                       </span>
@@ -259,7 +259,7 @@ export function TasksExpandedView({
                 {/* Em atraso */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <span>Em atraso</span>
+                    <span>{t('tasks.expanded.overdue')}</span>
                     <span className="text-xs font-normal text-gray-500">0</span>
                   </h3>
                 </div>
@@ -267,7 +267,7 @@ export function TasksExpandedView({
                 {/* Próximo */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <span>Próximo</span>
+                    <span>{t('tasks.expanded.upcoming')}</span>
                     <span className="text-xs font-normal text-gray-500">0</span>
                   </h3>
                 </div>
@@ -359,9 +359,9 @@ export function TasksExpandedView({
           </div>
         </Tabs>
 
-        <DialogTitle className="sr-only">Tarefas</DialogTitle>
+        <DialogTitle className="sr-only">{t('tasks.expanded.title')}</DialogTitle>
         <DialogDescription className="sr-only">
-          Visualização expandida das tarefas
+          {t('tasks.expanded.description')}
         </DialogDescription>
       </DialogContent>
     </Dialog>

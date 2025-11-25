@@ -28,9 +28,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Badge } from '@/components/ui/badge';
 import { TaskGroups, Task, TaskTemplate } from '@/types/tasks';
 import { createTask, getCurrentUserId } from '@/lib/tasks/tasks-storage';
+import { getReminders } from '@/lib/tasks/reminders-storage';
+import { Reminder } from '@/types/reminders';
 import { toast } from 'sonner';
 import { useI18n } from '@/hooks/use-i18n';
 import { useWorkspace } from '@/contexts/workspace-context';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export function TasksPageView() {
   const { t } = useI18n();
@@ -60,6 +64,24 @@ export function TasksPageView() {
   const [selectedIcon, setSelectedIcon] = useState('📋');
   const [workspaceName, setWorkspaceName] = useState('Meu trabalho');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loadingReminders, setLoadingReminders] = useState(false);
+
+  // Carregar lembretes
+  useEffect(() => {
+    const loadReminders = async () => {
+      setLoadingReminders(true);
+      try {
+        const data = await getReminders({ status: 'active', limit: 20 });
+        setReminders(data);
+      } catch (error) {
+        console.error('Erro ao carregar lembretes:', error);
+      } finally {
+        setLoadingReminders(false);
+      }
+    };
+    loadReminders();
+  }, [currentWorkspace?.id]);
 
   // Calcular total de tarefas para animação
   const totalTasks = Array.isArray(tasks) 
@@ -179,7 +201,13 @@ export function TasksPageView() {
 
   const handleQuickAddReminder = async (reminderData: any) => {
     // O ReminderTab já cria o lembrete no Supabase com todas as funcionalidades avançadas
-    // Este handler apenas atualiza a UI
+    // Este handler recarrega os lembretes
+    try {
+      const data = await getReminders({ status: 'active', limit: 20 });
+      setReminders(data);
+    } catch (error) {
+      console.error('Erro ao recarregar lembretes:', error);
+    }
     refetch();
   };
 
@@ -207,6 +235,19 @@ export function TasksPageView() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] w-full">
       {/* Header Padrão */}
+      {loading ? (
+        <div className="flex items-center justify-between gap-2 px-[5px] py-0.5 border-b border-border">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+          <div className="flex items-center gap-0.5">
+            <div className="h-7 w-7 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-7 w-7 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-7 w-7 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+        </div>
+      ) : (
       <div className="flex items-center justify-between gap-2 px-[5px] py-0.5 border-b border-border">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <CheckSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -268,7 +309,7 @@ export function TasksPageView() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Templates</p>
+                <p>{t('tasks.card.templates')}</p>
               </TooltipContent>
             </Tooltip>
             
@@ -291,6 +332,7 @@ export function TasksPageView() {
           </div>
         </TooltipProvider>
       </div>
+      )}
 
       {/* Tabs com ícones estilo Gestor de Projetos */}
       {loading ? (
@@ -340,12 +382,32 @@ export function TasksPageView() {
                     value="delegado" 
                     className="text-xs gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-2 md:px-3 py-1.5"
                   >
-                    <Bell className="h-3.5 w-3.5" />
+                    <Sparkles className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">{t('tasks.card.delegated')}</span>
                   </TabsTrigger>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
                   <p>{t('tasks.card.delegated')}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger 
+                    value="lembretes" 
+                    className="text-xs gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-2 md:px-3 py-1.5"
+                  >
+                    <Bell className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Lembretes</span>
+                    {reminders.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">
+                        {reminders.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Meus Lembretes</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -441,6 +503,67 @@ export function TasksPageView() {
                       onUpdate={refetch}
                       variant="table"
                     />
+                  </motion.div>
+                )}
+
+                {activeTab === 'lembretes' && (
+                  <motion.div
+                    key="lembretes"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="h-full"
+                  >
+                    {loadingReminders ? (
+                      <TasksListSkeleton count={4} />
+                    ) : reminders.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <Bell className="h-12 w-12 text-muted-foreground/40 mb-4" />
+                        <h3 className="text-lg font-medium text-muted-foreground">{t('tasks.reminder.noReminders')}</h3>
+                        <p className="text-sm text-muted-foreground/60 mt-1">
+                          {t('tasks.reminder.noRemindersDesc')}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {reminders.map((reminder) => (
+                          <motion.div
+                            key={reminder.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium">{reminder.title}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {reminder.reminder_date && format(new Date(reminder.reminder_date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {reminder.is_recurring && (
+                                <Badge variant="outline" className="text-xs">
+                                  {t('tasks.reminder.recurring')}
+                                </Badge>
+                              )}
+                              <Badge 
+                                variant={reminder.priority === 'high' || reminder.priority === 'urgent' ? 'destructive' : 'secondary'}
+                                className="text-xs"
+                              >
+                                {reminder.priority === 'low' ? t('tasks.priority.low') : 
+                                 reminder.priority === 'medium' ? t('tasks.priority.medium') : 
+                                 reminder.priority === 'high' ? t('tasks.priority.high') : t('tasks.priority.urgent')}
+                              </Badge>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

@@ -41,15 +41,15 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
+    if (confirm(t('tasks.actions.deleteConfirm'))) {
       try {
         await deleteTask(task.id);
-        toast.success('Tarefa excluída');
+        toast.success(t('tasks.actions.deleted'));
         setShowActions(false);
         onUpdate();
       } catch (error) {
         console.error('Erro ao excluir:', error);
-        toast.error('Erro ao excluir tarefa');
+        toast.error(t('tasks.actions.deleteError'));
       }
     }
   };
@@ -64,12 +64,12 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
     
     try {
       await updateTask(task.id, updates);
-      toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
+      toast.success(newStatus === 'done' ? t('tasks.actions.completed') : t('tasks.actions.reopened'));
       setShowActions(false);
       onUpdate();
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
-      toast.error('Erro ao atualizar tarefa');
+      toast.error(t('tasks.actions.updateError'));
     }
   };
 
@@ -102,7 +102,7 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
             <PopoverContent className="w-64 p-2" align="start" side="left">
               <div className="space-y-1">
                 <div className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  {currentWorkspace ? `Membros de ${currentWorkspace.name}` : 'Usuários'}
+                  {currentWorkspace ? `${t('tasks.actions.workspaceMembers')} ${currentWorkspace.name}` : t('tasks.actions.users')}
                 </div>
                 {users.map((user) => (
                   <button
@@ -113,7 +113,7 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
                         ? task.assignee_ids.filter(id => id !== user.id)
                         : [...task.assignee_ids, user.id];
                       updateTask(task.id, { assignee_ids: newAssignees });
-                      toast.success(task.assignee_ids.includes(user.id) ? 'Atribuição removida' : 'Tarefa atribuída');
+                      toast.success(t('tasks.actions.assignedTo'));
                       onUpdate();
                       setShowAssignee(false);
                       setShowActions(false);
@@ -157,7 +157,7 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
                   if (date) {
                     setSelectedDate(date);
                     updateTask(task.id, { due_date: format(date, 'yyyy-MM-dd') });
-                    toast.success('Data atualizada');
+                    toast.success(t('tasks.actions.dateSet'));
                     onUpdate();
                     setShowCalendar(false);
                     setShowActions(false);
@@ -173,7 +173,7 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
                     const today = new Date();
                     setSelectedDate(today);
                     updateTask(task.id, { due_date: format(today, 'yyyy-MM-dd') });
-                    toast.success('Data definida para hoje');
+                    toast.success(t('tasks.actions.dateSet'));
                     onUpdate();
                     setShowCalendar(false);
                     setShowActions(false);
@@ -189,7 +189,7 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
                     tomorrow.setDate(tomorrow.getDate() + 1);
                     setSelectedDate(tomorrow);
                     updateTask(task.id, { due_date: format(tomorrow, 'yyyy-MM-dd') });
-                    toast.success('Data definida para amanhã');
+                    toast.success(t('tasks.actions.dateSet'));
                     onUpdate();
                     setShowCalendar(false);
                     setShowActions(false);
@@ -205,7 +205,7 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
                     nextWeek.setDate(nextWeek.getDate() + 7);
                     setSelectedDate(nextWeek);
                     updateTask(task.id, { due_date: format(nextWeek, 'yyyy-MM-dd') });
-                    toast.success('Data definida para próxima semana');
+                    toast.success(t('tasks.actions.dateSet'));
                     onUpdate();
                     setShowCalendar(false);
                     setShowActions(false);
@@ -220,7 +220,7 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
                       e.stopPropagation();
                       setSelectedDate(undefined);
                       updateTask(task.id, { due_date: null });
-                      toast.success('Data removida');
+                      toast.success(t('tasks.actions.dateRemoved'));
                       onUpdate();
                       setShowCalendar(false);
                       setShowActions(false);

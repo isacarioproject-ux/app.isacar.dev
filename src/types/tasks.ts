@@ -1,6 +1,6 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type TaskTab = 'pendente' | 'feito' | 'delegado';
+export type TaskTab = 'pendente' | 'feito' | 'delegado' | 'lembretes';
 export type TaskGroup = 'hoje' | 'em_atraso' | 'proximo' | 'nao_programado';
 
 export interface User {

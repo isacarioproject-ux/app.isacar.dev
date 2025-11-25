@@ -39,17 +39,22 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
     task.due_date ? new Date(task.due_date) : undefined
   );
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Tem certeza que deseja excluir esta tarefa?')) {
-      deleteTask(task.id);
-      toast.success('Tarefa excluída');
-      onUpdate();
-      setShowActions(false);
+      try {
+        await deleteTask(task.id);
+        toast.success('Tarefa excluída');
+        setShowActions(false);
+        onUpdate();
+      } catch (error) {
+        console.error('Erro ao excluir:', error);
+        toast.error('Erro ao excluir tarefa');
+      }
     }
   };
 
-  const handleStatusToggle = (e: React.MouseEvent) => {
+  const handleStatusToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     const updates: Partial<Task> = {
@@ -57,10 +62,15 @@ export function TaskRowActionsPopover({ task, onUpdate }: TaskRowActionsPopoverP
       completed_at: newStatus === 'done' ? new Date().toISOString() : null,
     };
     
-    updateTask(task.id, updates);
-    toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
-    onUpdate();
-    setShowActions(false);
+    try {
+      await updateTask(task.id, updates);
+      toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
+      setShowActions(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      toast.error('Erro ao atualizar tarefa');
+    }
   };
 
   return (

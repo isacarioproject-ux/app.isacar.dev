@@ -128,21 +128,17 @@ export function TaskActivitySidebar({
     if (!commentText.trim()) return;
 
     try {
-      // Extrair menções do texto (formato @nome)
-      const mentionMatches = commentText.match(/@\w+/g) || [];
-      const mentions = mentionMatches.map(m => m.substring(1));
-      
       const userId = await getCurrentUserId();
       
-      // Criar objeto Comment para a função addComment
+      // Criar objeto Comment - mentions como array vazio (UUIDs são gerenciados pelo backend)
       const newComment: Comment = {
-        id: `temp-${Date.now()}`, // ID temporário, será substituído pelo Supabase
+        id: `temp-${Date.now()}`,
         task_id: taskId,
         user_id: userId,
         user_name: 'Você',
         text: commentText,
         created_at: new Date().toISOString(),
-        mentions,
+        mentions: [], // Array vazio - não passar nomes como UUIDs
       };
       
       await addComment(newComment);

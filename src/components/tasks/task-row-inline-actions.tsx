@@ -35,25 +35,35 @@ export function TaskRowInlineActions({ task, onUpdate }: TaskRowInlineActionsPro
     getUsers().then(setUsers).catch(console.error);
   }, []);
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Deseja realmente excluir esta tarefa?')) {
-      deleteTask(task.id);
-      toast.success('Tarefa excluída');
-      onUpdate();
+      try {
+        await deleteTask(task.id);
+        toast.success('Tarefa excluída');
+        onUpdate();
+      } catch (error) {
+        console.error('Erro ao excluir:', error);
+        toast.error('Erro ao excluir tarefa');
+      }
     }
   };
 
-  const handleStatusToggle = (e: React.MouseEvent) => {
+  const handleStatusToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus = task.status === 'done' ? 'todo' : 'done';
     const updates: Partial<Task> = {
       status: newStatus,
       completed_at: newStatus === 'done' ? new Date().toISOString() : null,
     };
-    updateTask(task.id, updates);
-    toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
-    onUpdate();
+    try {
+      await updateTask(task.id, updates);
+      toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
+      onUpdate();
+    } catch (error) {
+      console.error('Erro ao atualizar:', error);
+      toast.error('Erro ao atualizar tarefa');
+    }
   };
 
   return (

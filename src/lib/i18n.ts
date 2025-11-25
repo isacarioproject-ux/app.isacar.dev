@@ -1876,6 +1876,8 @@ const translations: Translations = {
   'tasks.activity.attachmentUploaded': { 'pt-BR': 'Anexo carregado', 'en': 'Attachment uploaded', 'es': 'Adjunto cargado' },
   'tasks.activity.attachmentError': { 'pt-BR': 'Erro ao carregar anexo', 'en': 'Error uploading attachment', 'es': 'Error al cargar adjunto' },
   'tasks.activity.commentAdded': { 'pt-BR': 'Comentário adicionado', 'en': 'Comment added', 'es': 'Comentario añadido' },
+  'tasks.activity.commentError': { 'pt-BR': 'Erro ao adicionar comentário', 'en': 'Error adding comment', 'es': 'Error al añadir comentario' },
+  'tasks.activity.notAuthenticated': { 'pt-BR': 'Usuário não autenticado', 'en': 'User not authenticated', 'es': 'Usuario no autenticado' },
 
   // QuickAdd
   'tasks.quickAdd.title': { 'pt-BR': 'Tarefa', 'en': 'Task', 'es': 'Tarea' },

@@ -522,42 +522,11 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
       <div className="flex items-center gap-2 text-sm">
         <span className="text-gray-500 dark:text-gray-400">{t('tasks.timeTracked')}</span>
         <TimeTracker 
-          taskId={task.id} 
-          onTimeAdd={async (minutes) => {
-            try {
-              // Salvar tempo no banco (task_time_entries)
-              const { data: { user } } = await supabase.auth.getUser();
-              
-              if (!user) {
-                toast.error('Usuário não autenticado');
-                return;
-              }
-
-              const { error } = await supabase
-                .from('task_time_entries')
-                .insert({
-                  task_id: task.id,
-                  user_id: user.id,
-                  minutes: minutes,
-                  logged_at: new Date().toISOString(),
-                  description: `${minutes} minutos adicionados`
-                });
-              
-              if (error) {
-                console.error('Erro ao salvar tempo:', error);
-                // Se a tabela não existir ainda, apenas mostra toast de sucesso
-                if (error.code === '42P01') {
-                  toast.success(`${minutes} minutos adicionados (tabela pendente)`);
-                } else {
-                  throw error;
-                }
-              } else {
-                toast.success(`${minutes} minutos adicionados e salvos!`);
-              }
-            } catch (error: any) {
-              console.error('Erro ao adicionar tempo:', error);
-              toast.error('Erro ao salvar tempo rastreado');
-            }
+          taskId={task.id}
+          totalMinutes={(task as any).time_tracked || 0}
+          onTimeAdd={(minutes) => {
+            // O TimeTracker já salva no Supabase - apenas log para debug
+            console.log('✅ Tempo adicionado:', minutes, 'minutos');
           }} 
         />
       </div>

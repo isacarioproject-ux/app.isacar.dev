@@ -80,10 +80,17 @@ export function TaskActivitySidebar({
 
     setUploadingAttachment(true);
     try {
-      // Upload para Supabase Storage
+      // Obter userId para o path correto (RLS exige userId como primeiro folder)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error(t('tasks.activity.notAuthenticated'));
+        return;
+      }
+
+      // Upload para Supabase Storage - path: userId/taskId/filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${taskId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `task-comment-attachments/${fileName}`;
+      const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user.id}/${taskId}/${uniqueName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('attachments')
@@ -121,24 +128,30 @@ export function TaskActivitySidebar({
     if (!commentText.trim()) return;
 
     try {
-    const userId = await getCurrentUserId();
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      task_id: taskId,
-      user_id: userId,
+      // Extrair menções do texto (formato @nome)
+      const mentionMatches = commentText.match(/@\w+/g) || [];
+      const mentions = mentionMatches.map(m => m.substring(1));
+      
+      const userId = await getCurrentUserId();
+      
+      // Criar objeto Comment para a função addComment
+      const newComment: Comment = {
+        id: `temp-${Date.now()}`, // ID temporário, será substituído pelo Supabase
+        task_id: taskId,
+        user_id: userId,
         user_name: 'Você',
-      text: commentText,
-      created_at: new Date().toISOString(),
-      mentions: [],
-    };
-
-    await addComment(newComment);
-    setCommentText('');
-    toast.success(t('tasks.activity.commentAdded'));
-    onUpdate();
+        text: commentText,
+        created_at: new Date().toISOString(),
+        mentions,
+      };
+      
+      await addComment(newComment);
+      setCommentText('');
+      toast.success(t('tasks.activity.commentAdded'));
+      onUpdate();
     } catch (error) {
       console.error('Erro ao adicionar comentário:', error);
-      toast.error('Erro ao adicionar comentário');
+      toast.error(t('tasks.activity.commentError'));
     }
   };
 

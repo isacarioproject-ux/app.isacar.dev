@@ -19,6 +19,8 @@ import { supabase } from '@/lib/supabase'
 import { User, Mail, Camera, Save, Key, Loader2, UserCircle, AlertCircle, Upload, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useI18n } from '@/hooks/use-i18n'
+import { motion } from 'framer-motion'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function ProfilePage() {
   const { t } = useI18n()
@@ -284,8 +286,41 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex h-[50vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <div className="min-h-screen w-full flex items-start justify-center pt-6 pb-8">
+          <div className="w-full px-4 md:w-[60%] md:px-0 space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              {/* Header Skeleton */}
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              
+              {/* Avatar Card Skeleton */}
+              <div className="p-6 rounded-lg border space-y-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-20 w-20 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Skeleton */}
+              <div className="p-6 rounded-lg border space-y-4">
+                <Skeleton className="h-5 w-40" />
+                <div className="space-y-3">
+                  <Skeleton className="h-9 w-full" />
+                  <Skeleton className="h-9 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </DashboardLayout>
     )

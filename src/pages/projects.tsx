@@ -7,7 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, FolderKanban, Search } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Plus, FolderKanban, Search, MoreVertical, Trash2, CheckSquare, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Project {
@@ -19,6 +25,8 @@ interface Project {
   status: string
   created_at: string
   updated_at: string
+  taskCount?: number
+  financeCount?: number
 }
 
 export default function ProjectsPage() {
@@ -56,9 +64,34 @@ export default function ProjectsPage() {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error
-      setProjects(data || [])
+      
+      // Buscar contadores para cada projeto
+      const projectsWithCounts = await Promise.all(
+        (data || []).map(async (project) => {
+          // Contar documentos de projeto (tarefas)
+          const { count: taskCount } = await supabase
+            .from('project_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('project_id', project.id)
+          
+          // Contar documentos financeiros
+          const { count: financeCount } = await supabase
+            .from('finance_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('project_id', project.id)
+          
+          return {
+            ...project,
+            taskCount: taskCount || 0,
+            financeCount: financeCount || 0,
+          }
+        })
+      )
+      
+      console.log('🔢 Projetos (página) com contadores:', projectsWithCounts)
+      setProjects(projectsWithCounts)
     } catch (error: any) {
-      console.error('Erro ao carregar projetos:', error)
+      console.error('❌ Erro ao carregar projetos (página):', error)
       toast.error('Erro ao carregar projetos')
     } finally {
       setLoading(false)
@@ -206,7 +239,45 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.map((project) => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow">
+            <Card key={project.id} className="group relative hover:shadow-lg transition-shadow">
+              {/* Menu 3 pontinhos */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={async () => {
+                      if (confirm(`Tem certeza que deseja excluir o projeto "${project.name}"?`)) {
+                        try {
+                          const { error } = await supabase
+                            .from('projects')
+                            .delete()
+                            .eq('id', project.id)
+                          
+                          if (error) throw error
+                          toast.success('Projeto excluído com sucesso')
+                          loadProjects()
+                        } catch (error: any) {
+                          console.error('Erro ao excluir projeto:', error)
+                          toast.error('Erro ao excluir projeto')
+                        }
+                      }
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    Excluir projeto
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{project.name}</CardTitle>
@@ -217,11 +288,24 @@ export default function ProjectsPage() {
               </CardHeader>
               <CardContent>
                 {project.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3">
+                  <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
                     {project.description}
                   </p>
                 )}
-                <div className="mt-4 text-xs text-muted-foreground">
+                
+                {/* Contadores */}
+                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                  <span className="flex items-center gap-1">
+                    <CheckSquare className="h-3 w-3" />
+                    {project.taskCount || 0} {project.taskCount === 1 ? 'tarefa' : 'tarefas'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    {project.financeCount || 0} docs
+                  </span>
+                </div>
+                
+                <div className="text-xs text-muted-foreground">
                   Criado em {new Date(project.created_at).toLocaleDateString('pt-BR')}
                 </div>
               </CardContent>

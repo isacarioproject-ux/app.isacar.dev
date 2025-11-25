@@ -23,16 +23,18 @@ import { TaskTemplateSelector } from '@/components/tasks/task-template-selector'
 import { QuickAddTaskDialog } from '@/components/tasks/quick-add-task-dialog';
 import { TasksSettingsDialog } from '@/components/tasks/tasks-settings-dialog';
 import { TasksCardSkeleton, TasksListSkeleton, TasksHeaderSkeleton } from '@/components/tasks/tasks-card-skeleton';
-import { Plus, CheckSquare, Bell, Sparkles, Settings } from 'lucide-react';
+import { Plus, CheckSquare, Square, Bell, Sparkles, Settings } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { TaskGroups, Task, TaskTemplate } from '@/types/tasks';
 import { createTask, getCurrentUserId } from '@/lib/tasks/tasks-storage';
 import { toast } from 'sonner';
 import { useI18n } from '@/hooks/use-i18n';
+import { useWorkspace } from '@/contexts/workspace-context';
 
 export function TasksPageView() {
   const { t } = useI18n();
+  const { currentWorkspace } = useWorkspace();
   const {
     tasks,
     activeTab,
@@ -42,6 +44,11 @@ export function TasksPageView() {
     toggleGroup,
     isGroupExpanded,
   } = useTasksCard();
+
+  // ✨ Recarregar tasks quando mudar de workspace
+  useEffect(() => {
+    refetch();
+  }, [currentWorkspace?.id]);
 
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -90,6 +97,7 @@ export function TasksPageView() {
       created_by: userId,
       tag_ids: [],
       project_id: null,
+      finance_document_id: null,
       list_id: null,
       parent_task_id: null,
       custom_fields: template.task.custom_fields || [],
@@ -116,6 +124,7 @@ export function TasksPageView() {
           created_by: userId,
           tag_ids: [],
           project_id: null,
+          finance_document_id: null,
           list_id: null,
           parent_task_id: newTask.id,
           custom_fields: [],
@@ -197,109 +206,23 @@ export function TasksPageView() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] w-full">
-      {/* Header Compacto - Tudo em uma linha */}
-      {loading ? (
-        <TasksHeaderSkeleton />
-      ) : (
-      <div className="flex items-center gap-4 px-8 py-3">
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as any)}
-          className="flex-shrink-0"
-        >
-          <TabsList className="bg-muted/50 h-9 w-auto justify-start gap-0 p-0.5 rounded-md">
-            <TabsTrigger 
-              value="pendente" 
-              className="text-sm px-4 h-8 rounded-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              {t('tasks.card.pending')}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="feito" 
-              className="text-sm px-4 h-8 rounded-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              {t('tasks.card.done')}
-            </TabsTrigger>
-            <TabsTrigger 
-              value="delegado" 
-              className="text-sm px-4 h-8 rounded-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              {t('tasks.card.delegated')}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+      {/* Header Padrão */}
+      <div className="flex items-center justify-between gap-2 px-[5px] py-0.5 border-b border-border">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <CheckSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-sm font-semibold truncate">Meu Trabalho</h2>
+        </div>
 
-        <div className="h-6 w-px bg-border" />
-
-        {/* Seletor de Ícone */}
         <TooltipProvider>
-          <Popover open={isIconPickerOpen} onOpenChange={setIsIconPickerOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-xl">
-                    {selectedIcon}
-                  </Button>
-                </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Escolher ícone</p>
-              </TooltipContent>
-            </Tooltip>
-            <PopoverContent className="w-auto p-2" align="start">
-              <div className="grid grid-cols-5 gap-1">
-                {availableIcons.map((icon) => (
-                  <button
-                    key={icon}
-                    onClick={() => {
-                      setSelectedIcon(icon);
-                      setIsIconPickerOpen(false);
-                    }}
-                    className="h-9 w-9 text-xl hover:bg-muted rounded transition-colors"
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          {/* Input Nome do Workspace */}
-          <Input
-            value={workspaceName}
-            onChange={(e) => setWorkspaceName(e.target.value)}
-            className="h-9 text-base font-semibold bg-transparent border-none focus-visible:ring-1 focus-visible:ring-ring px-2 w-64"
-            placeholder="Nome do workspace"
-          />
-          
-          {/* Badge contador */}
-          {totalTasks > 0 && (
-            <motion.div
-              key={totalTasks}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 500, damping: 25 }}
-            >
-              <Badge variant="secondary" className="text-xs h-6 px-2">
-                {totalTasks}
-              </Badge>
-            </motion.div>
-          )}
-
-          <div className="flex-1" />
-
-          {/* Botões de Ação */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {/* Botão Adicionar com Popover */}
             <Popover open={isAddPopoverOpen} onOpenChange={setIsAddPopoverOpen}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <PopoverTrigger asChild>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Plus className="size-4" />
-                      </Button>
-                    </motion.div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
                   </PopoverTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -335,16 +258,14 @@ export function TasksPageView() {
             {/* Botão Templates */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setIsTemplateSelectorOpen(true)}
-                  >
-                    <Sparkles className="size-4" />
-                  </Button>
-                </motion.div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setIsTemplateSelectorOpen(true)}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                </Button>
               </TooltipTrigger>
               <TooltipContent>
                 <p>Templates</p>
@@ -354,18 +275,14 @@ export function TasksPageView() {
             {/* Botão Configurações */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => {
-                      setIsSettingsOpen(true);
-                    }}
-                  >
-                    <Settings className="size-4" />
-                    </Button>
-                </motion.div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setIsSettingsOpen(true)}
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </Button>
               </TooltipTrigger>
               <TooltipContent>
                 <p>Configurações</p>
@@ -374,17 +291,87 @@ export function TasksPageView() {
           </div>
         </TooltipProvider>
       </div>
-      )}
 
-      {/* Conteúdo Principal */}
-      <div className="flex-1 overflow-hidden px-8 pt-4">
+      {/* Tabs com ícones estilo Gestor de Projetos */}
+      {loading ? (
+        <TasksHeaderSkeleton />
+      ) : (
+      <div className="flex items-center justify-between px-4 md:px-16 shrink-0 py-1 md:py-0">
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as any)}
-          className="h-full flex flex-col"
+          className="flex-shrink-0"
         >
-          {/* Conteúdo das Abas com Transições */}
-          <div className="flex-1 overflow-auto pb-8">
+          <TabsList variant="transparent" className="border-0 p-0 gap-0.5 md:gap-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger 
+                    value="pendente" 
+                    className="text-xs gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-2 md:px-3 py-1.5"
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{t('tasks.card.pending')}</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{t('tasks.card.pending')}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger 
+                    value="feito" 
+                    className="text-xs gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-2 md:px-3 py-1.5"
+                  >
+                    <CheckSquare className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{t('tasks.card.done')}</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{t('tasks.card.done')}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger 
+                    value="delegado" 
+                    className="text-xs gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-2 md:px-3 py-1.5"
+                  >
+                    <Bell className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{t('tasks.card.delegated')}</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>{t('tasks.card.delegated')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </TabsList>
+        </Tabs>
+
+        {/* Badge contador */}
+        {totalTasks > 0 && (
+          <motion.div
+            key={totalTasks}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 25 }}
+          >
+            <Badge variant="secondary" className="text-xs h-6 px-2">
+              {totalTasks}
+            </Badge>
+          </motion.div>
+        )}
+      </div>
+      )}
+
+      {/* Conteúdo Principal */}
+      <div className="flex-1 overflow-hidden px-4 md:px-16 pt-4">
+        {/* Conteúdo das Abas com Transições */}
+        <div className="h-full overflow-auto pb-8">
             {loading ? (
               <motion.div
                 key="loading"
@@ -410,16 +397,14 @@ export function TasksPageView() {
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                     className="h-full"
                   >
-                    <TabsContent value="pendente" className="m-0 h-full">
-                      <TasksGroupView
-                        groups={tasks as TaskGroups}
-                        onTaskClick={handleTaskClick}
-                        onUpdate={refetch}
-                        isGroupExpanded={isGroupExpanded}
-                        toggleGroup={toggleGroup}
-                        variant="table"
-                      />
-                    </TabsContent>
+                    <TasksGroupView
+                      groups={tasks as TaskGroups}
+                      onTaskClick={handleTaskClick}
+                      onUpdate={refetch}
+                      isGroupExpanded={isGroupExpanded}
+                      toggleGroup={toggleGroup}
+                      variant="table"
+                    />
                   </motion.div>
                 )}
 
@@ -432,14 +417,12 @@ export function TasksPageView() {
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                     className="h-full"
                   >
-                    <TabsContent value="feito" className="m-0 h-full">
-                      <TasksListView
-                        tasks={tasks as Task[]}
-                        onTaskClick={handleTaskClick}
-                        onUpdate={refetch}
-                        variant="table"
-                      />
-                    </TabsContent>
+                    <TasksListView
+                      tasks={tasks as Task[]}
+                      onTaskClick={handleTaskClick}
+                      onUpdate={refetch}
+                      variant="table"
+                    />
                   </motion.div>
                 )}
 
@@ -452,20 +435,17 @@ export function TasksPageView() {
                     transition={{ duration: 0.2, ease: "easeInOut" }}
                     className="h-full"
                   >
-                    <TabsContent value="delegado" className="m-0 h-full">
-                      <TasksDelegatedView
-                        tasks={Object.values(tasks).flat()}
-                        onTaskClick={handleTaskClick}
-                        onUpdate={refetch}
-                        variant="table"
-                      />
-                    </TabsContent>
+                    <TasksDelegatedView
+                      tasks={Object.values(tasks).flat()}
+                      onTaskClick={handleTaskClick}
+                      onUpdate={refetch}
+                      variant="table"
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
             )}
-          </div>
-        </Tabs>
+        </div>
       </div>
 
       {/* Task Modal */}

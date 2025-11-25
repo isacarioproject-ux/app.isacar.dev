@@ -1,5 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, Reorder } from 'framer-motion'
+import { useProjectItems } from '@/hooks/use-project-items'
+import { FinanceDocsSelector } from './finance-docs-selector'
+import { FinanceDocViewer } from './finance-doc-viewer'
+import { ProjectDriveFiles } from './project-drive-files'
 import {
   FolderKanban,
   Plus,
@@ -23,6 +27,8 @@ import {
   Eye,
   EyeOff,
   PieChart,
+  FolderOpen,
+  Paperclip,
 } from 'lucide-react'
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Label, Tooltip as RechartsTooltip } from 'recharts'
 import { Button } from '@/components/ui/button'
@@ -82,6 +88,10 @@ interface ProjectManagerProps {
   onBack: () => void
 }
 
+// Tipos do banco de dados
+type ProjectStatusDB = 'Planejamento' | 'Em andamento' | 'Concluído' | 'Pausado' | 'Cancelado'
+type ProjectStatusKanban = 'pending' | 'active' | 'completed' | 'no-status'
+
 interface ProjectItem {
   id: string
   name: string
@@ -89,45 +99,59 @@ interface ProjectItem {
   createdAt: string
   description: string
   isPrivate: boolean
-  status: 'pending' | 'active' | 'completed'
+  status: ProjectStatusKanban
+  statusDB?: ProjectStatusDB // Status real do banco
   financeDocs: number
 }
 
-// Mock data - substituir por dados reais
-const MOCK_PROJECT_ITEMS: ProjectItem[] = [
-  {
-    id: '1',
-    name: 'Desenvolvimento App Mobile',
-    sharedWith: ['2', '3'],
-    createdAt: '2024-01-15',
-    description: 'Desenvolvimento do aplicativo mobile para iOS e Android',
-    isPrivate: false,
-    status: 'active',
-    financeDocs: 5,
-  },
-  {
-    id: '2',
-    name: 'Redesign Website',
-    sharedWith: ['2'],
-    createdAt: '2024-01-10',
-    description: 'Novo design para o site institucional',
-    isPrivate: true,
-    status: 'active',
-    financeDocs: 3,
-  },
-]
+// Mapeamento: Banco → Kanban
+const mapDBToKanban = (dbStatus: ProjectStatusDB | null): ProjectStatusKanban => {
+  if (!dbStatus) return 'no-status'
+  const mapping: Record<ProjectStatusDB, ProjectStatusKanban> = {
+    'Planejamento': 'pending',
+    'Em andamento': 'active',
+    'Concluído': 'completed',
+    'Pausado': 'no-status',
+    'Cancelado': 'no-status',
+  }
+  return mapping[dbStatus] || 'no-status'
+}
+
+// Mapeamento: Kanban → Banco
+const mapKanbanToDB = (kanbanStatus: ProjectStatusKanban): ProjectStatusDB => {
+  const mapping: Record<ProjectStatusKanban, ProjectStatusDB> = {
+    'pending': 'Planejamento',
+    'active': 'Em andamento',
+    'completed': 'Concluído',
+    'no-status': 'Pausado',
+  }
+  return mapping[kanbanStatus]
+}
 
 export function ProjectManager({
   projectId,
   projectName,
   onBack,
 }: ProjectManagerProps) {
+  // 🔥 Hook para dados reais do Supabase
+  const {
+    items: projectsFromDB,
+    loading: loadingProjects,
+    updateStatus: updateStatusDB,
+    updateName: updateNameDB,
+    updateDescription: updateDescriptionDB,
+    deleteItem: deleteItemDB,
+    createItem: createItemDB,
+  } = useProjectItems(projectId)
+
   const [activeTab, setActiveTab] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchExpanded, setSearchExpanded] = useState(false)
-  const [projects, setProjects] = useState<ProjectItem[]>(MOCK_PROJECT_ITEMS)
+  const [showDrivePicker, setShowDrivePicker] = useState(false)
+  const [projects, setProjects] = useState<ProjectItem[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedProject, setSelectedProject] = useState<ProjectItem | null>(null)
+  const [viewingFinanceDocId, setViewingFinanceDocId] = useState<string | null>(null)
   const [selectedRows, setSelectedRows] = useState<string[]>([])
   const [visibilityMenuOpen, setVisibilityMenuOpen] = useState(false)
   const [draggedProject, setDraggedProject] = useState<ProjectItem | null>(null)
@@ -145,6 +169,11 @@ export function ProjectManager({
   // Estado para o calendário
   const [calendarDate, setCalendarDate] = useState(new Date())
 
+  // Sincronizar dados do hook com estado local
+  useEffect(() => {
+    setProjects(projectsFromDB)
+  }, [projectsFromDB])
+
   // Filtrar projetos por busca
   // TODO: Integrar com banco de dados - fazer busca no backend quando searchQuery mudar
   // Implementar debounce e buscar diretamente no Supabase para melhor performance
@@ -160,7 +189,13 @@ export function ProjectManager({
     }
   }
 
-  const STATUS_CONFIG = {
+  const STATUS_CONFIG: Record<ProjectStatusKanban, {
+    label: string
+    badgeColor: string
+    cardColor: string
+    headerColor: string
+    icon: any
+  }> = {
     pending: {
       label: 'Pendente',
       badgeColor: 'bg-slate-500/20 text-slate-700 dark:text-slate-400 hover:bg-slate-500/30',
@@ -181,6 +216,13 @@ export function ProjectManager({
       cardColor: 'bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800/50',
       headerColor: 'text-emerald-600 dark:text-emerald-500',
       icon: CheckSquare,
+    },
+    'no-status': {
+      label: 'Sem Status',
+      badgeColor: 'bg-zinc-500/20 text-zinc-700 dark:text-zinc-400 hover:bg-zinc-500/30',
+      cardColor: 'bg-zinc-50 dark:bg-zinc-900/70 border border-zinc-200 dark:border-zinc-800/50',
+      headerColor: 'text-zinc-600 dark:text-zinc-500',
+      icon: Info,
     },
   }
 
@@ -232,11 +274,7 @@ export function ProjectManager({
   }
 
   const moveProjectToStatus = (projectId: string, newStatus: 'pending' | 'active' | 'completed') => {
-    setProjects(prev =>
-      prev.map(p =>
-        p.id === projectId ? { ...p, status: newStatus } : p
-      )
-    )
+    updateStatusDB(projectId, newStatus)
   }
 
   const handleDragStart = (project: ProjectItem) => (e: React.DragEvent) => {
@@ -255,7 +293,7 @@ export function ProjectManager({
     setDragOverColumn(null)
     
     if (draggedProject && draggedProject.status !== newStatus) {
-      moveProjectToStatus(draggedProject.id, newStatus)
+      updateStatusDB(draggedProject.id, newStatus)
     }
     setDraggedProject(null)
   }
@@ -264,9 +302,9 @@ export function ProjectManager({
     e.preventDefault()
     setDragOverColumn(null)
     
-    if (draggedProject && draggedProject.status) {
-      // Limpar o status do projeto
-      updateProjectField(draggedProject.id, 'status', '' as any)
+    if (draggedProject && draggedProject.status !== 'no-status') {
+      // Mover para sem status
+      updateStatusDB(draggedProject.id, 'no-status')
     }
     setDraggedProject(null)
   }
@@ -285,50 +323,35 @@ export function ProjectManager({
     field: K,
     value: ProjectItem[K]
   ) => {
-    setProjects(prev =>
-      prev.map(p => (p.id === projectId ? { ...p, [field]: value } : p))
-    )
+    // Atualizar no banco via hook
+    if (field === 'status') {
+      updateStatusDB(projectId, value as ProjectStatusKanban)
+    } else if (field === 'name') {
+      updateNameDB(projectId, value as string)
+    } else if (field === 'description') {
+      updateDescriptionDB(projectId, value as string)
+    } else {
+      // Para outros campos, atualizar localmente por enquanto
+      setProjects(prev =>
+        prev.map(p => (p.id === projectId ? { ...p, [field]: value } : p))
+      )
+    }
   }
 
   const deleteProject = (projectId: string) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId))
+    deleteItemDB(projectId)
   }
 
   const addNewProject = (status: 'pending' | 'active' | 'completed' = 'pending') => {
-    const newProject: ProjectItem = {
-      id: Date.now().toString(),
-      name: '',
-      sharedWith: [],
-      createdAt: '',
-      description: '',
-      isPrivate: false,
-      status,
-      financeDocs: 0,
-    }
-    setProjects([...projects, newProject])
+    createItemDB(status)
   }
 
   const addNewProjectWithoutStatus = () => {
-    const newProject: ProjectItem = {
-      id: Date.now().toString(),
-      name: '',
-      sharedWith: [],
-      createdAt: '',
-      description: '',
-      isPrivate: false,
-      status: '' as any,
-      financeDocs: 0,
-    }
-    setProjects([...projects, newProject])
+    createItemDB('no-status')
   }
 
   return (
     <>
-      <DialogTitle className="sr-only">Gestor de Projetos</DialogTitle>
-      <DialogDescription className="sr-only">
-        Gerencie todos os seus projetos em um só lugar
-      </DialogDescription>
-      
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between gap-2 px-[5px] py-0.5 border-b border-border">
@@ -364,7 +387,7 @@ export function ProjectManager({
             </div>
 
             <div className="flex items-center justify-between px-4 md:px-16 shrink-0 py-1 md:py-0">
-              <TabsList className="h-8 md:h-9 bg-transparent border-0 p-0 gap-0.5 md:gap-0">
+              <TabsList variant="transparent" className="border-0 p-0 gap-0.5 md:gap-0">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <TabsTrigger 
@@ -428,6 +451,22 @@ export function ProjectManager({
                     <p className="text-muted-foreground">Visualização em calendário</p>
                   </TooltipContent>
                 </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TabsTrigger 
+                      value="files" 
+                      className="text-xs gap-1 md:gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-1.5 md:px-2 py-1"
+                    >
+                      <FolderOpen className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Arquivos</span>
+                    </TabsTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Arquivos</p>
+                    <p className="text-muted-foreground">Arquivos do Google Drive</p>
+                  </TooltipContent>
+                </Tooltip>
               </TabsList>
 
               {/* Botões de ação à direita */}
@@ -475,7 +514,30 @@ export function ProjectManager({
                   </div>
                 )}
                 
-                <Button size="sm" className="h-7 gap-1 text-xs">
+                {activeTab === 'files' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="secondary"
+                        size="sm" 
+                        className="h-7 w-7 p-0"
+                        onClick={() => setShowDrivePicker(true)}
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Anexar arquivos do Drive</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+                
+                <Button 
+                  size="sm" 
+                  className="h-7 gap-1 text-xs"
+                  onClick={() => addNewProject('pending')}
+                  disabled={loadingProjects}
+                >
                   <Plus className="h-3 w-3" />
                   <span className="hidden sm:inline">Novo</span>
                 </Button>
@@ -782,6 +844,12 @@ export function ProjectManager({
                               <Input
                                 defaultValue={project.name}
                                 placeholder="Sem título"
+                                onBlur={(e) => {
+                                  const newName = e.target.value.trim()
+                                  if (newName && newName !== project.name) {
+                                    updateProjectField(project.id, 'name', newName)
+                                  }
+                                }}
                                 className="border-none bg-transparent focus-visible:bg-accent/50 focus-visible:ring-1 focus-visible:ring-blue-500 h-8 text-xs px-2 font-medium flex-1 transition-colors"
                               />
                               <button 
@@ -835,6 +903,12 @@ export function ProjectManager({
                             <Input
                               type="date"
                               defaultValue={project.createdAt}
+                              onBlur={(e) => {
+                                const newDate = e.target.value
+                                if (newDate && newDate !== project.createdAt) {
+                                  updateProjectField(project.id, 'createdAt', newDate)
+                                }
+                              }}
                               className="border-none bg-transparent focus-visible:bg-accent/50 focus-visible:ring-1 focus-visible:ring-blue-500 h-8 text-xs px-2 transition-colors"
                             />
                           </td>
@@ -846,6 +920,12 @@ export function ProjectManager({
                             <Input
                               defaultValue={project.description}
                               placeholder="Vazio"
+                              onBlur={(e) => {
+                                const newDesc = e.target.value.trim()
+                                if (newDesc !== project.description) {
+                                  updateProjectField(project.id, 'description', newDesc)
+                                }
+                              }}
                               className="border-none bg-transparent focus-visible:bg-accent/50 focus-visible:ring-1 focus-visible:ring-blue-500 h-8 text-xs px-2 transition-colors"
                             />
                           </td>
@@ -921,29 +1001,16 @@ export function ProjectManager({
                         {/* Documentos Financeiro - Com buscador */}
                         {visibleColumns.financeDocs && (
                           <td className="py-1 px-2">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button className="flex items-center gap-2 hover:bg-accent px-2 py-1 rounded text-xs transition-colors">
-                                  <ChevronRight className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                                  <span className="text-xs">{project.financeDocs} docs</span>
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="w-[300px]">
-                                <div className="px-2 py-2">
-                                  <Input
-                                    placeholder="Vincule ou crie uma página..."
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <DropdownMenuSeparator />
-                                <div className="px-2 py-1 text-xs text-muted-foreground">
-                                  Em <FileText className="h-3 w-3 inline" /> Documentos Financeiros
-                                </div>
-                                <div className="px-2 py-2 text-xs text-muted-foreground">
-                                  Nenhum resultado
-                                </div>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <FinanceDocsSelector
+                              projectId={projectId}
+                              projectDocumentId={project.id}
+                              currentCount={project.financeDocs}
+                              onUpdate={() => {
+                                // Recarregar itens para atualizar contador
+                                setProjects(projectsFromDB)
+                              }}
+                              onViewDocument={(docId) => setViewingFinanceDocId(docId)}
+                            />
                           </td>
                         )}
 
@@ -973,8 +1040,8 @@ export function ProjectManager({
             {activeTab === 'status' && (
             <TabsContent value="status" className="flex-1 m-0 overflow-auto">
               {/* Kanban Board */}
-              <div className="overflow-x-auto px-4 md:px-16 py-2 md:py-4">
-                <div className="flex gap-2 md:gap-4 min-w-max">
+              <div className="overflow-x-auto md:overflow-x-visible px-4 md:px-16 py-2 md:py-4">
+                <div className="flex gap-2 md:gap-3 min-w-max md:min-w-0">
                   {/* Renderizar colunas dinamicamente */}
                   {(['completed', 'active', 'pending'] as const).map((status) => {
                     const config = STATUS_CONFIG[status]
@@ -986,7 +1053,7 @@ export function ProjectManager({
                       <div
                         key={status}
                         className={cn(
-                          "flex flex-col w-[240px] md:w-[280px] shrink-0 rounded-lg transition-all",
+                          "flex flex-col w-[240px] md:w-[240px] md:flex-1 shrink-0 rounded-lg transition-all",
                           isBeingDraggedOver && "ring-2 ring-primary ring-offset-2"
                         )}
                         onDragOver={handleDragOver(status)}
@@ -1080,7 +1147,7 @@ export function ProjectManager({
                   {/* Coluna: Sem Status */}
                   <div 
                     className={cn(
-                      "flex flex-col w-[240px] md:w-[280px] shrink-0 rounded-lg transition-all",
+                      "flex flex-col w-[240px] md:w-[240px] md:flex-1 shrink-0 rounded-lg transition-all",
                       dragOverColumn === 'no-status' && "ring-2 ring-primary ring-offset-2"
                     )}
                     onDragOver={(e) => {
@@ -1095,7 +1162,7 @@ export function ProjectManager({
                       <div className="flex items-center gap-1 md:gap-2">
                         <span className="text-xs md:text-sm font-medium text-muted-foreground">Sem Status</span>
                         <span className="text-[10px] md:text-xs text-muted-foreground">
-                          ({projects.filter(p => !p.status || (p.status as string) === '').length})
+                          ({filteredProjects.filter(p => p.status === 'no-status').length})
                         </span>
                       </div>
                       <div className="flex items-center gap-0.5 md:gap-1">
@@ -1124,7 +1191,7 @@ export function ProjectManager({
 
                     {/* Cards da coluna - sem status */}
                     <div className="flex flex-col gap-1.5 md:gap-2 pb-1.5 md:pb-2">
-                      {projects.filter(p => !p.status || (p.status as string) === '').map((project) => (
+                      {filteredProjects.filter(p => p.status === 'no-status').map((project) => (
                         <KanbanCard
                           key={project.id}
                           project={project}
@@ -1267,9 +1334,46 @@ export function ProjectManager({
                                   )}>
                                     {day}
                                   </div>
-                                  {/* Espaço para eventos futuros */}
+                                  {/* Documentos deste dia */}
                                   <div className="space-y-0.5 md:space-y-1 text-[10px] md:text-xs">
-                                    {/* Aqui virão os projetos/eventos */}
+                                    {projects
+                                      .filter(p => {
+                                        const projectDate = new Date(p.createdAt)
+                                        return projectDate.getDate() === day &&
+                                               projectDate.getMonth() === currentMonth &&
+                                               projectDate.getFullYear() === currentYear
+                                      })
+                                      .slice(0, 2)
+                                      .map(project => (
+                                        <div
+                                          key={project.id}
+                                          className={cn(
+                                            "px-1 py-0.5 rounded text-[9px] md:text-[10px] truncate cursor-pointer hover:opacity-80 transition-opacity",
+                                            project.status === 'completed' && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+                                            project.status === 'active' && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+                                            project.status === 'pending' && "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
+                                            project.status === 'no-status' && "bg-zinc-100 text-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-400"
+                                          )}
+                                          onClick={() => openProjectSheet(project)}
+                                        >
+                                          {project.name || 'Sem título'}
+                                        </div>
+                                      ))}
+                                    {projects.filter(p => {
+                                      const projectDate = new Date(p.createdAt)
+                                      return projectDate.getDate() === day &&
+                                             projectDate.getMonth() === currentMonth &&
+                                             projectDate.getFullYear() === currentYear
+                                    }).length > 2 && (
+                                      <div className="text-[9px] text-muted-foreground pl-1">
+                                        +{projects.filter(p => {
+                                          const projectDate = new Date(p.createdAt)
+                                          return projectDate.getDate() === day &&
+                                                 projectDate.getMonth() === currentMonth &&
+                                                 projectDate.getFullYear() === currentYear
+                                        }).length - 2} mais
+                                      </div>
+                                    )}
                                   </div>
                                 </>
                               )}
@@ -1298,7 +1402,7 @@ export function ProjectManager({
                     active: projects.filter(p => p.status === 'active').length,
                     pending: projects.filter(p => p.status === 'pending').length,
                     completed: projects.filter(p => p.status === 'completed').length,
-                    noStatus: projects.filter(p => !p.status || (p.status as string) === '').length,
+                    noStatus: projects.filter(p => p.status === 'no-status').length,
                   }
                   
                   const total = stats.active + stats.pending + stats.completed + stats.noStatus
@@ -1442,6 +1546,16 @@ export function ProjectManager({
               </div>
             </TabsContent>
             )}
+
+            {activeTab === 'files' && (
+            <TabsContent value="files" className="flex-1 m-0 overflow-hidden">
+              <ProjectDriveFiles 
+                projectId={projectId} 
+                showPicker={showDrivePicker}
+                onPickerClose={() => setShowDrivePicker(false)}
+              />
+            </TabsContent>
+            )}
           </Tabs>
         </TooltipProvider>
       </div>
@@ -1554,6 +1668,13 @@ export function ProjectManager({
         </SheetContent>
       </Sheet>
       )}
+
+      {/* Visualizador de Documento Financeiro */}
+      <FinanceDocViewer
+        documentId={viewingFinanceDocId}
+        open={viewingFinanceDocId !== null}
+        onClose={() => setViewingFinanceDocId(null)}
+      />
     </>
   )
 }

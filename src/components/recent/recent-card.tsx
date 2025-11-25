@@ -37,8 +37,20 @@ interface RecentCardProps {
 
 export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
   const { t } = useI18n();
+  const [cardName, setCardName] = useState(() => {
+    const saved = localStorage.getItem('recent-card-name')
+    return saved || t('recent.title')
+  });
+  const [isEditingName, setIsEditingName] = useState(false);
   const [isExpandedViewOpen, setIsExpandedViewOpen] = useState(false);
   const { activities, loading } = useRecentActivities(50);
+
+  // Handler para mudança de nome
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setCardName(newName);
+    localStorage.setItem('recent-card-name', newName);
+  };
 
   // Pegar apenas as 10 atividades mais recentes para o card
   const recentActivities = activities.slice(0, 10);
@@ -107,7 +119,7 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
       storageKey="recent-card"
       className="group"
     >
-      <Card className="flex flex-col w-full h-full bg-card overflow-hidden">
+      <Card className="flex flex-col w-full h-full bg-card overflow-hidden group">
         {/* Header Inline - Estilo Finance */}
         <CardHeader className="p-0">
           <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
@@ -121,21 +133,8 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
                 <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
               </div>
               
-              {/* Ícone Animado + Badge + Input */}
+              {/* Badge + Input */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <motion.div
-                  animate={{
-                    scale: recentActivities.length > 0 ? [1, 1.1, 1] : 1,
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    ease: "easeInOut"
-                  }}
-                >
-                  <Clock className="size-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                </motion.div>
                 {recentActivities.length > 0 && (
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -147,15 +146,31 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
                     </Badge>
                   </motion.div>
                 )}
-                <Input
-                  defaultValue={t('recent.title')}
-                  className="text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring h-7 px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
-                />
+                {isEditingName ? (
+                  <Input
+                    value={cardName}
+                    onChange={handleNameChange}
+                    onBlur={() => setIsEditingName(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setIsEditingName(false)
+                    }}
+                    placeholder={t('recent.title')}
+                    className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
+                    autoFocus
+                  />
+                ) : (
+                  <h3
+                    className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
+                    onClick={() => setIsEditingName(true)}
+                  >
+                    {cardName}
+                  </h3>
+                )}
               </div>
             </div>
 
             {/* Botões Animados - Visível no hover */}
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 sm:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
                   variant="ghost" 
@@ -186,11 +201,10 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
         </CardHeader>
 
         {/* Conteúdo com Animações */}
-        <CardContent className="flex-1 overflow-y-auto p-2">
-          <div className="space-y-3">
-            {loading ? (
-              // Skeleton loading
-              Array.from({ length: 5 }).map((_, index) => (
+        <CardContent className="flex-1 overflow-y-auto p-2 flex flex-col">
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
                 <div key={index} className="flex gap-3 p-2">
                   <Skeleton className="size-8 rounded-full flex-shrink-0" />
                   <div className="flex-1 space-y-2">
@@ -198,26 +212,23 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
                     <Skeleton className="h-3 w-1/2" />
                   </div>
                 </div>
-              ))
-            ) : recentActivities.length === 0 ? (
+              ))}
+            </div>
+          ) : recentActivities.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex items-center justify-center h-full"
               >
-                <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                  <motion.div
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                  >
-                    <Clock className="size-12 mx-auto mb-3 opacity-50" />
-                  </motion.div>
-                  <p className="text-sm">{t('recent.noActivity')}</p>
-                  <p className="text-xs mt-1">{t('recent.activitiesHere')}</p>
+                <div className="text-center py-16 px-6">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-sm font-medium mb-2">{t('recent.noActivity')}</p>
+                  <p className="text-xs text-muted-foreground">{t('recent.activitiesHere')}</p>
                 </div>
               </motion.div>
             ) : (
-              recentActivities.map((activity, index) => (
+            <div className="space-y-2">
+              {recentActivities.map((activity, index) => (
                 <motion.div
                   key={activity.id}
                   initial={{ opacity: 0, x: -10 }}
@@ -246,9 +257,9 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
                     </div>
                   </div>
                 </motion.div>
-              ))
+              ))}
+            </div>
             )}
-          </div>
         </CardContent>
       </Card>
     </ResizableCard>

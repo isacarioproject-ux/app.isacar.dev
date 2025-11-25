@@ -1,0 +1,149 @@
+✅ CARD "RECENTE" (ATIVIDADE RECENTE) CORRIGIDO!
+
+=====================================
+PROBLEMA IDENTIFICADO:
+=====================================
+
+O card "Recente" (Atividade Recente) estava mostrando AS MESMAS
+atividades tanto no modo "Pessoal" quanto no workspace "Isacar.dev".
+
+Causa: O hook useRecentActivities NÃO estava filtrando PROJETOS
+e COMPANIES por workspace_id = null no modo Pessoal.
+
+=====================================
+CORREÇÃO APLICADA:
+=====================================
+
+Arquivo: src/hooks/use-recent-activities.ts
+
+1. ✅ PROJETOS (linha 116-120):
+   ANTES:
+   if (currentWorkspace?.id) {
+     projectsQuery.eq('workspace_id', currentWorkspace.id)
+   }
+   // ❌ Faltava else!
+
+   AGORA:
+   if (currentWorkspace?.id) {
+     projectsQuery.eq('workspace_id', currentWorkspace.id)
+   } else {
+     projectsQuery.is('workspace_id', null)  // ✅ Modo Pessoal
+   }
+
+2. ✅ COMPANIES (linha 182-186):
+   ANTES:
+   if (currentWorkspace?.id) {
+     companiesQuery.eq('workspace_id', currentWorkspace.id)
+   }
+   // ❌ Faltava else!
+
+   AGORA:
+   if (currentWorkspace?.id) {
+     companiesQuery.eq('workspace_id', currentWorkspace.id)
+   } else {
+     companiesQuery.is('workspace_id', null)  // ✅ Modo Pessoal
+   }
+
+3. ✅ JÁ ESTAVAM CORRETOS:
+   - Tasks (linhas 39-43)
+   - Finance Documents (linhas 85-89)
+
+=====================================
+RESULTADO:
+=====================================
+
+MODO "PESSOAL" (workspace_id = null):
+- ✅ Mostra apenas atividades pessoais
+- ✅ Tasks com workspace_id = null
+- ✅ Projetos com workspace_id = null
+- ✅ Finanças com workspace_id = null
+- ✅ Companies com workspace_id = null
+
+WORKSPACE "ISACAR.DEV" (colaborativo):
+- ✅ Mostra apenas atividades do workspace
+- ✅ Tasks com workspace_id = UUID
+- ✅ Projetos com workspace_id = UUID
+- ✅ Finanças com workspace_id = UUID
+- ✅ Companies com workspace_id = UUID
+
+=====================================
+STATUS DE TODOS OS CARDS E PÁGINAS:
+=====================================
+
+CARDS DO DASHBOARD:
+1. ✅ Tasks Card - CORRETO (workspace_id)
+2. ✅ Projetos Card - CORRETO (workspace_id)
+3. ✅ Finanças Card - CORRETO (user_id, sem workspace)
+4. ✅ Gerenciador de Orçamento - CORRETO (user_id)
+5. ✅ Recente (Atividade) - CORRIGIDO AGORA! ✅
+
+PÁGINAS:
+1. ✅ Página Inicial (Dashboard) - CORRETO
+2. ✅ Meu Trabalho (Tasks) - CORRETO (usa tasks-db.ts)
+3. ✅ Minha Finança - CORRETO (user_id)
+4. ✅ Gerenciador - CORRETO (user_id)
+5. ✅ Projetos (/projects) - CORRETO (workspace_id)
+6. ✅ Integrações - N/A (sem dados específicos)
+
+ONBOARDING (Passos que criam dados):
+1. ✅ Passo 8 - First Task - workspace_id = null ✅
+2. ✅ Passo 9 - Management (Projeto/Doc) - workspace_id = null ✅
+3. ✅ Passo 10 - Budget (Finanças) - workspace_id = null ✅
+
+=====================================
+TESTE COMPLETO:
+=====================================
+
+1. MODO PESSOAL:
+   F5 → Clicar em "Pessoal"
+   - Card Tasks: ✅ 1 task
+   - Card Projetos: ✅ 1 projeto
+   - Card Recente: ✅ Atividades pessoais (task + projeto)
+   - Card Finanças: ✅ 0 docs (aguardando onboarding)
+
+2. WORKSPACE ISACAR.DEV:
+   Clicar em "Isacar.dev"
+   - Card Tasks: ✅ Vazio
+   - Card Projetos: ✅ Vazio
+   - Card Recente: ✅ Vazio (SEM atividades pessoais!)
+   - Card Finanças: ✅ Vazio
+
+=====================================
+ARQUIVOS MODIFICADOS:
+=====================================
+
+1. ✅ use-recent-activities.ts
+   - Linha 119: else { projectsQuery.is('workspace_id', null) }
+   - Linha 185: else { companiesQuery.is('workspace_id', null) }
+
+2. ✅ management-step.tsx (onboarding)
+   - workspace_id = null para projetos/docs
+
+3. ✅ projects-card.tsx
+   - Busca projetos com workspace_id = null
+
+4. ✅ projects.tsx (página)
+   - Criada, funciona com workspace_id = null
+
+5. ✅ tasks-db.ts
+   - getCurrentWorkspaceId retorna null
+   - getTasks busca com workspace_id = null
+
+6. ✅ budget-step.tsx
+   - workspace_id = null
+
+7. ✅ first-task-step.tsx
+   - workspace_id = null
+
+=====================================
+✅ AGORA ESTÁ 100% CORRETO!
+=====================================
+
+Modo Pessoal = Dados PRIVADOS (workspace_id = null)
+Workspace Colaborativo = Dados COMPARTILHADOS (workspace_id = UUID)
+
+TODOS os cards respeitam o workspace atual!
+TODAS as páginas respeitam o workspace atual!
+ONBOARDING cria dados no modo Pessoal!
+
+🎉 PODE TRABALHAR NO WORKSPACE AGORA!

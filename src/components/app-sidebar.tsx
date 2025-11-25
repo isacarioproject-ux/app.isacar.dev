@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+// Ícones Lucide React
 import {
   Home,
   BarChart3,
@@ -35,8 +36,9 @@ import {
   CheckSquare,
   Wallet,
   Building2,
-  GitBranch,
+  Plug,
   FolderKanban,
+  PieChart,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
@@ -73,13 +75,18 @@ export function AppSidebar() {
     },
     {
       title: 'Gerenciador',
-      icon: BarChart3,
+      icon: PieChart,
       href: '/meu-gerenciador',
     },
     {
       title: 'Integrações',
-      icon: GitBranch,
+      icon: Plug,
       href: '/settings/integrations',
+    },
+    {
+      title: 'Analytics',
+      icon: BarChart3,
+      href: '/analytics/google',
     },
   ]
 

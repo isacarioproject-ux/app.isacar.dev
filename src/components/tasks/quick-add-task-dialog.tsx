@@ -248,7 +248,7 @@ export function QuickAddTaskDialog({
             </motion.div>
             
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-              <TabsList className="bg-transparent border-b-0 h-auto p-0">
+              <TabsList variant="underlined">
                 <TabsTrigger 
                   value="tarefa"
                   className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent pb-2"
@@ -943,8 +943,12 @@ export function QuickAddTaskDialog({
       {/* Dialog de Confirmação */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-[425px] p-0 gap-0">
+          <DialogTitle className="sr-only">Salvar rascunho?</DialogTitle>
+          <DialogDescription className="sr-only">
+            Confirme se deseja salvar o rascunho da tarefa
+          </DialogDescription>
           <div className="p-6">
-            <h2 className="text-lg font-semibold mb-2 dark:text-white">Salvar rascunho?</h2>
+            <h2 className="text-lg font-semibold mb-2 dark:text-white" aria-hidden="true">Salvar rascunho?</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Quer salvar um rascunho da tarefa? Acesse-o na bandeja de tarefas.
             </p>

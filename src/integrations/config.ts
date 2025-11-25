@@ -12,12 +12,13 @@
 
 const DEFAULT_CONFIG = {
   // Master switch - desliga TUDO se false
-  ENABLED: false, // ← COMEÇA DESLIGADO para segurança
+  ENABLED: true, // ✅ COMEÇA LIGADO
 
   // Integrações específicas
   WHITEBOARD_TO_TASKS: false,          // DESABILITADO - Whiteboard removido
   WHITEBOARD_TO_GERENCIADOR: false,    // DESABILITADO - Whiteboard removido
-  TASKS_TO_FINANCE: true,              // Criar despesas quando task concluir
+  TASKS_TO_FINANCE: true,              // ✅ Criar despesas quando task concluir
+  PROJECTS_TO_FINANCE: true,           // ✅ Vincular documentos finance a projetos
   CROSS_MODULE_SYNC: true,             // Sincronização bidirecional
 
   // Opções de comportamento
@@ -37,14 +38,14 @@ function loadConfig() {
     const stored = localStorage.getItem('integration-config');
     if (stored) {
       const parsed = JSON.parse(stored);
-      console.log('[Integration Config] Loaded from localStorage:', parsed);
+      console.log('✅ [Integration Config] Loaded from localStorage:', parsed);
       return { ...DEFAULT_CONFIG, ...parsed };
     }
   } catch (error) {
-    console.warn('[Integration Config] Error loading from localStorage:', error);
+    console.warn('⚠️ [Integration Config] Error loading from localStorage:', error);
   }
   
-  console.log('[Integration Config] Using default config');
+  console.log('🔧 [Integration Config] Using default config (ENABLED=true, TASKS_TO_FINANCE=true)');
   return DEFAULT_CONFIG;
 }
 

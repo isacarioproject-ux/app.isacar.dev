@@ -1,0 +1,165 @@
+═══════════════════════════════════════════════════════════════
+  🎯 COMO RESOLVER: "Nenhuma seção encontrada" / Tela Preta
+═══════════════════════════════════════════════════════════════
+
+PROBLEMA IDENTIFICADO:
+--------------------
+Você está sendo redirecionado para /onboarding mas a tabela 
+onboarding_analytics ainda não foi criada no Supabase.
+
+SOLUÇÃO EM 3 PASSOS:
+-------------------
+
+📍 PASSO 1: ACESSE O SUPABASE
+   • Vá para https://supabase.com/dashboard
+   • Entre no seu projeto ISACAR
+   • Clique em "SQL Editor" no menu lateral
+
+📍 PASSO 2: EXECUTE O SQL
+   • Cole o script SQL abaixo
+   • Clique em "Run" para executar
+   • Aguarde mensagem de sucesso
+
+📍 PASSO 3: RECARREGUE A APLICAÇÃO
+   • Volte para localhost:3005
+   • Pressione F5 para recarregar
+   • O onboarding deve funcionar normalmente
+
+═══════════════════════════════════════════════════════════════
+  📜 SCRIPT SQL COMPLETO (Copie tudo abaixo)
+═══════════════════════════════════════════════════════════════
+
+-- ============================================
+-- TABELA: onboarding_analytics
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS onboarding_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL,
+  
+  -- Perfil
+  user_type TEXT CHECK (user_type IN ('freelancer', 'small_business', 'enterprise', 'personal')),
+  industry TEXT,
+  team_size TEXT CHECK (team_size IN ('1', '2-10', '11-50', '50+')),
+  company_name TEXT,
+  
+  -- Objetivos
+  primary_goal TEXT CHECK (primary_goal IN ('tasks', 'finance', 'projects', 'all')),
+  secondary_goals TEXT[] DEFAULT ARRAY[]::TEXT[],
+  
+  -- Progresso
+  current_step INT DEFAULT 1,
+  total_steps INT DEFAULT 6,
+  steps_completed INT[] DEFAULT ARRAY[]::INT[],
+  completed BOOLEAN DEFAULT false,
+  skipped BOOLEAN DEFAULT false,
+  abandoned_at_step INT,
+  
+  -- Timing
+  started_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ,
+  time_spent_seconds INT DEFAULT 0,
+  last_active_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Ações
+  created_workspace BOOLEAN DEFAULT false,
+  created_first_task BOOLEAN DEFAULT false,
+  created_first_transaction BOOLEAN DEFAULT false,
+  created_first_project BOOLEAN DEFAULT false,
+  created_first_document BOOLEAN DEFAULT false,
+  invited_team_member BOOLEAN DEFAULT false,
+  completed_tour BOOLEAN DEFAULT false,
+  
+  -- Contexto técnico
+  device_type TEXT,
+  browser TEXT,
+  os TEXT,
+  referrer TEXT,
+  utm_source TEXT,
+  utm_campaign TEXT,
+  
+  -- Metadata
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  UNIQUE(user_id)
+);
+
+-- Índices
+CREATE INDEX idx_onboarding_user_id ON onboarding_analytics(user_id);
+CREATE INDEX idx_onboarding_completed ON onboarding_analytics(completed);
+CREATE INDEX idx_onboarding_user_type ON onboarding_analytics(user_type);
+CREATE INDEX idx_onboarding_started_at ON onboarding_analytics(started_at);
+CREATE INDEX idx_onboarding_primary_goal ON onboarding_analytics(primary_goal);
+
+-- RLS
+ALTER TABLE onboarding_analytics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage their own onboarding"
+  ON onboarding_analytics FOR ALL
+  USING (user_id = auth.uid());
+
+-- Trigger
+CREATE OR REPLACE FUNCTION update_onboarding_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_onboarding_updated_at
+  BEFORE UPDATE ON onboarding_analytics
+  FOR EACH ROW
+  EXECUTE FUNCTION update_onboarding_updated_at();
+
+-- View para analytics
+CREATE OR REPLACE VIEW onboarding_stats AS
+SELECT
+  COUNT(*) as total_users,
+  COUNT(*) FILTER (WHERE completed = true) as completed_count,
+  COUNT(*) FILTER (WHERE skipped = true) as skipped_count,
+  COUNT(*) FILTER (WHERE abandoned_at_step IS NOT NULL) as abandoned_count,
+  ROUND(AVG(time_spent_seconds)) as avg_time_seconds,
+  COUNT(*) FILTER (WHERE user_type = 'freelancer') as freelancer_count,
+  COUNT(*) FILTER (WHERE user_type = 'small_business') as small_business_count,
+  COUNT(*) FILTER (WHERE user_type = 'enterprise') as enterprise_count,
+  COUNT(*) FILTER (WHERE user_type = 'personal') as personal_count,
+  COUNT(*) FILTER (WHERE primary_goal = 'tasks') as goal_tasks_count,
+  COUNT(*) FILTER (WHERE primary_goal = 'finance') as goal_finance_count,
+  COUNT(*) FILTER (WHERE primary_goal = 'projects') as goal_projects_count,
+  COUNT(*) FILTER (WHERE created_first_task = true) as created_task_count,
+  COUNT(*) FILTER (WHERE invited_team_member = true) as invited_team_count
+FROM onboarding_analytics;
+
+SELECT 'Tabela onboarding_analytics criada com sucesso!' as status;
+
+═══════════════════════════════════════════════════════════════
+
+✅ COMO VERIFICAR SE FUNCIONOU:
+   • No console do navegador (F12), procure por:
+     ✅ "Registro criado com sucesso"
+     ✅ "Redirecionando para onboarding"
+   • A página /onboarding deve carregar normalmente
+
+❌ SE AINDA NÃO FUNCIONAR:
+   • Limpe o cache: Ctrl+Shift+Delete
+   • Faça logout e login novamente
+   • Verifique o console (F12) para erros
+   • Entre em contato com suporte
+
+⚠️ ERROS COMUNS CORRIGIDOS:
+   • Erro 409 (Conflict): Registro duplicado - CORRIGIDO com upsert
+   • Erro 400 (Bad Request): Campos inválidos - CORRIGIDO
+   • Workspace já existe: Agora detecta e reutiliza
+   • analyticsId undefined: Melhor validação implementada
+
+═══════════════════════════════════════════════════════════════
+
+💡 DICA: SE QUISER PULAR O ONBOARDING TEMPORARIAMENTE
+   • Clique no X no canto superior direito
+   • OU acesse diretamente /dashboard
+   • Você pode completar o onboarding depois
+
+═══════════════════════════════════════════════════════════════

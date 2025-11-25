@@ -35,6 +35,7 @@ const AcceptInvitePage = lazy(() => import('@/pages/accept-invite'))
 const GoogleIntegrationCallback = lazy(() => import('@/pages/integrations/google-callback'))
 const ImportGmailPage = lazy(() => import('@/pages/finance/import-gmail'))
 const OnboardingAnalyticsPage = lazy(() => import('@/pages/admin/onboarding-analytics'))
+const GoogleAnalyticsPage = lazy(() => import('@/pages/analytics/google'))
 
 // Loader minimalista para lazy loading de páginas
 const PageLoader = () => <InitialPreload />
@@ -92,6 +93,9 @@ function App() {
           <Route path="/settings/preferences" element={<ProtectedRoute><PreferencesPage /></ProtectedRoute>} />
           <Route path="/settings/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
           <Route path="/settings/integrations" element={<ProtectedRoute><IntegrationsPage /></ProtectedRoute>} />
+          
+          {/* Analytics Routes */}
+          <Route path="/analytics/google" element={<ProtectedRoute><GoogleAnalyticsPage /></ProtectedRoute>} />
           
           {/* Redirects - AuthContext vai redirecionar para onboarding ou dashboard */}
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

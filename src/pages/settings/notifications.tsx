@@ -3,10 +3,12 @@ import { DashboardLayout } from '@/components/dashboard-layout'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import { Save, Loader2 } from 'lucide-react'
+import { Save, Loader2, Bell } from 'lucide-react'
 import { useI18n } from '@/hooks/use-i18n'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface NotificationSettings {
   // Email Notifications
@@ -180,6 +182,43 @@ export default function NotificationsPage() {
     <DashboardLayout>
       <div className="min-h-screen w-full flex items-start justify-center pt-6 pb-8">
         <div className="w-full px-4 md:w-[60%] md:px-0 space-y-4">
+          {/* Loading Skeleton */}
+          {loading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+                <Skeleton className="h-9 w-24" />
+              </div>
+              {[1, 2, 3].map((section) => (
+                <div key={section} className="space-y-3">
+                  <Skeleton className="h-5 w-40" />
+                  {[1, 2, 3].map((item) => (
+                    <motion.div
+                      key={`${section}-${item}`}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: section * 0.1 + item * 0.05 }}
+                      className="flex items-center justify-between py-2"
+                    >
+                      <div className="space-y-1 flex-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                      </div>
+                      <Skeleton className="h-5 w-9 rounded-full" />
+                    </motion.div>
+                  ))}
+                </div>
+              ))}
+            </motion.div>
+          ) : (
+          <>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -332,6 +371,8 @@ export default function NotificationsPage() {
               Desativar tudo
             </Button>
           </div>
+          </>
+          )}
         </div>
       </div>
     </DashboardLayout>

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -28,6 +27,7 @@ import { MinimalCardSkeleton } from '@/components/minimal-card-skeleton';
 import { MoreVertical, Plus, X, CheckSquare, Settings, Maximize2, GripVertical, Sparkles, Bell } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TaskGroups, Task, TaskTemplate } from '@/types/tasks';
 import { createTask, getCurrentUserId } from '@/lib/tasks/tasks-storage';
 import { toast } from 'sonner';
@@ -44,6 +44,11 @@ interface TasksCardProps {
 export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
   const { t } = useI18n();
   const { currentWorkspace } = useWorkspace();
+  const [cardName, setCardName] = useState(() => {
+    const saved = localStorage.getItem('tasks-card-name');
+    return saved || t('tasks.page.title');
+  });
+  const [isEditingName, setIsEditingName] = useState(false);
   const {
     tasks,
     activeTab,
@@ -54,11 +59,24 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
     isGroupExpanded,
   } = useTasksCard();
 
-  // ✨ REALTIME: Sincronização automática de tasks
+  // Handler para mudança de nome
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setCardName(newName);
+    localStorage.setItem('tasks-card-name', newName);
+  };
+
+  // ✨ Recarregar tasks quando mudar de workspace
+  useEffect(() => {
+    console.log('🔄 Workspace mudou, recarregando tasks...', currentWorkspace?.id);
+    refetch();
+  }, [currentWorkspace?.id, refetch]);
+
+  // ✨ REALTIME: Sincronização automática de tasks (sem notificações duplicadas)
   useRealtimeTasks({
     workspaceId: currentWorkspace?.id || null,
     onUpdate: refetch,
-    showNotifications: true,
+    showNotifications: false, // Desabilitado para evitar toasts duplicados
     enabled: true,
   });
 
@@ -115,35 +133,39 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
   };
 
   const handleTemplateSelect = async (template: TaskTemplate) => {
-    const userId = await getCurrentUserId();
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title: template.task.title || 'Nova Tarefa',
-      description: template.task.description || '',
-      status: template.task.status || 'todo',
-      priority: template.task.priority || 'medium',
-      due_date: null,
-      start_date: null,
-      created_at: new Date().toISOString(),
-      completed_at: null,
-      assignee_ids: [userId],
-      created_by: userId,
-      tag_ids: [],
-      project_id: null,
-      list_id: null,
-      parent_task_id: null,
-      custom_fields: template.task.custom_fields || [],
-      location: 'Lista pessoal',
-      workspace: 'Pessoal',
-    };
+    try {
+      console.log(' Template selecionado:', template);
+      const userId = await getCurrentUserId();
+      console.log(' User ID:', userId);
+      
+      const newTask: any = {
+        title: template.task.title || 'Nova Tarefa',
+        description: template.task.description || '',
+        status: template.task.status || 'todo',
+        priority: template.task.priority || 'medium',
+        due_date: null,
+        start_date: null,
+        created_at: new Date().toISOString(),
+        completed_at: null,
+        assignee_ids: [userId],
+        created_by: userId,
+        tag_ids: [],
+        project_id: null,
+        list_id: null,
+        parent_task_id: null,
+        custom_fields: template.task.custom_fields || [],
+        checklists: template.task.checklists || [],
+        workspace_id: currentWorkspace?.id || null,
+      };
 
-    await createTask(newTask);
+      console.log(' Tarefa a ser criada:', newTask);
+      const createdTask = await createTask(newTask);
+      console.log(' Tarefa criada:', createdTask);
 
-    // Criar sub-tarefas se houver
-    if (template.task.subtasks) {
+    // Criar sub-tarefas se houver E se a tarefa foi criada com sucesso
+    if (template.task.subtasks && createdTask?.id) {
       for (const [index, subtaskData] of template.task.subtasks.entries()) {
-        const subtask: Task = {
-          id: `task-${Date.now()}-subtask-${index}`,
+        const subtask: any = {
           title: subtaskData.title || 'Sub-tarefa',
           description: '',
           status: subtaskData.status || 'todo',
@@ -157,29 +179,27 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
           tag_ids: [],
           project_id: null,
           list_id: null,
-          parent_task_id: newTask.id,
+          parent_task_id: createdTask.id, // ✨ Usar ID real da tarefa criada
           custom_fields: [],
-          location: 'Lista pessoal',
-          workspace: 'Pessoal',
+          workspace_id: currentWorkspace?.id || null, // Mesmo workspace da tarefa pai
         };
         await createTask(subtask);
       }
     }
 
-    toast.success('Tarefa criada com sucesso!');
-    refetch();
-    handleTaskClick(newTask.id);
-  };
+    toast.success(t('tasks.toast.taskCreated'));
+    setIsTemplateSelectorOpen(false); // Fechar o seletor
+    refetch(); // Atualizar lista imediatamente
+    // ✨ REMOVIDO refetch() - deixar o Realtime fazer o trabalho
+  } catch (error) {
+    console.error(' Erro ao criar tarefa do template:', error);
+    toast.error('Erro ao criar tarefa: ' + (error as Error).message);
+  }
+};
 
   const handleQuickAddTask = async (taskData: any) => {
     try {
       const userId = await getCurrentUserId();
-      
-      // Verificar workspace
-      if (!currentWorkspace?.id) {
-        toast.error('Por favor, selecione um workspace antes de criar uma tarefa.');
-        return;
-      }
       
       // Converter prioridade do dialog para o formato do banco
       let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
@@ -203,15 +223,15 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
         list_id: taskData.list || 'lista-pessoal',
         parent_task_id: null,
         custom_fields: [],
-        workspace_id: currentWorkspace.id, // ✨ CRÍTICO: workspace_id para Realtime funcionar
+        workspace_id: currentWorkspace?.id || null, // Permite tarefas pessoais (null) ou colaborativas
       };
       
       const createdTask = await createTask(newTask);
-      toast.success('Tarefa criada com sucesso!');
-      // ✨ REMOVIDO refetch() - deixar o Realtime fazer o trabalho
+      toast.success(t('tasks.toast.taskCreated'));
+      refetch(); // Atualizar lista imediatamente
     } catch (error) {
       console.error('Erro ao criar tarefa:', error);
-      toast.error('Erro ao criar tarefa: ' + (error as Error).message);
+      toast.error(t('tasks.toast.errorCreating'));
     }
   };
 
@@ -252,7 +272,7 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
       storageKey="tasks-card"
       className="group"
     >
-    <Card className="flex flex-col w-full h-full bg-card overflow-hidden">
+    <Card className="flex flex-col w-full h-full bg-card overflow-hidden group">
         {/* Header Inline - Estilo Finance */}
         <CardHeader className="p-0">
           <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
@@ -266,27 +286,28 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
                 <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
               </div>
               
-              {/* Ícone Animado + Input + Badge Contador */}
+              {/* Input + Badge Contador */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                {/* Ícone com pulse quando há tarefas */}
-                <motion.div
-                  animate={{
-                    scale: hasPendingTasks ? [1, 1.1, 1] : 1,
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    ease: "easeInOut"
-                  }}
-                >
-                  <CheckSquare className="size-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                </motion.div>
-                
-                <Input
-                  defaultValue="Meu trabalho"
-                  className="text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring h-7 px-2 w-full max-w-[120px] sm:max-w-[140px] truncate"
-                />
+                {isEditingName ? (
+                  <Input
+                    value={cardName}
+                    onChange={handleNameChange}
+                    onBlur={() => setIsEditingName(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') setIsEditingName(false)
+                    }}
+                    placeholder="Meu trabalho"
+                    className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[120px] sm:max-w-[140px] truncate"
+                    autoFocus
+                  />
+                ) : (
+                  <h3
+                    className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
+                    onClick={() => setIsEditingName(true)}
+                  >
+                    {cardName}
+                  </h3>
+                )}
                 
                 {/* Badge contador animado */}
                 {totalTasks > 0 && (
@@ -422,9 +443,11 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <MoreVertical className="size-3.5" />
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreVertical className="size-3.5" />
+                        </Button>
+                      </motion.div>
                     </DropdownMenuTrigger>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -444,97 +467,65 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
 
         {/* Conteúdo */}
         <CardContent className="flex-1 overflow-y-auto p-0 min-h-0">
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => setActiveTab(v as any)}
-            className="h-full flex flex-col"
-          >
-            {/* Tabs logo abaixo do header */}
-            <div className="px-2 pt-2 pb-1 border-b dark:border-gray-800">
-              <TabsList className="bg-transparent h-7 w-full justify-start gap-1">
-                <TabsTrigger value="pendente" className="text-xs px-3 h-6">
-                  {t('tasks.card.pending')}
-                </TabsTrigger>
-                <TabsTrigger value="feito" className="text-xs px-3 h-6">
-                  {t('tasks.card.done')}
-                </TabsTrigger>
-                <TabsTrigger value="delegado" className="text-xs px-3 h-6">
-                  {t('tasks.card.delegated')}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* Conteúdo das Abas com Transições */}
+          {/* Mostrar apenas tarefas pendentes - tabs ficam no dialog */}
+          <div className="h-full flex flex-col">
+            {/* Conteúdo sem tabs */}
             <div className="flex-1 overflow-auto relative">
               {loading ? (
-                // Skeleton minimalista
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-2 w-2 rounded-full bg-primary/20 animate-pulse" />
+                // Skeleton com animação
+                <div className="p-2 space-y-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{
+                        delay: i * 0.1,
+                        duration: 0.3,
+                        ease: "easeOut"
+                      }}
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30"
+                    >
+                      <Skeleton className="h-4 w-4 rounded flex-shrink-0" />
+                      <Skeleton className="h-3.5 flex-1 max-w-[160px]" />
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-5 w-5 rounded flex-shrink-0" />
+                    </motion.div>
+                  ))}
                 </div>
+              ) : totalTasks === 0 ? (
+                // Empty state
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col items-center justify-center h-full text-center py-16 px-6"
+                >
+                  <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-sm font-medium mb-2">{t('tasks.card.empty')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('tasks.card.createFirst')}
+                  </p>
+                </motion.div>
               ) : (
-                <AnimatePresence mode="wait">
-                  {activeTab === 'pendente' && (
-                    <motion.div
-                      key="pendente"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      className="h-full"
-                    >
-                      <TabsContent value="pendente" className="m-0 h-full">
-                        <TasksGroupView
-                          groups={tasks as TaskGroups}
-                          onTaskClick={handleTaskClick}
-                          onUpdate={refetch}
-                          isGroupExpanded={isGroupExpanded}
-                          toggleGroup={toggleGroup}
-                        />
-                      </TabsContent>
-                    </motion.div>
-                  )}
-
-                  {activeTab === 'feito' && (
-                    <motion.div
-                      key="feito"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      className="h-full"
-                    >
-                      <TabsContent value="feito" className="m-0 h-full">
-                        <TasksListView
-                          tasks={tasks as Task[]}
-                          onTaskClick={handleTaskClick}
-                          onUpdate={refetch}
-                        />
-                      </TabsContent>
-                    </motion.div>
-                  )}
-
-                  {activeTab === 'delegado' && (
-                    <motion.div
-                      key="delegado"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      className="h-full"
-                    >
-                      <TabsContent value="delegado" className="m-0 h-full">
-                        <TasksDelegatedView
-                          tasks={Object.values(tasks).flat()}
-                          onTaskClick={handleTaskClick}
-                          onUpdate={refetch}
-                        />
-                      </TabsContent>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                // Mostrar apenas tarefas pendentes no card
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="h-full"
+                >
+                  <TasksGroupView
+                    groups={tasks as TaskGroups}
+                    onTaskClick={handleTaskClick}
+                    onUpdate={refetch}
+                    isGroupExpanded={isGroupExpanded}
+                    toggleGroup={toggleGroup}
+                  />
+                </motion.div>
               )}
             </div>
-          </Tabs>
+          </div>
         </CardContent>
       </Card>
     </ResizableCard>
@@ -568,11 +559,11 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
               .eq('id', taskId);
             
             if (error) throw error;
-            toast.success('Tarefa excluída com sucesso');
+            toast.success(t('tasks.toast.taskDeleted'));
             refetch();
           } catch (error: any) {
             console.error('Error deleting task:', error);
-            toast.error('Erro ao excluir tarefa');
+            toast.error(t('tasks.toast.errorDeleting'));
           }
         }}
         onToggleComplete={async (taskId) => {
@@ -582,24 +573,26 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
             const task = allTasks.find(t => t.id === taskId);
             
             if (!task) {
-              toast.error('Tarefa não encontrada');
+              toast.error(t('tasks.toast.notFound'));
               return;
             }
 
+            const isCompleted = !!task.completed_at;
             const { error } = await supabase
               .from('tasks')
               .update({
-                completed_at: task.completed_at ? null : new Date().toISOString()
+                completed_at: isCompleted ? null : new Date().toISOString(),
+                status: isCompleted ? 'todo' : 'done'
               })
               .eq('id', taskId);
             
             if (error) throw error;
             
-            toast.success(task.completed_at ? 'Tarefa reaberta' : 'Tarefa concluída');
+            toast.success(isCompleted ? t('tasks.toast.taskReopened') : t('tasks.toast.taskCompleted'));
             refetch();
           } catch (error: any) {
             console.error('Error toggling task:', error);
-            toast.error('Erro ao atualizar tarefa');
+            toast.error(t('tasks.toast.errorUpdating'));
           }
         }}
       />

@@ -13,41 +13,96 @@ export default function AuthCallback() {
     const handleCallback = async () => {
       try {
         console.log('🔍 [AuthCallback] Processando callback do Google...')
+        console.log('🔍 [AuthCallback] URL atual:', window.location.href)
+        console.log('🔍 [AuthCallback] Hash:', window.location.hash)
+        console.log('🔍 [AuthCallback] Search:', window.location.search)
         
-        // Pegar sessão do hash/query params
-        const { data: { session }, error } = await supabase.auth.getSession()
+        // Processar hash fragment (OAuth flow)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        
+        console.log('🔍 [AuthCallback] Access token presente:', !!accessToken)
+        console.log('🔍 [AuthCallback] Refresh token presente:', !!refreshToken)
+        
+        let session = null
+        let error = null
+        
+        if (accessToken && refreshToken) {
+          // Definir sessão a partir dos tokens do hash
+          console.log('🔄 [AuthCallback] Definindo sessão a partir dos tokens...')
+          const result = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          session = result.data.session
+          error = result.error
+        } else {
+          // Tentar obter sessão existente
+          console.log('🔄 [AuthCallback] Tentando obter sessão existente...')
+          const result = await supabase.auth.getSession()
+          session = result.data.session
+          error = result.error
+        }
         
         if (error) {
-          console.error('❌ [AuthCallback] Erro ao obter sessão:', error)
+          console.error('❌ [AuthCallback] Erro ao processar sessão:', error)
           throw error
         }
 
         if (session) {
-          console.log('✅ [AuthCallback] Sessão obtida com sucesso:', session.user.email)
-          setStatus('success')
-          setMessage('Login realizado com sucesso!')
+          console.log('✅ [AuthCallback] Sessão obtida com sucesso!')
+          console.log('✅ [AuthCallback] Usuário:', session.user.email)
+          console.log('✅ [AuthCallback] Provider:', session.user.app_metadata.provider)
           
-          // Pequeno delay para mostrar feedback
-          setTimeout(() => {
-            navigate('/dashboard', { replace: true })
-          }, 1500)
+          // Verificar se é novo usuário (criado nos últimos 5 minutos)
+          const userCreatedAt = new Date(session.user.created_at)
+          const now = new Date()
+          const diffMinutes = (now.getTime() - userCreatedAt.getTime()) / (1000 * 60)
+          const isNewUser = diffMinutes < 5
+          
+          if (isNewUser) {
+            console.log('✨ [AuthCallback] Novo usuário detectado, redirecionando para onboarding...')
+            setStatus('success')
+            setMessage('Conta criada! Vamos começar o setup.')
+            
+            setTimeout(() => {
+              navigate('/onboarding', { replace: true })
+            }, 1500)
+          } else {
+            console.log('👤 [AuthCallback] Usuário existente, redirecionando para dashboard...')
+            setStatus('success')
+            setMessage('Login realizado com sucesso!')
+            
+            setTimeout(() => {
+              navigate('/dashboard', { replace: true })
+            }, 1500)
+          }
         } else {
           console.warn('⚠️ [AuthCallback] Nenhuma sessão encontrada')
+          console.warn('⚠️ [AuthCallback] Tokens no hash:', { accessToken: !!accessToken, refreshToken: !!refreshToken })
+          
           setStatus('error')
-          setMessage('Nenhuma sessão encontrada')
+          setMessage('Nenhuma sessão encontrada. Verifique as configurações do Google OAuth.')
           
           setTimeout(() => {
-            navigate('/login', { replace: true })
-          }, 2000)
+            navigate('/auth', { replace: true })
+          }, 3000)
         }
       } catch (error: any) {
         console.error('❌ [AuthCallback] Erro no callback:', error)
+        console.error('❌ [AuthCallback] Detalhes:', {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+        })
+        
         setStatus('error')
-        setMessage(error.message || 'Erro ao autenticar')
+        setMessage(error.message || 'Erro ao autenticar. Tente novamente.')
         
         setTimeout(() => {
-          navigate('/login', { replace: true })
-        }, 2000)
+          navigate('/auth', { replace: true })
+        }, 2500)
       }
     }
 

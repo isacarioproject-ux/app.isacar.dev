@@ -1,14 +1,20 @@
-import { addComment, getCurrentUserId, addTaskLink, deleteTaskLink } from '@/lib/tasks/tasks-storage';
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Comment, Activity, TaskLink } from '@/types/tasks';
+import { addComment, getCurrentUserId, addTaskLink, deleteTaskLink, getUsers } from '@/lib/tasks/tasks-storage';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Comment, Activity, TaskLink, User } from '@/types/tasks';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { AtSign, Paperclip, Send, Smile, Link2, Plus, X, ExternalLink } from 'lucide-react';
+import { AtSign, Paperclip, Send, Smile, Link2, Plus, X, ExternalLink, Image, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/hooks/use-i18n';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { supabase } from '@/lib/supabase';
+import { useWorkspace } from '@/contexts/workspace-context';
+
+// Emojis comuns
+const COMMON_EMOJIS = ['😀', '😂', '😊', '👍', '👏', '🎉', '❤️', '🔥', '✅', '⭐', '💪', '🙏', '😍', '🤔', '👀', '💯'];
 
 interface TaskActivitySidebarProps {
   taskId: string;
@@ -26,10 +32,90 @@ export function TaskActivitySidebar({
   onUpdate,
 }: TaskActivitySidebarProps) {
   const { t } = useI18n();
+  const { currentWorkspace } = useWorkspace();
   const [activeTab, setActiveTab] = useState<'atividade' | 'comentarios' | 'links'>('atividade');
   const [commentText, setCommentText] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkTitle, setLinkTitle] = useState('');
+  const [showMentions, setShowMentions] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [mentionFilter, setMentionFilter] = useState('');
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Carregar usuários do workspace para menções
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const usersData = await getUsers();
+        setUsers(usersData);
+      } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+      }
+    };
+    loadUsers();
+  }, [currentWorkspace?.id]);
+
+  // Inserir emoji no comentário
+  const handleInsertEmoji = (emoji: string) => {
+    setCommentText(prev => prev + emoji);
+    setShowEmojis(false);
+    inputRef.current?.focus();
+  };
+
+  // Inserir menção no comentário
+  const handleInsertMention = (user: User) => {
+    setCommentText(prev => prev + `@${user.name} `);
+    setShowMentions(false);
+    setMentionFilter('');
+    inputRef.current?.focus();
+  };
+
+  // Upload de anexo
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingAttachment(true);
+    try {
+      // Upload para Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${taskId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `task-comment-attachments/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('attachments')
+        .getPublicUrl(filePath);
+
+      // Adicionar link do arquivo no comentário
+      const fileLink = file.type.startsWith('image/') 
+        ? `![${file.name}](${publicUrl})` 
+        : `[📎 ${file.name}](${publicUrl})`;
+      
+      setCommentText(prev => prev + (prev ? '\n' : '') + fileLink);
+      toast.success(t('tasks.activity.attachmentUploaded'));
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      toast.error(t('tasks.activity.attachmentError'));
+    } finally {
+      setUploadingAttachment(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Filtrar usuários para menção
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(mentionFilter.toLowerCase())
+  );
 
   const handleSendComment = async () => {
     if (!commentText.trim()) return;
@@ -126,7 +212,7 @@ export function TaskActivitySidebar({
       {/* Header */}
       <div className="p-4 border-b dark:border-gray-800 bg-white dark:bg-black">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="w-full">
+          <TabsList variant="fullWidth">
             <TabsTrigger value="atividade" className="flex-1 text-xs">
               {t('tasks.activity.title')}
             </TabsTrigger>
@@ -288,8 +374,18 @@ export function TaskActivitySidebar({
       <div className="p-4 border-t dark:border-gray-800 bg-white dark:bg-black">
         {activeTab === 'comentarios' ? (
           <>
+        {/* Input oculto para anexos */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleAttachmentUpload}
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+        />
+        
         <div className="flex gap-2 mb-2">
           <Input
+            ref={inputRef}
             placeholder={t('tasks.activity.writeComment')}
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
@@ -302,37 +398,104 @@ export function TaskActivitySidebar({
           />
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="flex gap-1">
+            {/* Botão Menção @ */}
+            <Popover open={showMentions} onOpenChange={setShowMentions}>
+              <PopoverTrigger asChild>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  title={t('tasks.activity.mention')}
+                >
+                  <AtSign className="size-4 text-gray-600 dark:text-gray-400" />
+                </motion.button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <Input
+                  placeholder={t('tasks.activity.searchUser')}
+                  value={mentionFilter}
+                  onChange={(e) => setMentionFilter(e.target.value)}
+                  className="mb-2 h-8 text-sm"
+                />
+                <div className="max-h-32 overflow-y-auto space-y-1">
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map(user => (
+                      <button
+                        key={user.id}
+                        onClick={() => handleInsertMention(user)}
+                        className="w-full flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
+                      >
+                        <Avatar className="size-6">
+                          <AvatarFallback className="text-xs">
+                            {user.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm truncate">{user.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-500 text-center py-2">
+                      {t('tasks.activity.noUsers')}
+                    </p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Botão Emoji */}
+            <Popover open={showEmojis} onOpenChange={setShowEmojis}>
+              <PopoverTrigger asChild>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  title={t('tasks.activity.emoji')}
+                >
+                  <Smile className="size-4 text-gray-600 dark:text-gray-400" />
+                </motion.button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="start">
+                <div className="grid grid-cols-8 gap-1">
+                  {COMMON_EMOJIS.map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => handleInsertEmoji(emoji)}
+                      className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-lg"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Botão Anexo */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-              title={t('tasks.activity.mention')}
-            >
-              <AtSign className="size-4 text-gray-600 dark:text-gray-400" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-              title={t('tasks.activity.emoji')}
-            >
-              <Smile className="size-4 text-gray-600 dark:text-gray-400" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAttachment}
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-50"
               title={t('tasks.activity.attach')}
             >
-              <Paperclip className="size-4 text-gray-600 dark:text-gray-400" />
+              {uploadingAttachment ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Paperclip className="size-4 text-blue-500" />
+                </motion.div>
+              ) : (
+                <Paperclip className="size-4 text-gray-600 dark:text-gray-400" />
+              )}
             </motion.button>
           </div>
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
               size="sm"
               onClick={handleSendComment}
-              disabled={!commentText.trim()}
+              disabled={!commentText.trim() || uploadingAttachment}
             >
               <Send className="size-4 mr-1" />
               {t('tasks.activity.send')}

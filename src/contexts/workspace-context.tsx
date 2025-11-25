@@ -24,22 +24,26 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const initWorkspaces = async () => {
-    await fetchWorkspaces()
+    const workspacesList = await fetchWorkspaces()
     
     // Carregar workspace salvo no localStorage
     const savedId = localStorage.getItem('currentWorkspaceId')
-    if (savedId && savedId !== 'null') {
-      await switchWorkspace(savedId)
+    if (savedId && savedId !== 'null' && workspacesList) {
+      // Buscar diretamente na lista retornada (não no state que pode não estar atualizado)
+      const savedWorkspace = workspacesList.find(w => w.id === savedId)
+      if (savedWorkspace) {
+        setCurrentWorkspace(savedWorkspace)
+      }
     }
   }
 
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = async (): Promise<WorkspaceWithRole[] | null> => {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         setLoading(false)
-        return
+        return null
       }
 
       // Buscar memberships do usuário
@@ -75,11 +79,13 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
         .filter(Boolean) || []
 
       setWorkspaces(workspacesList)
+      return workspacesList
     } catch (err: any) {
       console.error('Error fetching workspaces:', err)
       toast.error('Erro ao carregar workspaces', {
         description: err.message,
       })
+      return null
     } finally {
       setLoading(false)
     }
@@ -87,15 +93,17 @@ export const WorkspaceProvider = ({ children }: { children: ReactNode }) => {
 
   const switchWorkspace = async (workspaceId: string | null) => {
     if (!workspaceId) {
-      setCurrentWorkspace(null)
+      // ✨ Atualizar localStorage ANTES do estado para que as queries usem o valor correto
       localStorage.setItem('currentWorkspaceId', 'null')
+      setCurrentWorkspace(null)
       return
     }
 
     const workspace = workspaces.find(w => w.id === workspaceId)
     if (workspace) {
-      setCurrentWorkspace(workspace)
+      // ✨ Atualizar localStorage ANTES do estado para que as queries usem o valor correto
       localStorage.setItem('currentWorkspaceId', workspaceId)
+      setCurrentWorkspace(workspace)
     }
   }
 

@@ -228,7 +228,7 @@ export const CategoriesManager = ({
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  variant={newCategory.type === 'income' ? 'default' : 'outline'}
+                  variant={newCategory.type === 'income' ? 'primary' : 'outline'}
                   className="flex-1 sm:flex-none h-9"
                   onClick={() =>
                     setNewCategory({ ...newCategory, type: 'income', color: '#10b981' })
@@ -239,7 +239,7 @@ export const CategoriesManager = ({
                 </Button>
                 <Button
                   size="sm"
-                  variant={newCategory.type === 'expense' ? 'default' : 'outline'}
+                  variant={newCategory.type === 'expense' ? 'primary' : 'outline'}
                   className="flex-1 sm:flex-none h-9"
                   onClick={() =>
                     setNewCategory({ ...newCategory, type: 'expense', color: '#ef4444' })
@@ -332,7 +332,7 @@ export const CategoriesManager = ({
                         <div className="flex gap-1">
                           <Button
                             size="sm"
-                            variant="default"
+                            variant="primary"
                             className="h-7 text-xs"
                             onClick={async () => {
                               if (!editingCategory) return
@@ -495,7 +495,7 @@ export const CategoriesManager = ({
                         <div className="flex gap-1">
                           <Button
                             size="sm"
-                            variant="default"
+                            variant="primary"
                             className="h-7 text-xs"
                             onClick={async () => {
                               if (!editingCategory) return

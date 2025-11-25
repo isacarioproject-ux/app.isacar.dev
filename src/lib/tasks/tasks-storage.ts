@@ -76,8 +76,12 @@ export const getTaskById = async (id: string): Promise<Task | undefined> => {
     try {
       const task = await TasksDB.getTaskById(id);
       return task || undefined;
-    } catch (error) {
-      console.error('Error getting task from Supabase:', error);
+    } catch (error: any) {
+      // Se for erro 400 (not found), não logar - é esperado
+      if (error?.code !== 'PGRST116') {
+        console.error('Error getting task from Supabase:', error);
+      }
+      return undefined;
     }
   }
   
@@ -91,8 +95,12 @@ export const getTaskWithDetails = async (id: string): Promise<TaskWithDetails | 
     try {
       const task = await TasksDB.getTaskWithDetails(id);
       return task || undefined;
-    } catch (error) {
-      console.error('Error getting task details from Supabase:', error);
+    } catch (error: any) {
+      // Se for erro 400 (not found), não logar - é esperado
+      if (error?.code !== 'PGRST116') {
+        console.error('Error getting task details from Supabase:', error);
+      }
+      return undefined;
     }
   }
   

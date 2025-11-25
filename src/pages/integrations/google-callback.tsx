@@ -13,30 +13,58 @@ export default function GoogleIntegrationCallback() {
   useEffect(() => {
     const processCallback = async () => {
       try {
-        const code = searchParams.get('code')
-        const state = searchParams.get('state') // workspace_id
-        const error = searchParams.get('error')
+        // OAuth com implicit flow retorna no hash fragment
+        const hash = window.location.hash.substring(1)
+        const params = new URLSearchParams(hash)
+        
+        const accessToken = params.get('access_token')
+        const state = params.get('state')
+        const error = params.get('error')
 
         if (error) {
           throw new Error('Autorização negada')
         }
 
-        if (!code || !state) {
-          throw new Error('Dados inválidos')
+        if (!accessToken || !state) {
+          throw new Error('Dados inválidos no callback')
         }
 
-        // Trocar código por tokens (via Edge Function)
-        const { data, error: exchangeError } = await supabase.functions.invoke(
-          'google-oauth-exchange',
-          {
-            body: { 
-              code, 
-              workspace_id: state 
-            }
-          }
-        )
+        // Parse state
+        const stateData = JSON.parse(state)
+        const workspaceId = stateData.workspace_id
 
-        if (exchangeError) throw exchangeError
+        // Buscar informações do usuário do Google
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        })
+
+        if (!userInfoResponse.ok) {
+          throw new Error('Erro ao buscar informações do Google')
+        }
+
+        const userInfo = await userInfoResponse.json()
+
+        // Salvar integração no Supabase
+        const { error: saveError } = await supabase
+          .from('google_integrations')
+          .upsert({
+            workspace_id: workspaceId,
+            google_email: userInfo.email,
+            google_id: userInfo.id,
+            access_token: accessToken,
+            is_active: true,
+            settings: {
+              gmail: { enabled: true, auto_import: true },
+              calendar: { enabled: true, sync_tasks: true },
+              sheets: { enabled: true }
+            }
+          }, {
+            onConflict: 'workspace_id'
+          })
+
+        if (saveError) throw saveError
 
         setStatus('success')
         setMessage('Google conectado com sucesso!')
@@ -44,8 +72,8 @@ export default function GoogleIntegrationCallback() {
         // Notificar janela pai (popup)
         if (window.opener) {
           window.opener.postMessage(
-            { type: 'google-oauth-success', data },
-            'https://app.isacar.dev'
+            { type: 'google-oauth-success', email: userInfo.email },
+            window.location.origin
           )
           
           // Fechar popup após 1s

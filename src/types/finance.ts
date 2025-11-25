@@ -2,6 +2,7 @@ export interface FinanceDocument {
   id: string
   user_id: string
   workspace_id: string | null
+  project_id: string | null // ✅ Vinculação com projetos
   name: string
   template_type: 'budget' | 'expenses' | 'income' | 'report' | 'accounts'
   icon: string | null
@@ -20,6 +21,7 @@ export interface FinanceDocument {
 export interface FinanceTransaction {
   id: string
   finance_document_id: string
+  task_id: string | null // ✨ Vinculação com tarefas
   type: 'income' | 'expense' | 'transfer'
   category: string
   description: string

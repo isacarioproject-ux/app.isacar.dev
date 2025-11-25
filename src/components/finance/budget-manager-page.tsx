@@ -287,17 +287,35 @@ export const BudgetManagerPage = () => {
   useEffect(() => {
     const loadDocuments = async () => {
         try {
-          let query = supabase
-            .from('finance_documents')
-            .select('id, name')
-            
-          if (currentWorkspace?.id) {
-            query = query.eq('workspace_id', currentWorkspace.id)
-          } else {
-            query = query.is('workspace_id', null)
-          }
+          const { data: { user } } = await supabase.auth.getUser()
           
-          const { data, error } = await query.order('name')
+          console.log('🔍 [BudgetManagerPage] Carregando documentos...', {
+            userId: user?.id,
+            workspaceId: currentWorkspace?.id
+          })
+          
+          if (!user) {
+            console.warn('⚠️ [BudgetManagerPage] Usuário não encontrado')
+            return
+          }
+
+          // Buscar TODOS os documentos do usuário (sem filtro de workspace)
+          const { data, error } = await supabase
+            .from('finance_documents')
+            .select('id, name, workspace_id')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+          
+          console.log('✅ [BudgetManagerPage] Documentos encontrados:', data?.length || 0)
+          console.log('📊 [BudgetManagerPage] Workspace atual:', currentWorkspace?.id)
+          
+          if (data && data.length > 0) {
+            console.log('📄 [BudgetManagerPage] Documentos:', data.map(d => ({
+              id: d.id,
+              name: d.name,
+              workspace_id: d.workspace_id
+            })))
+          }
           
           if (error) throw error
           if (data) {
@@ -347,19 +365,12 @@ export const BudgetManagerPage = () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      let query = supabase
+      // Buscar TODAS as categorias do usuário (sem filtro de workspace)
+      const { data, error } = await supabase
         .from('finance_categories')
         .select('*')
         .eq('user_id', user.id)
         .order('name')
-
-      if (currentWorkspace) {
-        query = query.eq('workspace_id', currentWorkspace.id)
-      } else {
-        query = query.is('workspace_id', null)
-      }
-
-      const { data, error } = await query
       if (error) throw error
 
       setCategories(data || [])
@@ -926,6 +937,25 @@ export const BudgetManagerPage = () => {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Header com Toggles */}
+      {loading && !hasLoaded ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="px-2 md:px-4 py-1.5 md:py-2 border-b flex-shrink-0 flex flex-row items-center justify-between"
+        >
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-32 hidden md:block" />
+            <Skeleton className="h-7 w-[140px] rounded" />
+          </div>
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-7 w-7 rounded hidden md:block" />
+            ))}
+            <Skeleton className="h-6 w-16 rounded md:hidden" />
+          </div>
+        </motion.div>
+      ) : (
       <div className="px-2 md:px-4 py-1.5 md:py-2 border-b flex-shrink-0 flex flex-row items-center justify-between">
         <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0">
           <h1 className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -1071,6 +1101,7 @@ export const BudgetManagerPage = () => {
             </TooltipProvider>
           </div>
         </div>
+      )}
 
         {/* Content com Resizable Panels */}
         <ResizablePanelGroup 

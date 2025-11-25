@@ -1,4 +1,4 @@
-import { updateTask, deleteTask, getUsers } from '@/lib/tasks/tasks-storage';
+import { getUsers } from '@/lib/tasks/tasks-storage';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Task, User } from '@/types/tasks';
@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar, Trash2, UserPlus, Flag, Check } from 'lucide-react';
-import { toast } from 'sonner';
 import { useWorkspace } from '@/contexts/workspace-context';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -17,35 +16,37 @@ export interface TaskRowProps {
   task: Task;
   onTaskClick: (taskId: string) => void;
   onUpdate: () => void;
+  onToggleComplete?: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
   simplified?: boolean;
   variant?: 'compact' | 'table';
 }
 
-export function TaskRow({ task, onTaskClick, onUpdate, simplified = false, variant = 'compact' }: TaskRowProps) {
+export function TaskRow({ task, onTaskClick, onUpdate, onToggleComplete, onDelete, simplified = false, variant = 'compact' }: TaskRowProps) {
   const { t } = useI18n();
   const { currentWorkspace } = useWorkspace();
   const [users, setUsers] = useState<User[]>([]);
+  
+  // Checkbox independente do status - salva no localStorage
+  const checkboxKey = `task-checkbox-${task.id}`;
+  const [isChecked, setIsChecked] = useState(() => {
+    const saved = localStorage.getItem(checkboxKey);
+    return saved === 'true';
+  });
 
   useEffect(() => {
     getUsers().then(setUsers).catch(console.error);
   }, []);
 
+  // Salvar checkbox no localStorage (não muda status da tarefa)
+  const handleCheckboxChange = (checked: boolean) => {
+    setIsChecked(checked);
+    localStorage.setItem(checkboxKey, String(checked));
+  };
+
   const assignees = users.filter(u => task.assignee_ids.includes(u.id));
   const today = new Date().toISOString().split('T')[0];
   const isOverdue = task.due_date && task.due_date < today && task.status !== 'done';
-
-  const handleStatusToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newStatus = task.status === 'done' ? 'todo' : 'done';
-    const updates: Partial<Task> = {
-      status: newStatus,
-      completed_at: newStatus === 'done' ? new Date().toISOString() : null,
-    };
-    
-    updateTask(task.id, updates);
-    toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
-    onUpdate();
-  };
 
   const priorityIcons: Record<string, string> = {
     urgent: '🔴',
@@ -71,25 +72,12 @@ export function TaskRow({ task, onTaskClick, onUpdate, simplified = false, varia
       className="group flex items-center gap-1.5 py-1 px-1.5 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer transition-colors w-full"
       onClick={() => onTaskClick(task.id)}
     >
-      {/* Checkbox Status */}
-      <div 
-        onClick={(e) => {
-          e.stopPropagation();
-          handleStatusToggle(e);
-        }}
-      >
+      {/* Checkbox Status - salva no banco */}
+      <div onClick={(e) => e.stopPropagation()}>
         <Checkbox 
-          checked={task.status === 'done'} 
-          onCheckedChange={(checked) => {
-            const newStatus: 'done' | 'todo' = checked ? 'done' : 'todo';
-            const updates: Partial<Task> = {
-              status: newStatus,
-              completed_at: newStatus === 'done' ? new Date().toISOString() : null,
-            };
-            updateTask(task.id, updates);
-            toast.success(newStatus === 'done' ? 'Tarefa concluída!' : 'Tarefa reaberta');
-            onUpdate();
-          }}
+          checked={isChecked}
+          onCheckedChange={(checked) => handleCheckboxChange(checked as boolean)}
+          className="cursor-pointer"
         />
       </div>
 

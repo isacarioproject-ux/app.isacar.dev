@@ -48,6 +48,8 @@ import { useFinanceCard } from '@/hooks/use-finance-card'
 import { toast } from 'sonner'
 import { FinanceTemplateSelector } from './finance-template-selector'
 import { FinanceViewer } from './finance-viewer'
+import { GmailImportModal } from '@/components/gmail/gmail-import-modal'
+import { FinanceSettingsModal } from './finance-settings-modal'
 import { CategoriesManager } from './categories-manager'
 import { supabase } from '@/lib/supabase'
 import { createDefaultBlocksForDocument } from '@/lib/finance-blocks-utils'
@@ -92,14 +94,20 @@ export const FinancePageView = () => {
     const saved = localStorage.getItem('finance-page-name')
     return saved || t('finance.card.finances')
   })
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(() => {
+    // Ler query param 'doc' da URL
+    const params = new URLSearchParams(window.location.search)
+    return params.get('doc')
+  })
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [showCategoriesManager, setShowCategoriesManager] = useState(false)
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [showSidebar, setShowSidebar] = useState(false)
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
   const [projects, setProjects] = useState<any[]>([])
   const [currentCover, setCurrentCover] = useState<string | null>(null)
+  const [showGmailImport, setShowGmailImport] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const { documents, loading, refetch } = useFinanceCard(currentWorkspace?.id)
 
   // Carregar projetos
@@ -273,29 +281,33 @@ export const FinancePageView = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] w-full">
-      {/* Header - sempre visível, sem borda quando não há documento */}
+      {/* Header compacto padrão */}
       {loading ? (
-        <div className={cn("flex items-center justify-between gap-2 px-8 py-3", selectedDocId && "border-b")}>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center justify-between gap-2 px-4 md:px-6 py-2 border-b border-border"
+        >
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-5 w-24 rounded-full hidden sm:block" />
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-5 w-20 rounded-full hidden sm:block" />
           </div>
           <div className="flex items-center gap-1">
-            <Skeleton className="h-8 w-8 rounded-md" />
-            <Skeleton className="h-8 w-8 rounded-md" />
-            <Skeleton className="h-8 w-8 rounded-md" />
-            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-7 w-7 rounded-md" />
+            <Skeleton className="h-7 w-7 rounded-md" />
+            <Skeleton className="h-7 w-7 rounded-md" />
           </div>
-        </div>
+        </motion.div>
       ) : (
-      <div className={cn("flex items-center justify-between gap-2 px-8 py-3", selectedDocId && "border-b")}>
-        {/* Botão Voltar + Nome da Página + Badge */}
+      <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-2 border-b border-border">
+        {/* Ícone + Nome + Badge */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          {selectedDocId && (
+          {selectedDocId ? (
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 flex-shrink-0"
+              className="h-7 w-7 flex-shrink-0"
               onClick={() => {
                 setSelectedDocId(null)
                 setShowSidebar(false)
@@ -303,10 +315,12 @@ export const FinancePageView = () => {
                 refetch()
               }}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5" />
             </Button>
+          ) : (
+            <Wallet className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
           )}
-          <h1 className="text-base font-semibold truncate">{pageName || t('finance.card.finances')}</h1>
+          <h1 className="text-sm font-semibold truncate">{pageName || t('finance.card.finances')}</h1>
           {/* Badge do Workspace */}
           {currentWorkspace && (
             <Badge variant="secondary" className="text-xs h-5 hidden sm:inline-flex truncate max-w-[120px]">
@@ -322,8 +336,8 @@ export const FinancePageView = () => {
             {!selectedDocId && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-8 w-8">
-                    <TrendingUp className="h-4 w-4" />
+                  <Button size="icon" variant="ghost" className="h-7 w-7">
+                    <TrendingUp className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64">
@@ -360,10 +374,10 @@ export const FinancePageView = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                   onClick={() => setShowCategoriesManager(true)}
                 >
-                  <Tag className="h-4 w-4" />
+                  <Tag className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -378,10 +392,10 @@ export const FinancePageView = () => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 md:hidden"
+                    className="h-7 w-7 md:hidden"
                     onClick={() => setShowSidebar(true)}
                   >
-                    <Layers className="h-4 w-4" />
+                    <Layers className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -491,7 +505,7 @@ export const FinancePageView = () => {
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8"
-                  onClick={() => navigate('/finance/import-gmail')}
+                  onClick={() => setShowGmailImport(true)}
                 >
                   <Mail className="h-4 w-4" />
                 </Button>
@@ -508,9 +522,7 @@ export const FinancePageView = () => {
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8"
-                  onClick={() => {
-                    toast.info('Configurações em desenvolvimento')
-                  }}
+                  onClick={() => setShowSettings(true)}
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
@@ -534,6 +546,8 @@ export const FinancePageView = () => {
               setSelectedDocId(null)
               setShowSidebar(false)
               setCurrentCover(null)
+              // Limpar query param da URL
+              navigate('/minha-financa', { replace: true })
               refetch()
             }}
             showSidebar={showSidebar}
@@ -781,6 +795,18 @@ export const FinancePageView = () => {
         onUpdate={() => {
           refetch()
         }}
+      />
+
+      {/* Modal/Drawer de Importação do Gmail */}
+      <GmailImportModal
+        open={showGmailImport}
+        onOpenChange={setShowGmailImport}
+      />
+
+      {/* Modal/Drawer de Configurações */}
+      <FinanceSettingsModal
+        open={showSettings}
+        onOpenChange={setShowSettings}
       />
     </div>
   )

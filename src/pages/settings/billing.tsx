@@ -37,12 +37,15 @@ import {
   Zap,
   Crown,
   Rocket,
-  Star
+  Star,
+  Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/hooks/use-i18n'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const plans = [
   {
@@ -55,7 +58,7 @@ const plans = [
     color: 'from-slate-500 to-slate-600',
     features: [
       '1 projeto',
-      '3 whiteboards por projeto',
+      
       'Até 2 membros (você + 1 convidado)',
       '1 GB de armazenamento',
       'Documentos ilimitados',
@@ -349,6 +352,61 @@ export default function BillingPage() {
     return price
   }
 
+  // Loading Skeleton
+  if (loadingSubscription) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6 p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
+            {/* Header Skeleton */}
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+
+            {/* Current Plan Skeleton */}
+            <div className="p-6 rounded-lg border space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+                <Skeleton className="h-9 w-32" />
+              </div>
+            </div>
+
+            {/* Plans Grid Skeleton */}
+            <div className="grid md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="p-6 rounded-lg border space-y-4"
+                >
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-8 w-32" />
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map((j) => (
+                      <Skeleton key={j} className="h-4 w-full" />
+                    ))}
+                  </div>
+                  <Skeleton className="h-9 w-full" />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
@@ -514,7 +572,7 @@ export default function BillingPage() {
 
                   <Button 
                     className="mt-4 w-full h-9" 
-                    variant={plan.popular ? 'default' : 'outline'}
+                    variant={plan.popular ? 'primary' : 'outline'}
                     disabled={isCurrentPlan}
                     onClick={() => {
                       if (plan.contactOnly) {

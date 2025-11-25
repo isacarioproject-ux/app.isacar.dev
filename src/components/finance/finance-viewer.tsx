@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft, Calendar, TrendingUp, TrendingDown, DollarSign, Plus,
-  BarChart3, Download, Layers, Target, X, Search, ImagePlus
+  BarChart3, Download, Layers, Target, X, Search, ImagePlus, Cloud, Loader2
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -46,6 +46,8 @@ import { FINANCE_BLOCKS_REGISTRY, getBlocksByCategory } from '@/lib/finance-bloc
 import { useFinanceBlocks } from '@/hooks/use-finance-blocks'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { FinanceDock } from './finance-dock'
+import { useGoogleIntegration } from '@/hooks/use-google-integration'
+import { DriveService } from '@/services/google/drive.service'
 import { FinanceCoverSelector } from './finance-cover-selector'
 import {
   Dialog,
@@ -115,6 +117,8 @@ export const FinanceViewer = ({
   const [showFiltersDialog, setShowFiltersDialog] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [savingToDrive, setSavingToDrive] = useState(false)
+  const { isConnected: isGoogleConnected } = useGoogleIntegration()
   const [internalShowSidebar, setInternalShowSidebar] = useState(false)
   
   // Usar props externas se fornecidas, senão usar estado interno
@@ -442,6 +446,18 @@ export const FinanceViewer = ({
     fetchTransactions()
     fetchCategories()
     }
+  }, [docId])
+
+  // Listener para atualização de transações (do TransactionTable)
+  useEffect(() => {
+    const handleTransactionUpdate = () => {
+      console.log('🔔 [FinanceViewer] Transação atualizada, recarregando...')
+      fetchTransactions()
+      fetchDocument() // Atualizar totais do documento
+    }
+
+    window.addEventListener('finance-transaction-updated', handleTransactionUpdate)
+    return () => window.removeEventListener('finance-transaction-updated', handleTransactionUpdate)
   }, [docId])
 
   // Auto-save ao alterar
@@ -1138,6 +1154,63 @@ export const FinanceViewer = ({
               <Download className={cn("h-4 w-4 mr-2 transition-transform", isExporting && "animate-bounce")} />
               {isExporting ? t('finance.export.exporting') : t('finance.export.summaryPDF')}
             </Button>
+
+            {/* Separador Google Drive */}
+            {isGoogleConnected && (
+              <>
+                <div className="relative mt-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground flex items-center gap-1">
+                      <Cloud className="h-3 w-3" />
+                      Google Drive
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start h-10 transition-all hover:scale-[1.02] hover:shadow-sm active:scale-[0.98] text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                  disabled={savingToDrive}
+                  onClick={async () => {
+                    setSavingToDrive(true)
+                    try {
+                      // Criar CSV e fazer upload
+                      const csvContent = allTransactions.map(t => 
+                        `${t.transaction_date},${t.description},${t.category},${t.type === 'income' ? t.amount : -t.amount}`
+                      ).join('\n')
+                      const header = 'Data,Descrição,Categoria,Valor\n'
+                      const blob = new Blob([header + csvContent], { type: 'text/csv' })
+                      const file = new File([blob], `${title}_transacoes.csv`, { type: 'text/csv' })
+                      
+                      const result = await DriveService.uploadFile(file)
+                      
+                      toast.success('Salvo no Google Drive!', {
+                        action: {
+                          label: 'Abrir',
+                          onClick: () => window.open(result.webViewLink, '_blank')
+                        }
+                      })
+                      setShowExportDialog(false)
+                    } catch (error: any) {
+                      toast.error('Erro ao salvar no Drive', { description: error.message })
+                    } finally {
+                      setSavingToDrive(false)
+                    }
+                  }}
+                >
+                  {savingToDrive ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Cloud className="h-4 w-4 mr-2" />
+                  )}
+                  {savingToDrive ? 'Salvando...' : 'Salvar Transações no Drive'}
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

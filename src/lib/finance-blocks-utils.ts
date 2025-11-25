@@ -49,6 +49,11 @@ export async function createDefaultBlocksForDocument(documentId: string) {
       .select()
 
     if (error) {
+      // Se for erro 409 (conflito), blocos já existem - não é erro crítico
+      if (error.code === '23505') {
+        console.log(`ℹ️ Blocos já existem para documento ${documentId}`)
+        return []
+      }
       console.error('Erro ao criar blocos padrão:', error)
       return []
     }

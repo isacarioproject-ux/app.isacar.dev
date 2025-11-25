@@ -13,12 +13,29 @@ export default function AuthPage() {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        toast.success('Login realizado com sucesso!')
+        // Verificar se é novo usuário (criado nos últimos 5 minutos)
+        const userCreatedAt = new Date(user.created_at)
+        const now = new Date()
+        const diffMinutes = (now.getTime() - userCreatedAt.getTime()) / (1000 * 60)
+        const isNewUser = diffMinutes < 5
         
-        // Redirect to dashboard
-        setTimeout(() => {
-          navigate('/dashboard')
-        }, 500)
+        if (isNewUser) {
+          console.log('✨ [Auth] Novo usuário detectado, redirecionando para onboarding...')
+          toast.success('Conta criada! Vamos começar o setup.')
+          
+          // Redirecionar para onboarding
+          setTimeout(() => {
+            navigate('/onboarding')
+          }, 500)
+        } else {
+          console.log('👤 [Auth] Usuário existente, redirecionando para dashboard...')
+          toast.success('Login realizado com sucesso!')
+          
+          // Redirecionar para dashboard
+          setTimeout(() => {
+            navigate('/dashboard')
+          }, 500)
+        }
       }
     } catch (error) {
       console.error('Error fetching user:', error)

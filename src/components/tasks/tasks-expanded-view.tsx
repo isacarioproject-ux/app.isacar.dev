@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -124,7 +124,7 @@ export function TasksExpandedView({
               )}
               
               {/* Tabs - Menores em mobile */}
-              <TabsList className="bg-transparent h-8 md:h-9">
+              <TabsList variant="transparent">
                 <TabsTrigger value="pendente" className="text-[10px] md:text-sm px-2 md:px-3">{t('tasks.expanded.pending')}</TabsTrigger>
                 <TabsTrigger value="em_progresso" className="text-[10px] md:text-sm px-2 md:px-3">{t('tasks.expanded.inProgress')}</TabsTrigger>
                 <TabsTrigger value="concluido" className="text-[10px] md:text-sm px-2 md:px-3">{t('tasks.expanded.completed')}</TabsTrigger>
@@ -239,6 +239,8 @@ export function TasksExpandedView({
                           task={task} 
                           onTaskClick={onTaskClick}
                           onUpdate={handleUpdate}
+                          onToggleComplete={onToggleComplete}
+                          onDelete={onDeleteTask}
                         />
                       </motion.div>
                     ))}
@@ -294,6 +296,8 @@ export function TasksExpandedView({
                               task={task} 
                               onTaskClick={onTaskClick}
                               onUpdate={handleUpdate}
+                              onToggleComplete={onToggleComplete}
+                              onDelete={onDeleteTask}
                             />
                           </motion.div>
                         ))}
@@ -332,6 +336,8 @@ export function TasksExpandedView({
                               task={task} 
                               onTaskClick={onTaskClick}
                               onUpdate={handleUpdate}
+                              onToggleComplete={onToggleComplete}
+                              onDelete={onDeleteTask}
                             />
                           </motion.div>
                         ))}
@@ -353,6 +359,7 @@ export function TasksExpandedView({
           </div>
         </Tabs>
 
+        <DialogTitle className="sr-only">Tarefas</DialogTitle>
         <DialogDescription className="sr-only">
           Visualização expandida das tarefas
         </DialogDescription>

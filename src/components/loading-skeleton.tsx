@@ -134,16 +134,16 @@ export const SidebarSkeleton = () => (
 
 // Skeleton minimalista para header principal
 export const HeaderSkeleton = () => (
-  <header className="sticky top-0 z-10 flex h-12 items-center gap-3 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 lg:h-14 lg:px-4">
+  <header className="sticky top-0 z-10 flex h-10 items-center gap-3 border-b border-border/40 bg-sidebar px-3">
     {/* Toggle sidebar - visível apenas em mobile */}
     <Skeleton className="h-8 w-8 rounded-md md:hidden" />
     <div className="flex flex-1 items-center justify-end gap-2">
       {/* Button de busca */}
-      <Skeleton className="h-8 w-auto md:w-48 lg:w-56 rounded-md" />
+      <Skeleton className="h-7 w-auto md:w-48 lg:w-56 rounded-md" />
       {/* ThemeToggle */}
-      <Skeleton className="h-9 w-9 rounded-md" />
-      {/* LanguageSwitcher */}
       <Skeleton className="h-8 w-8 rounded-md" />
+      {/* LanguageSwitcher */}
+      <Skeleton className="h-7 w-7 rounded-md" />
     </div>
   </header>
 )
@@ -152,5 +152,51 @@ export const HeaderSkeleton = () => (
 export const InitialPreload = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
     <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600 dark:border-gray-700 dark:border-t-gray-400" />
+  </div>
+)
+
+// Skeleton para cards da Dashboard - Leve e elegante
+export const DashboardCardSkeleton = () => (
+  <div className="relative overflow-hidden rounded-lg border bg-card shadow-sm animate-pulse">
+    {/* Header do card */}
+    <div className="flex items-center justify-between p-4 border-b bg-muted/5">
+      <Skeleton className="h-5 w-24" />
+      <Skeleton className="h-8 w-8 rounded-md" />
+    </div>
+    
+    {/* Conteúdo */}
+    <div className="p-4 space-y-3">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <div className="space-y-2 pt-2">
+        <Skeleton className="h-12 w-full rounded-md" />
+        <Skeleton className="h-12 w-full rounded-md" />
+      </div>
+    </div>
+  </div>
+)
+
+// Grid de Skeleton para Dashboard
+export const DashboardGridSkeleton = () => (
+  <div className="grid gap-3 md:gap-[3px] grid-cols-1 md:grid-cols-2 xl:grid-cols-3 w-full md:h-full md:auto-rows-fr">
+    {[1, 2, 3, 4, 5, 6].map((i) => (
+      <DashboardCardSkeleton key={i} />
+    ))}
+  </div>
+)
+
+// Skeleton apenas para o Header de um Card (para usar quando card está carregando dados individuais)
+export const CardHeaderSkeleton = () => (
+  <div className="flex items-center justify-between gap-2 px-0.5 py-0.5 animate-pulse">
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      <Skeleton className="h-4 w-4 rounded flex-shrink-0" />
+      <Skeleton className="h-5 w-32" />
+      <Skeleton className="h-5 w-8 rounded" />
+    </div>
+    <div className="flex items-center gap-1">
+      <Skeleton className="h-7 w-7 rounded" />
+      <Skeleton className="h-7 w-7 rounded" />
+      <Skeleton className="h-7 w-7 rounded" />
+    </div>
   </div>
 )

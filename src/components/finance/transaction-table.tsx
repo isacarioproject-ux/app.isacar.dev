@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -35,6 +35,14 @@ export const TransactionTable = ({
   onRefresh,
 }: TransactionTableProps) => {
   const { t } = useI18n()
+  
+  // Estado local para transações (atualização otimista)
+  const [localTransactions, setLocalTransactions] = useState<FinanceTransaction[]>(transactions)
+  
+  // Sincronizar com props quando mudar
+  useEffect(() => {
+    setLocalTransactions(transactions)
+  }, [transactions])
   
   // Estados para edição inline (como no gerenciador de orçamento)
   const [editingCell, setEditingCell] = useState<{rowId: string, field: string} | null>(null)
@@ -108,7 +116,10 @@ export const TransactionTable = ({
         })
 
       if (error) throw error
-          await onRefresh()
+          // Notificar que houve mudança (para cards atualizarem)
+          window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
+          // Aguardar antes de refresh para evitar loop
+          setTimeout(() => onRefresh(), 1000)
           toast.success(t('finance.table.added'))
           setEditingCell(null)
           setEditingValue('')
@@ -135,7 +146,14 @@ export const TransactionTable = ({
     } else if (field === 'category') {
       updateData.category = editingValue.trim()
     } else if (field === 'amount' || field === 'value') {
-      updateData.amount = parseFloat(editingValue) || 0
+      const newAmount = parseFloat(editingValue)
+      if (isNaN(newAmount)) {
+        toast.error('Valor inválido')
+        setEditingCell(null)
+        setEditingValue('')
+        return
+      }
+      updateData.amount = newAmount
     } else if (field === 'date' || field === 'transaction_date') {
       updateData.transaction_date = editingValue
     } else if (field === 'payment_method') {
@@ -146,16 +164,46 @@ export const TransactionTable = ({
       updateData.status = editingValue as 'pending' | 'completed'
     }
 
+    // Verificar se há algo para atualizar
+    if (Object.keys(updateData).length === 0) {
+      setEditingCell(null)
+      setEditingValue('')
+      return
+    }
+
     try {
+      // ATUALIZAÇÃO OTIMISTA - Atualizar UI imediatamente
+      setLocalTransactions(prev => 
+        prev.map(t => 
+          t.id === rowId 
+            ? { ...t, ...updateData }
+            : t
+        )
+      )
+      
+      console.log('💾 Salvando:', { rowId, field, updateData })
+      
       const { error } = await supabase
         .from('finance_transactions')
         .update(updateData)
         .eq('id', rowId)
 
-      if (error) throw error
-      await onRefresh()
+      if (error) {
+        console.error('❌ Erro ao salvar:', error)
+        // Reverter mudança otimista
+        setLocalTransactions(transactions)
+        throw error
+      }
+      
+      console.log('✅ Salvo com sucesso!')
+      
+      // Notificar cards
+      window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
+      // Refresh em background
+      onRefresh()
       toast.success(t('finance.table.updated'))
     } catch (err: any) {
+      console.error('❌ Erro completo:', err)
       toast.error(t('finance.table.errorUpdate'), {
         description: err.message,
       })
@@ -180,18 +228,18 @@ export const TransactionTable = ({
     return method
   }, [t])
 
-  // Calcular totais
+  // Calcular totais usando localTransactions
   const totals = useMemo(() => {
-    const income = transactions
+    const income = localTransactions
       .filter((t) => t.type === 'income' && t.status === 'completed')
       .reduce((sum, t) => sum + Number(t.amount), 0)
     
-    const expense = transactions
+    const expense = localTransactions
       .filter((t) => t.type === 'expense' && t.status === 'completed')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
     return { income, expense, balance: income - expense }
-  }, [transactions])
+  }, [localTransactions])
 
   return (
     <div className="space-y-4 -mx-3 px-3">
@@ -211,7 +259,7 @@ export const TransactionTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction) => (
+            {localTransactions.map((transaction) => (
               <TableRow 
                 key={transaction.id} 
                 className="h-8"
@@ -257,7 +305,10 @@ export const TransactionTable = ({
                             .eq('id', transaction.id)
 
       if (error) throw error
-                          await onRefresh()
+                          // Notificar que houve mudança
+                          window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
+                          // Aguardar antes de refresh para evitar loop
+                          setTimeout(() => onRefresh(), 1000)
                           setEditingCell(null)
                           setEditingValue('')
       toast.success(t('finance.table.updated'))
@@ -468,7 +519,7 @@ export const TransactionTable = ({
 
                 {/* Valor - Editável inline */}
                 <TableCell className="text-xs text-right font-mono py-0 px-2">
-                  {editingCell?.rowId === transaction.id && editingCell?.field === 'value' ? (
+                  {editingCell?.rowId === transaction.id && editingCell?.field === 'amount' ? (
                     <Input
                       type="number"
                       value={editingValue}
@@ -490,7 +541,7 @@ export const TransactionTable = ({
                     />
                   ) : (
                     <div
-                      onClick={(e) => handleCellEdit(e, transaction.id, 'value', transaction.amount)}
+                      onClick={(e) => handleCellEdit(e, transaction.id, 'amount', transaction.amount)}
                     className={cn(
                         "cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center justify-end font-semibold",
                       transaction.type === 'income' ? 'text-green-600' : 'text-red-600'

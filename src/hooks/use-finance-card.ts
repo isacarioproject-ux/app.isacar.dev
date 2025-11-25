@@ -15,13 +15,13 @@ export const useFinanceCard = (workspaceId?: string) => {
   const [documents, setDocuments] = useState<FinanceDocumentWithStats[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 📡 Realtime - Atualizar automaticamente quando houver mudanças
+  // 📡 Realtime - Atualizar apenas quando necessário (sem loop)
   useRealtimeFinance(currentWorkspace?.id || null, {
     enabled: true,
-    showNotifications: true,
+    showNotifications: false, // Desabilitar toasts para evitar spam
     onUpdate: () => {
-      console.log('🔄 [useFinanceCard] Realtime triggered, refetching...')
-      fetchDocuments()
+      // Não fazer nada aqui - deixar o componente decidir quando refetch
+      console.log('🔄 [useFinanceCard] Realtime event received (ignored)')
     },
   })
 
@@ -29,36 +29,53 @@ export const useFinanceCard = (workspaceId?: string) => {
     fetchDocuments()
   }, [workspaceId, currentWorkspace])
 
+  // Escutar evento de atualização de transações
+  useEffect(() => {
+    const handleTransactionUpdate = () => {
+      console.log('🔔 [useFinanceCard] Transação atualizada, refetching...')
+      fetchDocuments()
+    }
+
+    window.addEventListener('finance-transaction-updated', handleTransactionUpdate)
+    return () => window.removeEventListener('finance-transaction-updated', handleTransactionUpdate)
+  }, [])
+
   const fetchDocuments = async () => {
     try {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       
+      console.log('🔍 [useFinanceCard] Buscando documentos...', {
+        userId: user?.id,
+        workspaceId: currentWorkspace?.id
+      })
+      
       if (!user) {
+        console.warn('⚠️ [useFinanceCard] Usuário não encontrado')
         setDocuments([])
         setLoading(false)
         return
       }
 
-      let query = supabase
+      // Buscar TODOS os documentos do usuário (sem filtro de workspace)
+      const { data, error } = await supabase
         .from('finance_documents')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
+      
+      console.log('✅ [useFinanceCard] Documentos encontrados:', data?.length || 0)
+      console.log('📊 [useFinanceCard] Workspace atual:', currentWorkspace?.id)
 
-      // Filtrar por workspace
-      if (currentWorkspace) {
-        query = query.eq('workspace_id', currentWorkspace.id)
-      } else {
-        query = query.is('workspace_id', null)
+      if (error) {
+        console.error('❌ [useFinanceCard] Erro na query:', error)
+        throw error
       }
 
-      const { data, error } = await query
-
-      if (error) throw error
-
+      console.log('✅ [useFinanceCard] Documentos encontrados:', data?.length || 0, data)
       setDocuments(data || [])
     } catch (err: any) {
-      console.error('Erro ao carregar documentos financeiros:', err)
+      console.error('❌ [useFinanceCard] Erro ao carregar documentos:', err)
       setDocuments([])
     } finally {
       setLoading(false)

@@ -82,7 +82,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {loading ? (
             <HeaderSkeleton />
           ) : (
-            <header className="sticky top-0 z-10 flex h-12 items-center gap-3 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 lg:h-14 lg:px-4">
+            <header className="sticky top-0 z-50 flex h-10 items-center gap-3 border-b border-border/40 bg-sidebar px-3">
               {/* Toggle sidebar - visível apenas em mobile */}
               <SidebarTrigger className="-ml-1 md:hidden" />
               <div className="flex flex-1 items-center justify-end gap-2">
@@ -90,11 +90,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setSearchOpen(true)}
-                  className="relative h-8 w-auto justify-start text-xs text-muted-foreground md:w-48 lg:w-56"
+                  className="relative h-7 w-auto justify-start text-xs text-muted-foreground md:w-48 lg:w-56"
                 >
                   <Search className="mr-2 h-3.5 w-3.5" />
                   <span className="hidden md:inline-flex">Buscar...</span>
-                  <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-4 select-none items-center gap-1 rounded border bg-muted px-1 font-mono text-[9px] font-medium opacity-100 md:flex">
+                  <kbd className="pointer-events-none absolute right-1 top-1 hidden h-3.5 select-none items-center gap-1 rounded border bg-muted px-1 font-mono text-[9px] font-medium opacity-100 md:flex">
                     <span>⌘K</span>
                   </kbd>
                 </Button>
@@ -103,7 +103,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </header>
           )}
-          <div className="flex-1 overflow-y-auto">
+          <div className="relative flex-1 overflow-y-auto">
             {children}
           </div>
         </main>

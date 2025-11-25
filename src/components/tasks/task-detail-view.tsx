@@ -1,6 +1,7 @@
 import { updateTask, createTask, getUsers, getTasks, getTaskWithDetails } from '@/lib/tasks/tasks-storage';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useIntegration } from '@/hooks/use-integration';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { Task, TaskWithDetails, TaskStatus, TaskPriority, CustomField, User } from '@/types/tasks';
@@ -14,6 +15,7 @@ import { PrioritySelector } from './priority-selector';
 import { TimeTracker } from './time-tracker';
 import { RelationshipSelector } from './relationship-selector';
 import { TagSelector } from './tag-selector';
+import { TaskDriveAttachments } from './task-drive-attachments';
 import {
   Select,
   SelectContent,
@@ -60,6 +62,7 @@ const getPriorityLabel = (t: any, priority: TaskPriority): string => {
 
 export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
   const { t } = useI18n();
+  const isTaskIntegrationEnabled = useIntegration('TASKS_TO_FINANCE'); // ✨ Verificar se integração está ativa
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [status, setStatus] = useState<TaskStatus>(task.status);
@@ -90,6 +93,7 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>(task.tag_ids || []);
+  const [financeDocuments, setFinanceDocuments] = useState<any[]>([]); // ✨ Documentos financeiros
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [attachments, setAttachments] = useState<Array<{name: string; url: string}>>([]);
   const [isStartDateOpen, setIsStartDateOpen] = useState(false);
@@ -98,6 +102,24 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
   const [isPriorityOpen, setIsPriorityOpen] = useState(false);
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
   const [isTagOpen, setIsTagOpen] = useState(false);
+  const [checklists, setChecklists] = useState(task.checklists || []);
+
+  // Toggle checklist item
+  const toggleChecklistItem = (checklistId: string, itemId: string) => {
+    setChecklists(prev => 
+      prev.map(checklist => {
+        if (checklist.id === checklistId) {
+          return {
+            ...checklist,
+            items: checklist.items.map(item => 
+              item.id === itemId ? { ...item, checked: !item.checked } : item
+            )
+          };
+        }
+        return checklist;
+      })
+    );
+  };
   const subtasks = allTasks.filter(t => t.parent_task_id === task.id);
 
   useEffect(() => {
@@ -109,6 +131,19 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
         ]);
         setUsers(usersData);
         setAllTasks(tasksData);
+        
+        // ✨ Carregar documentos financeiros
+        const { data: financeDocs, error: financeError } = await supabase
+          .from('finance_documents')
+          .select('id, name, template_type, icon')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (financeError) {
+          console.error('Erro ao carregar finance docs:', financeError);
+        } else {
+          setFinanceDocuments(financeDocs || []);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
       }
@@ -161,7 +196,7 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
     return () => clearTimeout(timer);
   }, [title, descriptionBlocks, status, priority, assigneeIds, selectedTags]);
 
-  const handleSave = async () => {
+  const handleSave = async (overrides?: Partial<Task>) => {
     // Converter blocks de volta para string
     const descriptionText = descriptionBlocks.map(b => b.content).join('\n');
     
@@ -175,11 +210,22 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
       assignee_ids: assigneeIds,
       tag_ids: selectedTags,
       custom_fields: customFields,
+      ...overrides, // ✨ Permitir sobrescrever valores
     };
 
     await updateTask(task.id, updates);
-    onUpdate();
     console.log('✅ Tarefa atualizada:', updates);
+    
+    // Force refetch IMEDIATO para garantir que a UI seja atualizada
+    onUpdate();
+    
+    // Segundo refetch após um delay para garantir que o Supabase propagou
+    setTimeout(() => {
+      onUpdate();
+      console.log('🔄 Refetch adicional após salvar');
+    }, 300);
+    
+    // Feedback visual removido - o Realtime já vai mostrar "Tarefa atualizada"
   };
 
   const handleAddSubtask = async () => {
@@ -200,7 +246,7 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
         project_id: task.project_id,
         list_id: task.list_id,
         parent_task_id: task.id,
-        custom_fields: [],
+        custom_fields: []
       };
 
       await createTask(newSubtask);
@@ -211,11 +257,11 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
       setAllTasks(updatedTasks);
       
       // Atualizar a tarefa atual para incluir a nova subtarefa
-      toast.success('Sub-tarefa criada');
+      toast.success(t('tasks.toast.subtaskCreated'));
       onUpdate();
     } catch (error) {
       console.error('Error creating subtask:', error);
-      toast.error('Erro ao criar sub-tarefa');
+      toast.error(t('tasks.toast.subtaskError'));
     }
   };
 
@@ -226,12 +272,12 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
       completed_at: newStatus === 'done' ? new Date().toISOString() : null,
     };
     updateTask(task.id, updates);
-    toast.success('Status atualizado');
+    toast.success(t('tasks.toast.statusUpdated'));
     onUpdate();
   };
 
   const formatDate = (date: Date | undefined) => {
-    if (!date) return 'Selecionar data';
+    if (!date) return t('tasks.detail.selectDate');
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
@@ -288,10 +334,23 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
                 <Calendar
                   mode="single"
                   selected={startDate}
-                  onSelect={(date: Date | undefined) => {
+                  onSelect={async (date: Date | undefined) => {
+                    if (!date) {
+                      setStartDate(undefined);
+                      setIsStartDateOpen(false);
+                      await handleSave({ start_date: null });
+                      return;
+                    }
+                    
+                    // Usar formato local para evitar problemas de timezone
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}`;
+                    
                     setStartDate(date);
-                    handleSave();
-                    setIsStartDateOpen(false);
+                    setIsStartDateOpen(false); // ✨ Fechar IMEDIATAMENTE
+                    await handleSave({ start_date: formattedDate });
                   }}
                 />
               </PopoverContent>
@@ -307,10 +366,30 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
                 <Calendar
                   mode="single"
                   selected={dueDate}
-                  onSelect={(date: Date | undefined) => {
+                  onSelect={async (date: Date | undefined) => {
+                    if (!date) {
+                      console.log('📅 Data removida');
+                      setDueDate(undefined);
+                      setIsDueDateOpen(false);
+                      await handleSave({ due_date: null });
+                      return;
+                    }
+                    
+                    console.log('📅 Data selecionada no Calendar:', date);
+                    console.log('📅 Data local:', date.toLocaleDateString('pt-BR'));
+                    
+                    // Usar formato local para evitar problemas de timezone
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const formattedDate = `${year}-${month}-${day}`;
+                    
+                    console.log('📅 Data formatada para salvar:', formattedDate);
+                    console.log('📅 Validação:', { year, month, day });
+                    
                     setDueDate(date);
-                    handleSave();
-                    setIsDueDateOpen(false);
+                    setIsDueDateOpen(false); // ✨ Fechar IMEDIATAMENTE
+                    await handleSave({ due_date: formattedDate });
                   }}
                 />
               </PopoverContent>
@@ -361,7 +440,53 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
           </div>
         </div>
 
-        {/* 4. Prioridade */}
+        {/* 4. Documento Financeiro (opcional - somente se integração ativa) */}
+        {isTaskIntegrationEnabled && (
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <span className="text-gray-500 dark:text-gray-400">💰 Finance</span>
+          <Select 
+            value={task.finance_document_id || 'none'} 
+            onValueChange={async (value) => {
+              await handleSave({ finance_document_id: value === 'none' ? null : value });
+            }}
+          >
+            <SelectTrigger className="w-[200px] h-8 text-xs">
+              <SelectValue placeholder="Sem vínculo">
+                {task.finance_document_id && financeDocuments.length > 0 ? (
+                  (() => {
+                    const selectedDoc = financeDocuments.find(d => d.id === task.finance_document_id);
+                    return selectedDoc ? (
+                      <div className="flex items-center gap-1.5">
+                        <span>{selectedDoc.icon || '📄'}</span>
+                        <span className="truncate">{selectedDoc.name}</span>
+                      </div>
+                    ) : 'Sem vínculo';
+                  })()
+                ) : 'Sem vínculo'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem vínculo</SelectItem>
+              {financeDocuments.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  Carregando documentos...
+                </div>
+              ) : (
+                financeDocuments.map((doc) => (
+                  <SelectItem key={doc.id} value={doc.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{doc.icon || '📄'}</span>
+                      <span className="truncate">{doc.name}</span>
+                    </div>
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        )}
+
+        {/* 5. Prioridade */}
         <div className="flex items-center gap-2 w-full md:w-auto">
           <span className="text-gray-500 dark:text-gray-400 min-w-[60px]">{t('tasks.detail.priority')}</span>
           <PrioritySelector 
@@ -640,24 +765,26 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
       </div>
 
       {/* Checklists */}
-      {task.checklists && task.checklists.length > 0 && (
+      {checklists && checklists.length > 0 && (
         <div className="space-y-3">
-          {task.checklists.map(checklist => (
+          {checklists.map(checklist => (
             <div key={checklist.id} className="space-y-2 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
               <Label>{checklist.title}</Label>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {checklist.items.map(item => (
-                  <motion.div
+                  <div
                     key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 py-0.5"
                   >
-                    <Checkbox checked={item.checked} />
+                    <Checkbox 
+                      checked={item.checked}
+                      onCheckedChange={() => toggleChecklistItem(checklist.id, item.id)}
+                      className="cursor-pointer"
+                    />
                     <span className={item.checked ? 'line-through text-gray-500 dark:text-gray-400' : 'dark:text-gray-100'}>
                       {item.text}
                     </span>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -751,6 +878,11 @@ export function TaskDetailView({ task, onUpdate }: TaskDetailViewProps) {
         {uploadingFiles && (
           <p className="text-xs text-muted-foreground mt-1">Enviando arquivo(s)...</p>
         )}
+      </div>
+
+      {/* Anexos do Google Drive */}
+      <div className="pt-3 border-t">
+        <TaskDriveAttachments taskId={task.id} />
       </div>
     </div>
   );

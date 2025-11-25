@@ -1,0 +1,114 @@
+🔍 DEBUG - Google Não Conecta na Segunda Tentativa
+
+📊 LOGS DETALHADOS ADICIONADOS
+
+Agora o console vai mostrar EXATAMENTE o que está acontecendo.
+
+🧪 TESTE PASSO A PASSO:
+
+1. ABRIR CONSOLE
+   F12 → Console → Limpar (ícone 🚫)
+
+2. RECARREGAR PÁGINA
+   Ctrl + Shift + R
+
+3. IR EM SETTINGS → INTEGRATIONS
+
+4. CLICAR "CONECTAR GOOGLE"
+
+5. AUTORIZAR NO GOOGLE
+
+6. VOLTAR PARA APP
+
+7. OLHAR NO CONSOLE
+
+📋 O QUE VOCÊ DEVE VER NO CONSOLE:
+
+FLUXO NORMAL (ESPERADO):
+```
+🔔 Auth state changed: SIGNED_IN { hasSession: true, hasProviderToken: true, provider: "google" }
+✅ OAuth detectado, salvando integração...
+📝 saveGoogleIntegration chamada { hasToken: true, tokenLength: 253, userId: "xxx" }
+📧 Buscando info do Google...
+✅ Info do Google obtida: seu-email@gmail.com
+🔍 Testando token no Drive API...
+✅ Token válido!
+💾 Salvando na tabela google_integrations...
+📊 Dados a inserir: { user_id: "xxx", email: "seu-email@gmail.com", scopes: 6 }
+✅ Google integration saved: seu-email@gmail.com
+✅ Integração salva, aguardando 1s...
+✅ Verificando conexão...
+✅ Tudo pronto!
+```
+
+🚨 CENÁRIOS DE ERRO:
+
+CENÁRIO 1: SEM provider_token
+```
+🔔 Auth state changed: SIGNED_IN { hasSession: true, hasProviderToken: false, provider: "google" }
+⚠️ SIGNED_IN mas SEM provider_token - OAuth pode não ter funcionado
+```
+→ PROBLEMA: Supabase não está retornando provider_token
+→ SOLUÇÃO: Verificar configuração OAuth no Supabase Dashboard
+
+CENÁRIO 2: Token inválido
+```
+✅ OAuth detectado, salvando integração...
+📝 saveGoogleIntegration chamada
+📧 Buscando info do Google...
+✅ Info do Google obtida
+🔍 Testando token no Drive API...
+❌ Erro ao salvar integração Google: Error: Token inválido: 401 - Unauthorized
+```
+→ PROBLEMA: Token expirou ou sem permissões
+→ SOLUÇÃO: Reconectar e aprovar TODAS as permissões
+
+CENÁRIO 3: Erro ao salvar no banco
+```
+✅ Token válido!
+💾 Salvando na tabela google_integrations...
+❌ Erro do Supabase: { code: "42501", message: "permission denied" }
+```
+→ PROBLEMA: RLS bloqueando insert
+→ SOLUÇÃO: Verificar políticas RLS da tabela
+
+CENÁRIO 4: Listener não dispara
+```
+(Nenhum log aparece)
+```
+→ PROBLEMA: Listener não está registrado
+→ SOLUÇÃO: Recarregar página completamente
+
+📝 O QUE FAZER:
+
+1. Tente conectar novamente
+2. Veja EXATAMENTE o que aparece no console
+3. Copie TODOS os logs
+4. Me envie
+
+📊 INFORMAÇÕES ÚTEIS:
+
+Se NÃO aparecer NADA no console:
+→ Listener não está funcionando
+→ onAuthStateChange não dispara
+
+Se aparecer "hasProviderToken: false":
+→ Supabase OAuth mal configurado
+→ Verificar redirect URLs
+
+Se aparecer erro 401/403:
+→ Problema com permissões Google
+→ Reconectar e aprovar tudo
+
+Se aparecer erro do Supabase:
+→ Problema com RLS ou estrutura da tabela
+→ Verificar no Supabase Dashboard
+
+🎯 APÓS COPIAR OS LOGS:
+
+Me envie:
+1. TODOS os logs do console (copy/paste)
+2. Status que aparece (Conectado/Desconectado)
+3. Se apareceu algum toast/mensagem
+
+Com isso vou saber EXATAMENTE onde está o problema! 🚀

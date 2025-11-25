@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { DrivePickerDialog } from '@/components/drive/drive-picker-dialog'
+import { useDocsDriverImport } from '@/hooks/use-docs-drive-import'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +48,7 @@ import {
   PanelRightClose,
   Sparkles,
   GripVertical,
+  Cloud,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useDateFnsLocale } from '@/hooks/use-date-fns-locale'
@@ -113,6 +116,8 @@ export const DocsCard = ({ defaultName = 'Docs', projectId, onExpand, onAddDoc, 
     elements: [],
   })
   const { documents, loading, refetch } = useDocsCard(projectId)
+  const { importing, importGoogleDocs } = useDocsDriverImport()
+  const [showDrivePicker, setShowDrivePicker] = useState(false)
 
   // Listener realtime para atualizar tabela quando documentos mudarem
   useEffect(() => {
@@ -305,6 +310,15 @@ export const DocsCard = ({ defaultName = 'Docs', projectId, onExpand, onAddDoc, 
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   {t('pages.uploadFile')}
+                </DropdownMenuItem>
+
+                {/* Importar do Google Drive */}
+                <DropdownMenuItem
+                  onClick={() => setShowDrivePicker(true)}
+                  disabled={importing}
+                >
+                  <Cloud className="mr-2 h-4 w-4 text-blue-500" />
+                  {importing ? 'Importando...' : 'Importar do Drive'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -724,6 +738,21 @@ export const DocsCard = ({ defaultName = 'Docs', projectId, onExpand, onAddDoc, 
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </Dialog>
+
+    {/* Drive Picker Dialog */}
+    <DrivePickerDialog
+      open={showDrivePicker}
+      onClose={() => setShowDrivePicker(false)}
+      onSelect={async (driveFiles) => {
+        if (projectId) {
+          await importGoogleDocs(driveFiles, projectId)
+          refetch()
+        }
+        setShowDrivePicker(false)
+      }}
+      multiple={true}
+      accept={['application/vnd.google-apps.document']}
+    />
   </>
   )
 }

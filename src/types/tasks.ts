@@ -85,6 +85,7 @@ export interface Task {
   created_by: string; // ✅ Corrigido: usar created_by (consistente com o banco)
   tag_ids: string[];
   project_id: string | null;
+  finance_document_id: string | null; // ✨ Vinculação com documentos financeiros
   list_id: string | null;
   parent_task_id: string | null;
   custom_fields: CustomField[];

@@ -50,6 +50,7 @@ export function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false)
   const [showNewWorkspaceDialog, setShowNewWorkspaceDialog] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showSettingsTab, setShowSettingsTab] = useState<string | undefined>(undefined)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('')
@@ -213,9 +214,12 @@ export function WorkspaceSwitcher() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    alert('Função de convidar membros em desenvolvimento')
+                    setOpen(false)
+                    setShowSettingsTab('members')
+                    setShowSettings(true)
                   }}
                   className="flex-1 h-6 text-xs px-1.5"
+                  disabled={!currentWorkspace}
                 >
                   <User className="h-3 w-3 mr-1" />
                   {t('workspace.inviteMembers')}
@@ -338,7 +342,11 @@ export function WorkspaceSwitcher() {
       {/* Dialog Settings */}
       <WorkspaceSettingsDialog
         open={showSettings}
-        onOpenChange={setShowSettings}
+        onOpenChange={(open) => {
+          setShowSettings(open)
+          if (!open) setShowSettingsTab(undefined)
+        }}
+        defaultTab={showSettingsTab as 'general' | 'members' | undefined}
       />
 
       {/* Dialog Criar Workspace */}
@@ -418,6 +426,7 @@ export function WorkspaceSwitcher() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </>
   )
 }

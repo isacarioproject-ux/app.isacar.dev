@@ -100,7 +100,7 @@ export const FinanceTemplateSelector = ({
         {/* Categorias */}
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="flex-1 flex flex-col overflow-hidden">
           <div className="px-6 py-2 border-b border-border flex-shrink-0">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList variant="grid" className="grid-cols-4">
               {categories.map((cat) => (
                 <TabsTrigger key={cat.id} value={cat.id} className="text-xs">
                   {cat.label}

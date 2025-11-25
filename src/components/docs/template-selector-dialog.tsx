@@ -68,7 +68,7 @@ export function TemplateSelectorDialog({
         </div>
 
         <Tabs value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as any)} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList variant="grid" className="grid-cols-4">
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="business">Negócios</TabsTrigger>
             <TabsTrigger value="personal">Pessoal</TabsTrigger>

@@ -20,6 +20,7 @@ function dbTaskToTask(dbTask: any): Task {
     created_by: dbTask.created_by, // ✅ Corrigido: usar created_by consistentemente
     tag_ids: dbTask.labels || [],
     project_id: dbTask.project_id,
+    finance_document_id: dbTask.finance_document_id || null, // ✨ Vinculação com finance
     list_id: null, // Não existe na tabela atual
     parent_task_id: dbTask.parent_task_id,
     custom_fields: dbTask.custom_fields ? Object.entries(dbTask.custom_fields).map(([key, value]: [string, any]) => ({
@@ -81,7 +82,26 @@ export async function getCurrentWorkspaceId(): Promise<string | null> {
 export async function getUsers(): Promise<User[]> {
   const workspaceId = await getCurrentWorkspaceId();
   
-  // Buscar membros do workspace
+  // Modo Pessoal: retornar apenas o usuário atual
+  if (!workspaceId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+    
+    return [{
+      id: user.id,
+      name: profile?.full_name || user.email?.split('@')[0] || 'Eu',
+      email: user.email || '',
+      avatar: profile?.avatar_url,
+    }];
+  }
+  
+  // Modo Workspace: buscar membros do workspace
   const { data, error } = await supabase
     .from('workspace_members')
     .select(`
@@ -397,6 +417,7 @@ export async function createTask(task: Omit<Task, 'id' | 'created_at'>): Promise
       start_date: task.start_date,
       due_date: task.due_date,
       parent_task_id: task.parent_task_id,
+      finance_document_id: task.finance_document_id || null, // ✨ Vinculação com finance
       assigned_to: task.assignee_ids,
       labels: task.tag_ids,
       custom_fields: task.custom_fields.reduce((acc: any, field) => {
@@ -426,6 +447,7 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<Ta
   if (updates.priority !== undefined) updateData.priority = updates.priority;
   if (updates.start_date !== undefined) updateData.start_date = updates.start_date;
   if (updates.due_date !== undefined) updateData.due_date = updates.due_date;
+  if (updates.finance_document_id !== undefined) updateData.finance_document_id = updates.finance_document_id; // ✨ Vinculação com finance
   if (updates.assignee_ids !== undefined) updateData.assigned_to = updates.assignee_ids;
   if (updates.tag_ids !== undefined) updateData.labels = updates.tag_ids;
   if (updates.completed_at !== undefined) updateData.completed_at = updates.completed_at;

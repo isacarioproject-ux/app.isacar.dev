@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner';
 import { getTasks } from '@/lib/tasks/tasks-storage';
 import { Task } from '@/types/tasks';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface RelationshipSelectorProps {
   taskId: string;
@@ -14,20 +15,22 @@ interface RelationshipSelectorProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const relationTypes = [
-  { value: 'blocks', label: 'Bloqueia' },
-  { value: 'blocked_by', label: 'Bloqueado por' },
-  { value: 'relates_to', label: 'Relacionado a' },
-  { value: 'duplicates', label: 'Duplica' },
-  { value: 'parent_of', label: 'Pai de' },
-  { value: 'child_of', label: 'Filho de' },
-];
-
 export function RelationshipSelector({ taskId, onAdd, open, onOpenChange }: RelationshipSelectorProps) {
+  const { t } = useI18n();
   const [selectedType, setSelectedType] = useState('relates_to');
   const [searchQuery, setSearchQuery] = useState('');
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
+
+  // Tipos de relacionamento com tradução
+  const relationTypes = [
+    { value: 'blocks', label: t('tasks.relationship.blocks') },
+    { value: 'blocked_by', label: t('tasks.relationship.blockedBy') },
+    { value: 'relates_to', label: t('tasks.relationship.relatesTo') },
+    { value: 'duplicates', label: t('tasks.relationship.duplicates') },
+    { value: 'parent_of', label: t('tasks.relationship.parentOf') },
+    { value: 'child_of', label: t('tasks.relationship.childOf') },
+  ];
 
   useEffect(() => {
     getTasks().then(tasks => {
@@ -58,7 +61,7 @@ export function RelationshipSelector({ taskId, onAdd, open, onOpenChange }: Rela
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <button className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium">
-          + Adicionar relacionamento
+          + {t('tasks.relationship.add')}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-2" align="start">
@@ -84,7 +87,7 @@ export function RelationshipSelector({ taskId, onAdd, open, onOpenChange }: Rela
             <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-gray-400" />
               <Input
-              placeholder="Buscar tarefa..."
+              placeholder={t('tasks.relationship.searchTask')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-7 h-8 text-sm"
@@ -95,7 +98,7 @@ export function RelationshipSelector({ taskId, onAdd, open, onOpenChange }: Rela
           <div className="max-h-40 overflow-y-auto space-y-0.5">
               {filteredTasks.length === 0 ? (
               <p className="text-xs text-gray-500 text-center py-2">
-                Nenhuma tarefa
+                {t('tasks.relationship.noTasks')}
                 </p>
               ) : (
               filteredTasks.slice(0, 5).map(task => (

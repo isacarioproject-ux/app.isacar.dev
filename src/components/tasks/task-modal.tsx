@@ -9,13 +9,12 @@ import { getTaskWithDetails, getTasks, deleteTask } from '@/lib/tasks/tasks-stor
 import { TaskDetailView } from '@/components/tasks/task-detail-view';
 import { TaskActivitySidebar } from '@/components/tasks/task-activity-sidebar';
 import { TaskModalSkeleton } from '@/components/tasks/task-modal-skeleton';
-import { ChevronLeft, ChevronRight, Share2, Sparkles, X, MoreVertical, Maximize2, Minimize2, ListChecks, Star, Link as LinkIcon, Grid3x3, List, CheckSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share2, X, MoreVertical, Maximize2, Minimize2, ListChecks, Star, Grid3x3, CheckSquare, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
@@ -39,6 +38,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
   const [showActivitySidebar, setShowActivitySidebar] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
   useEffect(() => {
     const checkMobile = () => {
@@ -53,6 +53,8 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
   useEffect(() => {
     if (!taskId) return;
 
+    console.log('🔄 TaskModal: Recarregando tarefa', taskId);
+    
     // Simular loading
     setLoading(true);
     
@@ -60,7 +62,12 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
     const loadTask = async () => {
       try {
         const taskData = await getTaskWithDetails(taskId);
+        console.log('📋 Tarefa carregada:', taskData);
         setTask(taskData || null);
+        
+        // Carregar estado de favorito do localStorage
+        const favorites = JSON.parse(localStorage.getItem('task-favorites') || '[]');
+        setIsFavorite(favorites.includes(taskId));
       } catch (error) {
         console.error('Erro ao carregar tarefa:', error);
         toast.error(t('tasks.modal.loadError'));
@@ -83,7 +90,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
       }
     };
     loadTaskIds();
-  }, [taskId]);
+  }, [taskId, open]); // Recarregar quando taskId ou open mudar
 
   const handleRefresh = async () => {
     if (!taskId) return;
@@ -111,18 +118,26 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!task) return;
     if (confirm(t('tasks.modal.deleteConfirm'))) {
-      deleteTask(task.id);
-      toast.success(t('tasks.modal.deleteSuccess'));
-      onClose();
-      onUpdate();
+      try {
+        await deleteTask(task.id);
+        toast.success(t('tasks.modal.deleteSuccess'));
+        onClose();
+        onUpdate(); // Atualizar lista imediatamente
+      } catch (error) {
+        console.error('Erro ao deletar tarefa:', error);
+        toast.error(t('tasks.toast.errorDeleting'));
+      }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
+      <DialogTitle className="sr-only">
+        {task ? task.title : t('tasks.modal.loading')}
+      </DialogTitle>
       <DialogContent 
         showClose={false} 
         className={cn(
@@ -213,7 +228,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
           </div>
 
           <div className="flex items-center gap-0 md:gap-0.5 flex-shrink-0">
-            {/* Favorito com Animação */}
+            {/* Favorito com Animação - Salva no localStorage */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -221,7 +236,23 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
                     variant="ghost" 
                     size="icon"
                     className="h-8 w-8 md:h-10 md:w-10"
-                    onClick={() => setIsFavorite(!isFavorite)}
+                    onClick={() => {
+                      const newFavorite = !isFavorite;
+                      setIsFavorite(newFavorite);
+                      // Salvar em localStorage
+                      const favorites = JSON.parse(localStorage.getItem('task-favorites') || '[]');
+                      if (newFavorite) {
+                        if (!favorites.includes(task?.id)) {
+                          favorites.push(task?.id);
+                        }
+                        toast.success(t('tasks.modal.addedToFavorites'));
+                      } else {
+                        const index = favorites.indexOf(task?.id);
+                        if (index > -1) favorites.splice(index, 1);
+                        toast.success(t('tasks.modal.removedFromFavorites'));
+                      }
+                      localStorage.setItem('task-favorites', JSON.stringify(favorites));
+                    }}
                   >
                     <motion.div
                       animate={{
@@ -235,7 +266,7 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
                   </Button>
                 </motion.div>
               </TooltipTrigger>
-              <TooltipContent>{t('tasks.modal.favorite')}</TooltipContent>
+              <TooltipContent>{isFavorite ? t('tasks.modal.removeFromFavorites') : t('tasks.modal.addToFavorites')}</TooltipContent>
             </Tooltip>
 
             {/* Toggle Subtarefas com Animação */}
@@ -274,16 +305,6 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
               </Tooltip>
             )}
 
-            {/* Ações AI - Hidden on mobile */}
-            {!isMobile && (
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Button variant="ghost" size="sm">
-                  <Sparkles className="size-4 mr-2" />
-                  {t('tasks.modal.askQuestion')}
-                </Button>
-              </motion.div>
-            )}
-
             {/* Maximizar com Animação */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -296,11 +317,20 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
               <TooltipContent>{isMaximized ? t('tasks.modal.restore') : t('tasks.modal.maximize')}</TooltipContent>
             </Tooltip>
 
-            {/* Compartilhar com Animação */}
+            {/* Compartilhar - Copia link */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 md:h-10 md:w-10"
+                    onClick={() => {
+                      const url = `${window.location.origin}/tasks/${task?.id}`;
+                      navigator.clipboard.writeText(url);
+                      toast.success(t('tasks.modal.linkCopied'));
+                    }}
+                  >
                     <Share2 className="size-4" />
                   </Button>
                 </motion.div>
@@ -323,13 +353,11 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
                 <TooltipContent>{t('tasks.modal.moreOptions')}</TooltipContent>
               </Tooltip>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>{t('tasks.modal.duplicate')}</DropdownMenuItem>
-                <DropdownMenuItem>{t('tasks.modal.archive')}</DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleDelete}
-                  className="text-red-600"
+                  className="text-red-600 flex items-center gap-2"
                 >
+                  <Trash2 className="size-4" />
                   {t('tasks.modal.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -375,18 +403,114 @@ export function TaskModal({ taskId, open, onClose, onUpdate }: TaskModalProps) {
               </div>
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm dark:text-gray-300">Nova Tarefa</span>
+                  {/* Subtarefas reais da tarefa */}
+                  {task.subtasks && task.subtasks.length > 0 ? (
+                    task.subtasks.map((subtask: any) => (
+                      <div 
+                        key={subtask.id} 
+                        className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer"
+                      >
+                        <input 
+                          type="checkbox" 
+                          className="rounded" 
+                          checked={subtask.status === 'done'}
+                          onChange={async () => {
+                            const newStatus = subtask.status === 'done' ? 'todo' : 'done';
+                            const { updateTask } = await import('@/lib/tasks/tasks-storage');
+                            await updateTask(subtask.id, { 
+                              status: newStatus,
+                              completed_at: newStatus === 'done' ? new Date().toISOString() : null
+                            });
+                            handleRefresh();
+                          }}
+                        />
+                        <span className={cn(
+                          "text-sm dark:text-gray-300",
+                          subtask.status === 'done' && "line-through text-gray-400"
+                        )}>
+                          {subtask.title}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                      {t('tasks.modal.noSubtasks')}
+                    </p>
+                  )}
+                  
+                  {/* Input para adicionar subtarefa */}
+                  <div className="flex gap-2 pt-2 border-t dark:border-gray-800">
+                    <input
+                      type="text"
+                      value={newSubtaskTitle}
+                      onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter' && newSubtaskTitle.trim()) {
+                          try {
+                            const { createTask } = await import('@/lib/tasks/tasks-storage');
+                            await createTask({
+                              title: newSubtaskTitle.trim(),
+                              description: '',
+                              status: 'todo',
+                              priority: 'medium',
+                              due_date: null,
+                              start_date: null,
+                              completed_at: null,
+                              assignee_ids: task?.assignee_ids || [],
+                              created_by: task?.created_by || '',
+                              tag_ids: [],
+                              project_id: task?.project_id || null,
+                              list_id: task?.list_id || null,
+                              parent_task_id: task?.id || null,
+                              custom_fields: [],
+                            });
+                            setNewSubtaskTitle('');
+                            handleRefresh();
+                            toast.success(t('tasks.toast.subtaskCreated'));
+                          } catch (error) {
+                            console.error('Erro ao criar subtarefa:', error);
+                            toast.error(t('tasks.toast.subtaskError'));
+                          }
+                        }
+                      }}
+                      placeholder={t('tasks.modal.addSubtask')}
+                      className="flex-1 text-sm px-2 py-1.5 rounded border dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Button
+                      size="sm"
+                      disabled={!newSubtaskTitle.trim()}
+                      onClick={async () => {
+                        if (!newSubtaskTitle.trim()) return;
+                        try {
+                          const { createTask } = await import('@/lib/tasks/tasks-storage');
+                          await createTask({
+                            title: newSubtaskTitle.trim(),
+                            description: '',
+                            status: 'todo',
+                            priority: 'medium',
+                            due_date: null,
+                            start_date: null,
+                            completed_at: null,
+                            assignee_ids: task?.assignee_ids || [],
+                            created_by: task?.created_by || '',
+                            tag_ids: [],
+                            project_id: task?.project_id || null,
+                            list_id: task?.list_id || null,
+                            parent_task_id: task?.id || null,
+                            custom_fields: [],
+                          });
+                          setNewSubtaskTitle('');
+                          handleRefresh();
+                          toast.success(t('tasks.toast.subtaskCreated'));
+                        } catch (error) {
+                          console.error('Erro ao criar subtarefa:', error);
+                          toast.error(t('tasks.toast.subtaskError'));
+                        }
+                      }}
+                    >
+                      +
+                    </Button>
                   </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2">
-                        + {t('tasks.modal.addSubtask')}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t('tasks.modal.addSubtask')}</TooltipContent>
-                  </Tooltip>
                 </div>
               </div>
             </div>

@@ -70,6 +70,7 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
     const saved = localStorage.getItem('budget-card-name')
     return saved || 'Gerenciador de Orçamentos'
   })
+  const [isEditingName, setIsEditingName] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
@@ -86,17 +87,36 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
     const loadBudgetData = async () => {
       setLoading(true)
       try {
-        let query = supabase
-          .from('finance_documents')
-          .select('id, total_income, total_expenses, template_config')
-          
-        if (currentWorkspace?.id) {
-          query = query.eq('workspace_id', currentWorkspace.id)
-        } else {
-          query = query.is('workspace_id', null)
-        }
+        const { data: { user } } = await supabase.auth.getUser()
         
-        const { data: documents, error } = await query
+        console.log('🔍 [BudgetCard] Carregando dados...', {
+          userId: user?.id,
+          workspaceId: currentWorkspace?.id
+        })
+        
+        if (!user) {
+          console.warn('⚠️ [BudgetCard] Usuário não encontrado')
+          setLoading(false)
+          return
+        }
+
+        // Buscar TODOS os documentos do usuário (sem filtro de workspace)
+        const { data: documents, error } = await supabase
+          .from('finance_documents')
+          .select('id, total_income, total_expenses, template_config, workspace_id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+        
+        console.log('✅ [BudgetCard] Documentos encontrados:', documents?.length || 0)
+        console.log('📊 [BudgetCard] Workspace atual:', currentWorkspace?.id)
+        
+        if (documents && documents.length > 0) {
+          console.log('📄 [BudgetCard] Documentos:', documents.map(d => ({
+            id: d.id,
+            workspace_id: d.workspace_id,
+            has_config: !!d.template_config
+          })))
+        }
 
         if (error) throw error
 
@@ -157,6 +177,84 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
     loadBudgetData()
   }, [currentWorkspace?.id])
 
+  // Escutar evento de atualização de transações
+  useEffect(() => {
+    const handleTransactionUpdate = () => {
+      console.log('🔔 [BudgetCard] Transação atualizada, recarregando...')
+      const loadBudgetData = async () => {
+        setLoading(true)
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) {
+            setLoading(false)
+            return
+          }
+
+          // Buscar TODOS os documentos do usuário (sem filtro de workspace)
+          const { data: documents, error } = await supabase
+            .from('finance_documents')
+            .select('id, total_income, total_expenses, template_config')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+          
+          if (error) throw error
+
+          if (documents && documents.length > 0) {
+            const firstDoc = documents[0]
+            setSelectedDocId(firstDoc.id)
+
+            let totalIncome = 0
+            let totalExpenses = 0
+            let totalReserves = 0
+            let totalGoals = 0
+            
+            documents.forEach(doc => {
+              const config = doc.template_config || {}
+              const incomes = config.incomes || []
+              const reserves = config.reserves || []
+              const metas = config.metas || []
+              
+              totalIncome += incomes.reduce((sum: number, i: any) => sum + (i.value || 0), 0)
+              totalReserves += reserves.reduce((sum: number, r: any) => sum + (r.value || 0), 0)
+              totalGoals += metas.reduce((sum: number, m: any) => sum + (m.value || 0), 0)
+            })
+            
+            const { data: transactions } = await supabase
+              .from('finance_transactions')
+              .select('amount')
+              .eq('type', 'expense')
+              .in('finance_document_id', documents.map(d => d.id))
+            
+            totalExpenses = transactions?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0
+
+            const { data: budgets } = await supabase
+              .from('finance_budgets')
+              .select('planned_amount')
+              .in('finance_document_id', documents.map(d => d.id))
+            
+            const totalBudgets = budgets?.reduce((sum, b) => sum + (Number(b.planned_amount) || 0), 0) || 0
+
+            setBudgetData({
+              incomes: totalIncome,
+              expenses: totalExpenses,
+              reserves: totalReserves,
+              goals: totalGoals,
+              budgets: totalBudgets,
+            })
+          }
+        } catch (err) {
+          console.error('Error loading budget data:', err)
+        } finally {
+          setLoading(false)
+        }
+      }
+      loadBudgetData()
+    }
+
+    window.addEventListener('finance-transaction-updated', handleTransactionUpdate)
+    return () => window.removeEventListener('finance-transaction-updated', handleTransactionUpdate)
+  }, [currentWorkspace?.id])
+
   const chartData = useMemo(() => {
     return [
       { name: 'Entradas', value: budgetData.incomes, color: COLORS[0] },
@@ -192,7 +290,7 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
         storageKey={`budget-card-${workspaceId || 'default'}`}
         className="group"
       >
-        <Card className="border border-border bg-card rounded-lg overflow-hidden h-full flex flex-col">
+        <Card className="border border-border bg-card rounded-lg overflow-hidden h-full flex flex-col group">
           {/* MENUBAR SUPERIOR */}
           <CardHeader className="p-0">
             <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
@@ -201,19 +299,33 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                 {/* Drag Handle */}
                 <div 
                   {...dragHandleProps}
-                  className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0"
+                  className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100 relative z-10"
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                 </div>
                 
-                {/* Input Editável de Nome */}
+                {/* Nome Editável */}
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Input
-                    value={cardName}
-                    onChange={handleNameChange}
-                    placeholder="Gerenciador de Orçamentos"
-                    className="text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring h-7 px-2 w-full max-w-[200px] sm:max-w-[250px] truncate"
-                  />
+                  {isEditingName ? (
+                    <Input
+                      value={cardName}
+                      onChange={handleNameChange}
+                      onBlur={() => setIsEditingName(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') setIsEditingName(false)
+                      }}
+                      placeholder="Gerenciador de Orçamentos"
+                      className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[200px] sm:max-w-[250px] truncate"
+                      autoFocus
+                    />
+                  ) : (
+                    <h3
+                      className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
+                      onClick={() => setIsEditingName(true)}
+                    >
+                      {cardName}
+                    </h3>
+                  )}
                   {/* Badge do Workspace */}
                   {currentWorkspace && (
                     <Badge variant="secondary" className="text-xs h-5 hidden sm:inline-flex truncate max-w-[120px]">
@@ -225,18 +337,20 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
 
               {/* Botões de Ação */}
               <TooltipProvider>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 sm:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   {/* Botão Expandir */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                        onClick={() => setIsExpanded(true)}
-                      >
-                        <Maximize2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => setIsExpanded(true)}
+                        >
+                          <Maximize2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </motion.div>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Expandir gerenciador</p>
@@ -248,13 +362,15 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                          >
-                            <MoreVertical className="h-3.5 w-3.5" />
-                          </Button>
+                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                            >
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                          </motion.div>
                         </DropdownMenuTrigger>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -438,13 +554,11 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
       </ResizableCard>
 
       {/* Dialog do Budget Manager */}
-      {selectedDocId && (
-        <BudgetManagerNotion
-          open={isExpanded}
-          onOpenChange={setIsExpanded}
-          documentId={selectedDocId}
-        />
-      )}
+      <BudgetManagerNotion
+        open={isExpanded}
+        onOpenChange={setIsExpanded}
+        documentId={selectedDocId || ''}
+      />
     </>
   )
 }

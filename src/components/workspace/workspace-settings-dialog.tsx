@@ -51,20 +51,31 @@ import { WorkspaceMemberWithUser, WorkspaceInvite } from '@/types/workspace'
 import { formatDistanceToNow } from 'date-fns'
 import { useDateFnsLocale } from '@/hooks/use-date-fns-locale'
 
+type TabValue = 'general' | 'members' | 'invites' | 'danger'
+
 interface WorkspaceSettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  defaultTab?: TabValue
 }
 
 export const WorkspaceSettingsDialog = ({
   open,
   onOpenChange,
+  defaultTab = 'general',
 }: WorkspaceSettingsDialogProps) => {
   const { t } = useI18n()
   const { currentWorkspace, refreshWorkspaces } = useWorkspace()
   const dateFnsLocale = useDateFnsLocale()
 
-  const [activeTab, setActiveTab] = useState('general')
+  const [activeTab, setActiveTab] = useState<TabValue>(defaultTab || 'general')
+  
+  // Sincronizar activeTab com defaultTab quando mudar
+  useEffect(() => {
+    if (open && defaultTab) {
+      setActiveTab(defaultTab)
+    }
+  }, [open, defaultTab])
   
   // General settings
   const [name, setName] = useState('')
@@ -203,6 +214,7 @@ export const WorkspaceSettingsDialog = ({
           email: inviteEmail.toLowerCase().trim(),
           invited_by: user.id,
           role: inviteRole,
+          status: 'pending' as const,
           token,
           expires_at: expiresAt.toISOString(),
         })
@@ -350,9 +362,9 @@ export const WorkspaceSettingsDialog = ({
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1">
             <div className="px-6 border-b">
-              <TabsList className="w-full justify-start h-auto p-0 bg-transparent">
+              <TabsList variant="underlined" className="w-full justify-start">
                 <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
                   {t('workspace.settings.general')}
                 </TabsTrigger>

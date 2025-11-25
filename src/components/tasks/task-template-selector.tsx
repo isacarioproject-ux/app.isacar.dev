@@ -35,7 +35,7 @@ export function TaskTemplateSelector({ open, onClose, onSelect }: TaskTemplateSe
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] md:h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent className="!max-w-[1100px] w-[88vw] sm:!max-w-[1100px] h-[85vh] md:h-[80vh] overflow-hidden flex flex-col p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
             {/* Ícone Animado */}
@@ -86,7 +86,7 @@ export function TaskTemplateSelector({ open, onClose, onSelect }: TaskTemplateSe
 
         {/* Tabs */}
         <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as any)} className="flex-1 flex flex-col overflow-hidden px-6">
-          <TabsList className="w-full justify-start mb-4">
+          <TabsList variant="fullWidth" className="mb-4">
             <TabsTrigger value="todas">{t('tasks.template.all')}</TabsTrigger>
             <TabsTrigger value="pessoal">{t('tasks.template.personal')}</TabsTrigger>
             <TabsTrigger value="trabalho">{t('tasks.template.work')}</TabsTrigger>
@@ -101,7 +101,7 @@ export function TaskTemplateSelector({ open, onClose, onSelect }: TaskTemplateSe
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-3"
+                className="grid grid-cols-1 md:grid-cols-3 gap-4"
               >
                 {filteredTemplates.map((template, index) => (
                   <motion.button
@@ -112,12 +112,12 @@ export function TaskTemplateSelector({ open, onClose, onSelect }: TaskTemplateSe
                     whileHover={{ scale: 1.02, borderColor: "rgb(59, 130, 246)" }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handleSelect(template)}
-                    className="text-left p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+                    className="text-left p-5 border rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
                   >
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl">{template.icon}</div>
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl">{template.icon}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="mb-1 dark:text-gray-100">{template.name}</div>
+                      <div className="mb-1.5 font-semibold text-[15px] dark:text-gray-100">{template.name}</div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{template.description}</p>
                       <div className="mt-2">
                         <span className="inline-block px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded">

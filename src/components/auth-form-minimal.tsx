@@ -212,6 +212,10 @@ export function AuthFormMinimal({
 
       } else if (authMode === 'signup') {
         // Sign up with Supabase
+        console.log('🔄 [AuthForm] Iniciando cadastro...')
+        console.log('📧 [AuthForm] Email:', formData.email)
+        console.log('👤 [AuthForm] Nome:', formData.name)
+        
         const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -223,12 +227,38 @@ export function AuthFormMinimal({
         });
 
         if (error) {
-          setErrors({ general: error.message });
+          console.error('❌ [AuthForm] Erro no cadastro:', {
+            message: error.message,
+            status: error.status,
+            name: error.name,
+          })
+          
+          // Mensagens de erro mais amigáveis
+          let errorMessage = error.message
+          if (error.message.includes('already registered')) {
+            errorMessage = 'Este email já está cadastrado. Faça login ou recupere sua senha.'
+          } else if (error.message.includes('Invalid email')) {
+            errorMessage = 'Email inválido. Verifique e tente novamente.'
+          } else if (error.message.includes('Password')) {
+            errorMessage = 'A senha deve ter pelo menos 6 caracteres.'
+          } else if (error.status === 500) {
+            errorMessage = 'Erro no servidor. Por favor, contate o suporte ou tente novamente mais tarde.'
+          }
+          
+          setErrors({ general: errorMessage });
           return;
         }
 
+        console.log('✅ [AuthForm] Cadastro realizado!')
+        console.log('📊 [AuthForm] Dados:', {
+          userId: data.user?.id,
+          email: data.user?.email,
+          hasSession: !!data.session,
+        })
+
         if (data.user && !data.session) {
           // Email confirmation required
+          console.log('📧 [AuthForm] Confirmação de email necessária')
           setErrors({ 
             general: 'Conta criada! Verifique seu email para confirmar o cadastro.' 
           });

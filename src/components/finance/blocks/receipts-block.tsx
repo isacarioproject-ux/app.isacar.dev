@@ -12,6 +12,7 @@ interface Receipt {
   id: string
   user_id: string
   finance_document_id: string
+  task_id: string | null // ✨ Vinculação com task
   file_name: string
   file_type: string
   file_size: number
@@ -32,12 +33,33 @@ export const ReceiptsBlock = ({
 }: FinanceBlockProps) => {
   const { t } = useI18n()
   const [receipts, setReceipts] = useState<Receipt[]>([])
+  const [tasks, setTasks] = useState<any[]>([]) // ✨ Lista de tasks disponíveis
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     fetchReceipts()
   }, [documentId])
+
+  // ✨ Carregar tasks disponíveis
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('id, title, status')
+          .order('created_at', { ascending: false })
+          .limit(100) // Mostrar todas as tasks
+        
+        if (error) throw error
+        setTasks(data || [])
+      } catch (err) {
+        console.error('Erro ao carregar tasks:', err)
+      }
+    }
+    
+    loadTasks()
+  }, [])
 
   const fetchReceipts = async () => {
     setLoading(true)

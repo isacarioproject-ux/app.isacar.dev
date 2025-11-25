@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { FinanceBlockProps } from '@/types/finance-blocks'
 import { useI18n } from '@/hooks/use-i18n'
+import { useIntegration } from '@/hooks/use-integration'
 
 interface QuickExpenseBlockProps extends FinanceBlockProps {
   categories: string[]
@@ -39,8 +40,11 @@ export const QuickExpenseBlock = ({
   onRefresh,
 }: QuickExpenseBlockProps) => {
   const { t } = useI18n()
+  const isTaskIntegrationEnabled = useIntegration('TASKS_TO_FINANCE') // ✨ Verificar se integração está ativa
   const [category, setCategory] = useState('')
   const [amount, setAmount] = useState('')
+  const [taskId, setTaskId] = useState<string>('') // ✨ Vinculação com task
+  const [tasks, setTasks] = useState<any[]>([]) // ✨ Lista de tasks disponíveis
   const [loading, setLoading] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
   
@@ -55,6 +59,26 @@ export const QuickExpenseBlock = ({
       setIsInitializing(false)
     }, 300)
     return () => clearTimeout(timer)
+  }, [])
+
+  // ✨ Carregar tasks disponíveis
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('id, title, status')
+          .order('created_at', { ascending: false })
+          .limit(100) // Mostrar todas as tasks
+        
+        if (error) throw error
+        setTasks(data || [])
+      } catch (err) {
+        console.error('Erro ao carregar tasks:', err)
+      }
+    }
+    
+    loadTasks()
   }, [])
 
   const handleQuickAdd = async () => {
@@ -74,6 +98,7 @@ export const QuickExpenseBlock = ({
     try {
       const { error } = await supabase.from('finance_transactions').insert({
         finance_document_id: documentId,
+        task_id: (taskId && taskId !== 'none') ? taskId : null, // ✨ Vinculação com task
         type: 'expense',
         category: category,
         description: `${t('finance.quickExpense.quickExpense')} - ${category}`,
@@ -89,6 +114,7 @@ export const QuickExpenseBlock = ({
       // Reset
       setAmount('')
       setCategory('')
+      setTaskId('') // ✨ Reset task vinculada
       setEditingCell(null)
       setEditingValue('')
       
@@ -183,6 +209,9 @@ export const QuickExpenseBlock = ({
         <TableHeader>
           <TableRow className="h-8">
             <TableHead className="h-8 text-xs">{t('finance.table.category')}</TableHead>
+            {isTaskIntegrationEnabled && (
+              <TableHead className="h-8 text-xs">Task</TableHead>
+            )}
             <TableHead className="h-8 text-xs text-right">{t('finance.budget.value')}</TableHead>
             <TableHead className="h-8 w-12"></TableHead>
           </TableRow>
@@ -263,6 +292,80 @@ export const QuickExpenseBlock = ({
                 )}
               </AnimatePresence>
             </TableCell>
+
+            {/* Task - Editável inline (somente se integração ativa) */}
+            {isTaskIntegrationEnabled && (
+            <TableCell className="text-xs py-0 px-2">
+              <AnimatePresence mode="wait">
+                {editingCell?.field === 'task' ? (
+                  <motion.div
+                    key="edit-task"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Select
+                      value={taskId || 'none'}
+                      open={selectOpen}
+                      onOpenChange={(open) => {
+                        setSelectOpen(open)
+                        if (!open) {
+                          setEditingCell(null)
+                          setEditingValue('')
+                        }
+                      }}
+                      onValueChange={(value) => {
+                        setTaskId(value === 'none' ? '' : value)
+                        setSelectOpen(false)
+                        setEditingCell(null)
+                        setEditingValue('')
+                      }}
+                    >
+                      <SelectTrigger className="h-7 text-xs border-none p-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {tasks.map((task) => (
+                          <SelectItem key={task.id} value={task.id}>
+                            <div className="flex items-center gap-2">
+                              {task.status === 'done' && <span className="text-green-600">✓</span>}
+                              <span className={task.status === 'done' ? 'line-through text-muted-foreground' : ''}>
+                                {task.title}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="display-task"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={(e) => handleCellEdit(e, 'task', taskId)}
+                    className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center gap-1.5 transition-colors"
+                  >
+                    {taskId && tasks.find(t => t.id === taskId) ? (
+                      <>
+                        {tasks.find(t => t.id === taskId)?.status === 'done' && (
+                          <span className="text-green-600 text-xs">✓</span>
+                        )}
+                        <span className={`truncate ${tasks.find(t => t.id === taskId)?.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+                          {tasks.find(t => t.id === taskId)?.title}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground italic text-xs">Task...</span>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </TableCell>
+            )}
 
             {/* Valor - Editável inline */}
             <TableCell className="text-xs text-right font-mono py-0 px-2">

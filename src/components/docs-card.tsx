@@ -16,14 +16,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from './ui/dialog';
-import { GripVertical, Maximize2, Plus, MoreVertical, Copy, Trash2, Minimize2, Sidebar, Download } from 'lucide-react';
+import { GripVertical, Maximize2, Plus, MoreVertical, Copy, Trash2, Minimize2, Sidebar, Download, Cloud, FileText } from 'lucide-react';
 import { useDocsCard } from '../hooks/useDocsCard';
+import { useDocsDriverImport } from '../hooks/use-docs-drive-import';
 import { DocumentRow } from './document-row';
 import { PageViewer } from './page-viewer';
 import { PageEditorSidebar } from './page-editor-sidebar';
 import { TemplateSelectorDialog } from './template-selector-dialog';
 import { UploadDocumentModal } from './upload-document-modal';
 import { ExportMenu } from './export-menu';
+import { DrivePickerDialog } from './drive/drive-picker-dialog';
 import { toast } from 'sonner';
 import { createDocument, deleteDocument as deleteDoc, duplicateDocument, getDocument } from '../lib/storage';
 import { PageData } from '../types/docs';
@@ -41,8 +43,10 @@ export function DocsCard({ projectId, workspaceName }: DocsCardProps) {
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showPageEditor, setShowPageEditor] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [showDrivePicker, setShowDrivePicker] = useState(false);
 
   const { documents, loading, refetch } = useDocsCard(projectId);
+  const { importing, importGoogleDocs } = useDocsDriverImport();
 
   // Load card name from localStorage
   useEffect(() => {
@@ -95,6 +99,12 @@ export function DocsCard({ projectId, workspaceName }: DocsCardProps) {
       setSelectedDocId(docId);
       setShowPageEditor(true);
     }
+  };
+
+  const handleImportFromDrive = async (driveFiles: any[]) => {
+    await importGoogleDocs(driveFiles, projectId);
+    refetch();
+    setShowDrivePicker(false);
   };
 
   const selectedDoc = selectedDocId ? getDocument(selectedDocId) : null;
@@ -152,6 +162,10 @@ export function DocsCard({ projectId, workspaceName }: DocsCardProps) {
                   <span className="mr-2">📤</span>
                   Upload Arquivo
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowDrivePicker(true)} disabled={importing}>
+                  <Cloud className="mr-2 h-4 w-4" />
+                  Importar do Drive
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -183,9 +197,14 @@ export function DocsCard({ projectId, workspaceName }: DocsCardProps) {
                   Carregando documentos...
                 </div>
               ) : documents.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p className="mb-4">Nenhum documento ainda</p>
-                  <Button onClick={handleCreateBlankPage}>
+                <div className="text-center py-16 px-6">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-sm font-medium mb-2">Nenhum documento ainda</p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Crie sua primeira página ou importe do Drive
+                  </p>
+                  <Button onClick={handleCreateBlankPage} size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
                     Criar primeira página
                   </Button>
                 </div>
@@ -314,6 +333,15 @@ export function DocsCard({ projectId, workspaceName }: DocsCardProps) {
         onOpenChange={setShowUploadModal}
         projectId={projectId}
         onUploadComplete={refetch}
+      />
+
+      {/* Drive Picker */}
+      <DrivePickerDialog
+        open={showDrivePicker}
+        onClose={() => setShowDrivePicker(false)}
+        onSelect={handleImportFromDrive}
+        multiple={true}
+        accept={['application/vnd.google-apps.document']}
       />
     </>
   );

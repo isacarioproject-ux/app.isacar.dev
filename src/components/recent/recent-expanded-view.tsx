@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -337,6 +337,7 @@ export function RecentExpandedView({
           </div>
         </Tabs>
 
+        <DialogTitle className="sr-only">Atividades Recentes</DialogTitle>
         <DialogDescription className="sr-only">
           Visualização expandida das atividades recentes
         </DialogDescription>

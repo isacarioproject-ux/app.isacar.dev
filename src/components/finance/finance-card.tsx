@@ -110,6 +110,7 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
     const saved = localStorage.getItem('finance-card-name')
     return saved || t('finance.card.finances')
   })
+  const [isEditingName, setIsEditingName] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
@@ -317,28 +318,42 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
       storageKey={`finance-card-${workspaceId || 'default'}`}
       className="group"
     >
-    <Card className="border border-border bg-card rounded-lg overflow-hidden h-full flex flex-col">
+    <Card className="border border-border bg-card rounded-lg overflow-hidden h-full flex flex-col group">
       {/* MENUBAR SUPERIOR */}
       <CardHeader className="p-0">
         <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
           {/* Drag Handle + Input na MESMA LINHA */}
           <div className="flex items-center gap-1 flex-1 min-w-0">
-            {/* Drag Handle - 6 pontinhos */}
+            {/* Drag Handle - 6 pontinhos - visível no hover */}
             <div 
               {...dragHandleProps}
-              className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0"
+              className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100 relative z-10"
             >
               <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
             </div>
             
-            {/* Input Editável de Nome */}
+            {/* Nome Editável */}
             <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Input
-              value={cardName}
-              onChange={handleNameChange}
-              placeholder={t('finance.card.finances')}
-              className="text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring h-7 px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
-            />
+            {isEditingName ? (
+              <Input
+                value={cardName}
+                onChange={handleNameChange}
+                onBlur={() => setIsEditingName(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setIsEditingName(false)
+                }}
+                placeholder={t('finance.card.finances')}
+                className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
+                autoFocus
+              />
+            ) : (
+              <h3
+                className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
+                onClick={() => setIsEditingName(true)}
+              >
+                {cardName}
+              </h3>
+            )}
             {/* Badge do Workspace */}
             {currentWorkspace && (
               <Badge variant="secondary" className="text-xs h-5 hidden sm:inline-flex truncate max-w-[120px]">
@@ -376,18 +391,20 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
 
           {/* Botões de Ação - Visível no hover (desktop) ou sempre (mobile) */}
           <TooltipProvider>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 sm:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             {/* Botão Expandir */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-7 w-7"
-                  onClick={() => setIsExpanded(true)}
-                >
-                  <Maximize2 className="h-3.5 w-3.5" />
-                </Button>
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => setIsExpanded(true)}
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                  </Button>
+                </motion.div>
               </TooltipTrigger>
               <TooltipContent>
                 <p>{t('finance.card.expand')}</p>
@@ -397,13 +414,15 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
             {/* Botão Adicionar com Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-7 w-7"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-7 w-7"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </motion.div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {/* Criar de Template */}
@@ -457,13 +476,15 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                    >
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    </motion.div>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -490,8 +511,7 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
       </CardHeader>
 
       {/* CONTEÚDO DO CARD */}
-      <CardContent className="p-0 flex overflow-hidden flex-1">
-        <div className="flex-1 overflow-auto">
+      <CardContent className="flex-1 overflow-auto p-0 flex flex-col">
           {loading ? (
             <div className="space-y-2 px-2 py-1.5">
               {Array.from({ length: 3 }).map((_, index) => (
@@ -641,7 +661,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
               </Table>
             </div>
           )}
-        </div>
       </CardContent>
     </Card>
     </ResizableCard>
@@ -664,11 +683,11 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
           className={cn(
             "fixed left-[50%] top-[50%] z-50 w-full translate-x-[-50%] translate-y-[-50%]",
             "border border-border bg-background shadow-lg duration-200",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             "sm:rounded-lg flex flex-col",
-            isFullscreen ? "max-w-[100vw] h-[100vh] rounded-none" : "max-w-[75vw] h-[75vh]"
+            isFullscreen ? "max-w-[100vw] h-[100vh] rounded-none" : "max-w-[60vw] h-[75vh]"
           )}
         >
           {/* Header igual ao menubar do card - v2 */}
@@ -928,8 +947,8 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                 ))}
               </div>
             ) : documents.length === 0 ? (
-              <div className="text-center py-16 px-6">
-                <Wallet className="h-16 w-16 mx-auto mb-4 opacity-20" />
+              <div className="flex flex-col items-center justify-center h-full text-center py-16 px-6">
+                <Wallet className="h-12 w-12 mx-auto mb-4 opacity-20" />
                 <p className="text-sm font-medium mb-2">{t('finance.card.noDocumentsYet')}</p>
                 <p className="text-xs text-muted-foreground">
                   {t('finance.card.useAddButton')}

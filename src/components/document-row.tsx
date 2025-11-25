@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Badge } from './ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ import {
   Copy,
   Edit,
   Trash2,
+  Cloud,
 } from 'lucide-react';
 import { DocumentWithChildren } from '../types/docs';
 import { toast } from 'sonner';
@@ -178,7 +180,15 @@ export function DocumentRow({ document, onSelect, onUpdate, projectId }: Documen
             autoFocus
           />
         ) : (
-          <span className="flex-1 truncate max-w-[200px] sm:max-w-[300px]">{document.name}</span>
+          <>
+            <span className="flex-1 truncate max-w-[200px] sm:max-w-[300px]">{document.name}</span>
+            {document.drive_file_id && (
+              <Badge variant="secondary" className="text-xs gap-1 px-1.5 py-0 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0">
+                <Cloud className="h-3 w-3" />
+                <span className="hidden sm:inline">Drive</span>
+              </Badge>
+            )}
+          </>
         )}
 
         <span className="text-xs text-muted-foreground hidden md:block min-w-[80px]">

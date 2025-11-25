@@ -8,6 +8,11 @@ export interface Database {
         Insert: ProjectInsert
         Update: ProjectUpdate
       }
+      project_documents: {
+        Row: ProjectDocument
+        Insert: ProjectDocumentInsert
+        Update: ProjectDocumentUpdate
+      }
       documents: {
         Row: Document
         Insert: DocumentInsert
@@ -99,6 +104,43 @@ export interface ProjectUpdate {
   team_size?: number | null
   due_date?: string | null
   color?: string
+}
+
+// Project Documents (documentos dentro de cada projeto)
+export interface ProjectDocument {
+  id: string
+  project_id: string
+  user_id: string
+  workspace_id: string | null
+  name: string
+  description: string | null
+  status: ProjectStatus
+  is_private: boolean
+  shared_with: string[]
+  finance_doc_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ProjectDocumentInsert {
+  project_id: string
+  user_id: string
+  workspace_id?: string | null
+  name: string
+  description?: string | null
+  status?: ProjectStatus
+  is_private?: boolean
+  shared_with?: string[]
+  finance_doc_count?: number
+}
+
+export interface ProjectDocumentUpdate {
+  name?: string
+  description?: string | null
+  status?: ProjectStatus
+  is_private?: boolean
+  shared_with?: string[]
+  finance_doc_count?: number
 }
 
 // Document types

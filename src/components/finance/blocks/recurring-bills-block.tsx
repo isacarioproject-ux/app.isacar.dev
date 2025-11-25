@@ -28,11 +28,13 @@ import { FinanceBlockProps } from '@/types/finance-blocks'
 import { useI18n } from '@/hooks/use-i18n'
 import { format } from 'date-fns'
 import { useDateFnsLocale } from '@/hooks/use-date-fns-locale'
+import { useIntegration } from '@/hooks/use-integration'
 
 interface RecurringBill {
   id: string
   user_id: string
   finance_document_id: string
+  task_id: string | null // ✨ Vinculação com task
   name: string
   amount: number
   due_day: number
@@ -65,7 +67,9 @@ export const RecurringBillsBlock = ({
 }: RecurringBillsBlockProps) => {
   const { t } = useI18n()
   const dateFnsLocale = useDateFnsLocale()
+  const isTaskIntegrationEnabled = useIntegration('TASKS_TO_FINANCE') // ✨ Verificar se integração está ativa
   const [bills, setBills] = useState<RecurringBill[]>([])
+  const [tasks, setTasks] = useState<any[]>([]) // ✨ Lista de tasks disponíveis
   const [loading, setLoading] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
   const [saving, setSaving] = useState<{rowId: string, field: string} | null>(null)
@@ -90,6 +94,26 @@ export const RecurringBillsBlock = ({
       setIsInitializing(false)
     }, 300)
     return () => clearTimeout(timer)
+  }, [])
+
+  // ✨ Carregar tasks disponíveis
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('id, title, status')
+          .order('created_at', { ascending: false })
+          .limit(100) // Mostrar todas as tasks
+        
+        if (error) throw error
+        setTasks(data || [])
+      } catch (err) {
+        console.error('Erro ao carregar tasks:', err)
+      }
+    }
+    
+    loadTasks()
   }, [])
 
   const loadBills = async () => {
@@ -512,6 +536,9 @@ export const RecurringBillsBlock = ({
               <TableHead className="h-8 text-xs text-right">{t('finance.budget.value')}</TableHead>
               <TableHead className="h-8 text-xs">{t('finance.recurringBills.dueDay')}</TableHead>
               <TableHead className="h-8 text-xs hidden lg:table-cell">{t('finance.table.category')}</TableHead>
+              {isTaskIntegrationEnabled && (
+                <TableHead className="h-8 text-xs hidden xl:table-cell">Task</TableHead>
+              )}
               <TableHead className="h-8 w-8"></TableHead>
             </TableRow>
           </TableHeader>
@@ -983,6 +1010,111 @@ export const RecurringBillsBlock = ({
                     )}
                   </AnimatePresence>
                 </TableCell>
+
+                {/* Task - Editável inline (somente se integração ativa) */}
+                {isTaskIntegrationEnabled && (
+                <TableCell className="text-xs py-0 px-2 hidden xl:table-cell">
+                  <AnimatePresence mode="wait">
+                    {editingCell?.rowId === bill.id && editingCell?.field === 'task' ? (
+                      <motion.div
+                        key="edit-task"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <Select
+                          value={bill.task_id || 'none'}
+                          open={selectOpen?.field === 'task'}
+                          onOpenChange={(open) => {
+                            setSelectOpen(open ? { field: 'task' } : null)
+                            if (!open) {
+                              setEditingCell(null)
+                              setEditingValue('')
+                            }
+                          }}
+                          onValueChange={async (value) => {
+                            setSaving({ rowId: bill.id, field: 'task' })
+                            
+                            const updateData = { task_id: value === 'none' ? null : value }
+                            try {
+                              const { error } = await supabase
+                                .from('recurring_bills')
+                                .update(updateData)
+                                .eq('id', bill.id)
+
+                              if (error) throw error
+                              
+                              setBills(prevBills => prevBills.map(b => 
+                                b.id === bill.id ? { ...b, ...updateData } : b
+                              ))
+                              
+                              toast.success(t('finance.recurringBills.updated'))
+                            } catch (err: any) {
+                              console.error('Error updating task:', err)
+                              toast.error(t('finance.recurringBills.errorUpdate'), {
+                                description: err.message,
+                              })
+                            } finally {
+                              setSaving(null)
+                              setEditingCell(null)
+                              setEditingValue('')
+                              setSelectOpen(null)
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs border-none p-1">
+                            <SelectValue placeholder="Task..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhuma</SelectItem>
+                            {tasks.map((task) => (
+                              <SelectItem key={task.id} value={task.id}>
+                                <div className="flex items-center gap-2">
+                                  {task.status === 'done' && <span className="text-green-600">✓</span>}
+                                  <span className={task.status === 'done' ? 'line-through text-muted-foreground' : ''}>
+                                    {task.title}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="display-task"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleCellEdit(e, bill.id, 'task', bill.task_id)
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                        }}
+                        className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center gap-1.5 transition-colors"
+                      >
+                        {bill.task_id && tasks.find(t => t.id === bill.task_id) ? (
+                          <>
+                            {tasks.find(t => t.id === bill.task_id)?.status === 'done' && (
+                              <span className="text-green-600 text-xs">✓</span>
+                            )}
+                            <span className={`truncate ${tasks.find(t => t.id === bill.task_id)?.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+                              {tasks.find(t => t.id === bill.task_id)?.title}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground italic text-xs">Task...</span>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </TableCell>
+                )}
 
                 {/* Botão deletar */}
                 <TableCell className="text-xs py-0 px-1">

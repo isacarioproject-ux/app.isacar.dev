@@ -60,6 +60,9 @@ import {
   TrendingUp as TrendingUpIcon,
   Maximize2,
   Minimize2,
+  FileSpreadsheet,
+  Cloud,
+  Loader2,
 } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
 import { FinanceBudget, FinanceCategory, FinanceTransaction, PAYMENT_METHODS } from '@/types/finance'
@@ -68,6 +71,9 @@ import { toast } from 'sonner'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/hooks/use-i18n'
+import { useGoogleIntegration } from '@/hooks/use-google-integration'
+import { SheetsService } from '@/services/google/sheets.service'
+import { DriveService } from '@/services/google/drive.service'
 
 interface BudgetManagerNotionProps {
   open: boolean
@@ -130,6 +136,11 @@ export const BudgetManagerNotion = ({
 }: BudgetManagerNotionProps) => {
   const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
+  const { isConnected: isGoogleConnected } = useGoogleIntegration()
+  
+  // Estados para exportação Google
+  const [exportingToSheets, setExportingToSheets] = useState(false)
+  const [savingToDrive, setSavingToDrive] = useState(false)
   
   // Estados principais
   const [budgets, setBudgets] = useState<FinanceBudget[]>([])
@@ -510,7 +521,7 @@ export const BudgetManagerNotion = ({
         setTargetMeta(value)
       }
     } catch (err: any) {
-      toast.error('Erro ao salvar meta', { description: err.message })
+      toast.error(t('finance.budget.errorSaveMeta'), { description: err.message })
     }
   }
 
@@ -648,7 +659,7 @@ export const BudgetManagerNotion = ({
           }
           await fetchTransactions()
     } catch (err: any) {
-          toast.error('Erro ao criar gasto', { description: err.message })
+          toast.error(t('finance.budget.errorCreateExpense'), { description: err.message })
         }
       }
     } else {
@@ -684,7 +695,7 @@ export const BudgetManagerNotion = ({
       if (error) throw error
         await fetchTransactions()
     } catch (err: any) {
-        toast.error('Erro ao salvar gasto', { description: err.message })
+        toast.error(t('finance.budget.errorSaveExpense'), { description: err.message })
         // Reverter mudança local em caso de erro
         setExpenseEntries(expenseEntries)
       }
@@ -811,7 +822,7 @@ export const BudgetManagerNotion = ({
 
       if (error) throw error
     } catch (err: any) {
-      toast.error('Erro ao salvar entradas', { description: err.message })
+      toast.error(t('finance.budget.errorSaveIncome'), { description: err.message })
     }
   }
 
@@ -844,7 +855,7 @@ export const BudgetManagerNotion = ({
 
       if (error) throw error
     } catch (err: any) {
-      toast.error('Erro ao salvar reservas', { description: err.message })
+      toast.error(t('finance.budget.errorSaveReserves'), { description: err.message })
     }
   }
 
@@ -893,7 +904,129 @@ export const BudgetManagerNotion = ({
 
       if (error) throw error
     } catch (err: any) {
-      toast.error('Erro ao salvar meta', { description: err.message })
+      toast.error(t('finance.budget.errorSaveMeta'), { description: err.message })
+    }
+  }
+
+  // 📊 Exportar orçamento para Google Sheets
+  const handleExportToSheets = async () => {
+    if (!isGoogleConnected) {
+      toast.error(t('finance.budget.connectGoogleFirst'), { description: t('finance.budget.goToIntegrations') })
+      return
+    }
+
+    setExportingToSheets(true)
+    try {
+      // Criar planilha
+      const title = `Orçamento ${currentMonth}/${currentYear} - ISACAR`
+      const spreadsheet = await SheetsService.createSpreadsheet(title, currentWorkspace?.id)
+      
+      if (!spreadsheet) throw new Error('Erro ao criar planilha')
+
+      // Preparar dados
+      const headers = [['Categoria', 'Tipo', 'Valor', 'Percentual', 'Data']]
+      
+      const incomeData = incomeEntries.map(e => [
+        e.name, 'Entrada', formatCurrency(e.value), `${e.percentage}%`, e.date
+      ])
+      
+      const expenseData = expenseEntries.map(e => [
+        e.category, 'Gasto', formatCurrency(e.value), '-', e.date
+      ])
+      
+      const reserveData = reserveEntries.map(e => [
+        e.name, e.type === 'reserve' ? 'Reserva' : 'Investimento', formatCurrency(e.value), '-', e.date
+      ])
+      
+      const metaData = metaEntries.map(e => [
+        e.name, 'Meta', formatCurrency(e.value), '-', e.date
+      ])
+
+      // Calcular totais
+      const totalIncome = incomeEntries.reduce((sum, e) => sum + e.value, 0)
+      const totalExpenses = expenseEntries.reduce((sum, e) => sum + e.value, 0)
+      const totalReserves = reserveEntries.reduce((sum, e) => sum + e.value, 0)
+
+      const summary = [
+        [''],
+        ['RESUMO'],
+        ['Total Entradas', '', formatCurrency(totalIncome), '', ''],
+        ['Total Gastos', '', formatCurrency(totalExpenses), '', ''],
+        ['Total Reservas', '', formatCurrency(totalReserves), '', ''],
+        ['Saldo', '', formatCurrency(totalIncome - totalExpenses - totalReserves), '', ''],
+      ]
+
+      const allData = [...headers, ...incomeData, ...expenseData, ...reserveData, ...metaData, ...summary]
+
+      // Obter nome da primeira aba
+      const firstSheetName = spreadsheet.sheets?.[0]?.title || 'Sheet1'
+      
+      // Escrever dados
+      await SheetsService.writeData(
+        spreadsheet.spreadsheetId,
+        `${firstSheetName}!A1:E${allData.length}`,
+        allData,
+        currentWorkspace?.id
+      )
+
+      toast.success(t('finance.budget.spreadsheetCreated'), {
+        action: {
+          label: 'Abrir',
+          onClick: () => window.open(spreadsheet.spreadsheetUrl, '_blank')
+        }
+      })
+    } catch (error: any) {
+      console.error('Erro ao exportar:', error)
+      toast.error(t('finance.budget.errorExport'), { description: error.message })
+    } finally {
+      setExportingToSheets(false)
+    }
+  }
+
+  // 💾 Salvar relatório no Google Drive
+  const handleSaveToDrive = async () => {
+    if (!isGoogleConnected) {
+      toast.error(t('finance.budget.connectGoogleFirst'), { description: t('finance.budget.goToIntegrations') })
+      return
+    }
+
+    setSavingToDrive(true)
+    try {
+      // Calcular totais
+      const totalIncome = incomeEntries.reduce((sum, e) => sum + e.value, 0)
+      const totalExpenses = expenseEntries.reduce((sum, e) => sum + e.value, 0)
+      const totalReserves = reserveEntries.reduce((sum, e) => sum + e.value, 0)
+
+      // Criar CSV
+      const csvLines = [
+        'Categoria,Tipo,Valor,Data',
+        ...incomeEntries.map(e => `${e.name},Entrada,${e.value},${e.date}`),
+        ...expenseEntries.map(e => `${e.category},Gasto,${e.value},${e.date}`),
+        ...reserveEntries.map(e => `${e.name},${e.type},${e.value},${e.date}`),
+        '',
+        'RESUMO',
+        `Total Entradas,,${totalIncome},`,
+        `Total Gastos,,${totalExpenses},`,
+        `Saldo,,${totalIncome - totalExpenses - totalReserves},`,
+      ]
+      
+      const csvContent = csvLines.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const file = new File([blob], `Orcamento_${currentMonth}_${currentYear}.csv`, { type: 'text/csv' })
+      
+      const result = await DriveService.uploadFile(file)
+      
+      toast.success(t('finance.budget.savedToDrive'), {
+        action: {
+          label: 'Abrir',
+          onClick: () => window.open(result.webViewLink, '_blank')
+        }
+      })
+    } catch (error: any) {
+      console.error('Erro ao salvar:', error)
+      toast.error(t('finance.budget.errorSaveDrive'), { description: error.message })
+    } finally {
+      setSavingToDrive(false)
     }
   }
 
@@ -904,7 +1037,7 @@ export const BudgetManagerNotion = ({
           "p-0 flex flex-col overflow-hidden !max-w-none",
           isFullscreen 
             ? "!w-[100vw] !h-[100vh] rounded-none" 
-            : "!w-[90vw] !h-[80vh] rounded-lg"
+            : "w-[95vw] md:!w-[85vw] lg:!w-[75vw] xl:!w-[60vw] h-[90vh] md:!h-[85vh] lg:!h-[80vh] rounded-lg"
         )} 
         showClose={false}
       >
@@ -1042,6 +1175,58 @@ export const BudgetManagerNotion = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            {/* Botões de Exportação Google */}
+            {isGoogleConnected && (
+              <>
+                <div className="h-4 w-px bg-border mx-1" />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleExportToSheets}
+                        disabled={exportingToSheets}
+                        className="h-8 w-8"
+                      >
+                        {exportingToSheets ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Exportar para Google Sheets
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleSaveToDrive}
+                        disabled={savingToDrive}
+                        className="h-8 w-8"
+                      >
+                        {savingToDrive ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Cloud className="h-4 w-4 text-blue-600" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Salvar no Google Drive
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            )}
 
             <TooltipProvider>
               <Tooltip>
@@ -1447,7 +1632,7 @@ export const BudgetManagerNotion = ({
                                           if (error) throw error
                                           await fetchTransactions()
                                         } catch (err: any) {
-                                          toast.error('Erro ao salvar forma de pagamento', { description: err.message })
+                                          toast.error(t('finance.budget.errorSavePayment'), { description: err.message })
                                         }
                                       }
                                       setEditingCell(null)
@@ -1537,7 +1722,7 @@ export const BudgetManagerNotion = ({
                                       setExpenseEntries(expenseEntries.filter(e => e.id !== entry.id))
                                       await fetchTransactions()
                                     } catch (err: any) {
-                                      toast.error('Erro ao deletar gasto', { description: err.message })
+                                      toast.error(t('finance.budget.errorDeleteExpense'), { description: err.message })
                                     }
                                   }}
                                 >

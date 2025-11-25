@@ -15,15 +15,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Smartphone, LogOut, Trash2, Save, Loader2 } from 'lucide-react'
+import { Smartphone, LogOut, Trash2, Save, Loader2, Settings } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/hooks/use-i18n'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function PreferencesPage() {
   const navigate = useNavigate()
   const { locale, changeLocale, t } = useI18n()
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   
@@ -52,6 +55,7 @@ export default function PreferencesPage() {
 
   const loadPreferences = async () => {
     try {
+      setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
@@ -78,6 +82,8 @@ export default function PreferencesPage() {
       }
     } catch (error) {
       console.error('Error loading preferences:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -167,6 +173,43 @@ export default function PreferencesPage() {
     <DashboardLayout>
       <div className="min-h-screen w-full flex items-start justify-center pt-6 pb-8">
         <div className="w-full px-4 md:w-[60%] md:px-0 space-y-4">
+          {/* Loading Skeleton */}
+          {loading ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-56" />
+                </div>
+                <Skeleton className="h-9 w-24" />
+              </div>
+              {[1, 2, 3].map((section) => (
+                <motion.div 
+                  key={section}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: section * 0.1 }}
+                  className="space-y-3"
+                >
+                  <Skeleton className="h-5 w-32" />
+                  {[1, 2, 3].map((item) => (
+                    <div key={`${section}-${item}`} className="flex items-center justify-between py-2">
+                      <div className="space-y-1 flex-1">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-56" />
+                      </div>
+                      <Skeleton className="h-8 w-[120px]" />
+                    </div>
+                  ))}
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+          <>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -437,6 +480,8 @@ export default function PreferencesPage() {
               </div>
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
     </DashboardLayout>

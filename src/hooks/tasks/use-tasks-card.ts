@@ -59,6 +59,7 @@ export function useTasksCard() {
     if (!userId) return { hoje: [], em_atraso: [], proximo: [], nao_programado: [] };
     
     const today = new Date().toISOString().split('T')[0];
+    console.log('📊 Calculando grupos de tarefas. Data de hoje:', today);
 
     if (activeTab === 'feito') {
       // Aba Feito: tarefas concluídas
@@ -108,12 +109,16 @@ export function useTasksCard() {
     pendingTasks.forEach(task => {
       if (!task.due_date) {
         groups.nao_programado.push(task);
+        console.log(`  📌 ${task.title} → Não programado (sem due_date)`);
       } else if (task.due_date < today) {
         groups.em_atraso.push(task);
+        console.log(`  ⏰ ${task.title} → Em atraso (${task.due_date} < ${today})`);
       } else if (task.due_date === today) {
         groups.hoje.push(task);
+        console.log(`  ✅ ${task.title} → Hoje (${task.due_date})`);
       } else {
         groups.proximo.push(task);
+        console.log(`  📅 ${task.title} → Próximo (${task.due_date} > ${today})`);
       }
     });
 
@@ -134,8 +139,15 @@ export function useTasksCard() {
     groups.proximo.sort(sortByPriorityAndDate);
     groups.nao_programado.sort(sortByPriorityAndDate);
 
+    console.log('📊 Resultado dos grupos:', {
+      hoje: groups.hoje.length,
+      em_atraso: groups.em_atraso.length,
+      proximo: groups.proximo.length,
+      nao_programado: groups.nao_programado.length,
+    });
+
     return groups;
-  }, [tasks, activeTab]);
+  }, [tasks, activeTab, userId]); // ✨ Adicionar userId para recalcular quando mudar
 
   const refetch = useCallback(() => {
     loadTasks();

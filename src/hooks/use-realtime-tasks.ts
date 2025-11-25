@@ -150,23 +150,17 @@ export function useRealtimeTasks({
       hasCallback: !!handleRealtimeEvent,
     })
 
-    // Não fazer nada se:
-    // - Não tiver workspaceId
-    // - Estiver desabilitado
-    if (!workspaceId) {
-      console.warn('⚠️ [useRealtimeTasks] WorkspaceId não fornecido, ignorando subscrição')
-      return
-    }
-
+    // Não fazer nada se estiver desabilitado
     if (!enabled) {
       console.warn('⚠️ [useRealtimeTasks] Realtime desabilitado via props')
       return
     }
 
-    const channelName = `tasks:${workspaceId}`
+    // Permitir workspaceId null para tarefas pessoais
+    const channelName = workspaceId ? `tasks:${workspaceId}` : 'tasks:personal'
 
     console.log('✨ [useRealtimeTasks] Iniciando subscrição', {
-      workspaceId,
+      workspaceId: workspaceId || 'personal',
       channelName,
       showNotifications,
       timestamp: new Date().toISOString(),
@@ -177,7 +171,7 @@ export function useRealtimeTasks({
       event: '*', // Escutar todos os eventos (INSERT, UPDATE, DELETE)
       schema: 'public',
       table: 'tasks',
-      filter: `workspace_id=eq.${workspaceId}`,
+      filter: workspaceId ? `workspace_id=eq.${workspaceId}` : 'workspace_id=is.null', // ✨ Suportar tarefas pessoais
       callback: (payload) => {
         console.log('🎯 [useRealtimeTasks] Callback disparado!', {
           eventType: payload.eventType,

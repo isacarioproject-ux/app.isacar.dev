@@ -9,6 +9,7 @@ import { useFileUpload } from '@/hooks/use-file-upload'
 import { documentSchema, type DocumentFormData } from '@/lib/validations/document'
 import { Loader2 } from 'lucide-react'
 import type { Document, DocumentCategory } from '@/types/database'
+import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/hooks/use-i18n'
 import { toast } from 'sonner'
 
@@ -34,7 +35,58 @@ export function DocumentDialog({ document, onSave, trigger, projects = [] }: Doc
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const { uploading, progress, uploadFile } = useFileUpload()
+  const [uploadState, uploadActions] = useFileUpload()
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const uploading = loading && uploadProgress > 0 && uploadProgress < 100
+  
+  // Função de upload real para Supabase Storage
+  const uploadFile = async (file: File): Promise<string | null> => {
+    try {
+      setUploadProgress(10)
+      
+      // Pegar o user_id atual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('Usuário não autenticado')
+      }
+      
+      setUploadProgress(30)
+      
+      // Criar nome único para o arquivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      
+      setUploadProgress(50)
+      
+      // Upload para o bucket 'documents'
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+      
+      if (error) {
+        console.error('Erro no upload:', error)
+        throw error
+      }
+      
+      setUploadProgress(80)
+      
+      // Pegar a URL pública do arquivo
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName)
+      
+      setUploadProgress(100)
+      
+      return publicUrl
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error)
+      setUploadProgress(0)
+      throw error
+    }
+  }
   
   const [formData, setFormData] = useState<DocumentFormData>({
     name: document?.name || '',
@@ -206,16 +258,16 @@ export function DocumentDialog({ document, onSave, trigger, projects = [] }: Doc
                 maxSize={10 * 1024 * 1024}
                 currentFile={selectedFile}
               />
-              {uploading && progress && (
+              {uploading && uploadProgress > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>{t('documents.uploading')}</span>
-                    <span>{progress.percentage}%</span>
+                    <span>{uploadProgress}%</span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                     <div 
                       className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progress.percentage}%` }}
+                      style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
                 </div>

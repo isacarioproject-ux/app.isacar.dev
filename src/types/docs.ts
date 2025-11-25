@@ -36,6 +36,10 @@ export interface Document {
   page_data?: PageData;
   template_id?: string;
   project_id: string;
+  // Google Drive fields
+  drive_file_id?: string;
+  drive_synced_at?: string;
+  drive_sync_enabled?: boolean;
 }
 
 export interface DocumentWithChildren extends Document {

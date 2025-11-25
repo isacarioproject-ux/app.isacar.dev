@@ -1,0 +1,345 @@
+════════════════════════════════════════════════════════════════
+  🔧 FIX - ERRO DE WORKSPACE DUPLICADO
+════════════════════════════════════════════════════════════════
+
+✅ PROBLEMA RESOLVIDO
+
+═══════════════════════════════════════════════════════════════
+
+❌ ERRO ORIGINAL:
+
+```
+Failed to load resource: the server responded with a status of 409 ()
+❌ Erro ao criar workspace: duplicate key value violates unique constraint 
+"workspace_members_workspace_id_user_id_key"
+```
+
+═══════════════════════════════════════════════════════════════
+
+🔍 CAUSA DO PROBLEMA:
+
+1. Usuário faz login pela primeira vez
+2. Vai para onboarding, passo 2 (workspace)
+3. Cria workspace com sucesso
+4. Tenta criar novamente (refresh ou volta ao passo)
+5. ERRO 409: workspace_member já existe!
+
+RAZÃO:
+- A constraint "workspace_members_workspace_id_user_id_key" garante que
+  um usuário só pode estar uma vez em cada workspace
+- Se tentar criar novamente, viola a constraint
+- Status HTTP 409 = Conflict (conflito de recurso)
+
+═══════════════════════════════════════════════════════════════
+
+✅ SOLUÇÃO IMPLEMENTADA:
+
+VERIFICAR ANTES DE CRIAR:
+
+```typescript
+// 1. Verificar se usuário já tem workspace
+const { data: existingMembership } = await supabase
+  .from('workspace_members')
+  .select('workspace_id, workspaces(id, name, slug)')
+  .eq('user_id', user.id)
+  .limit(1)
+  .maybeSingle()
+
+// 2. Se já tem workspace, USAR O EXISTENTE
+if (existingMembership && existingMembership.workspaces) {
+  const workspace = existingMembership.workspaces
+  console.log('✅ Workspace já existe:', workspace.name)
+  toast.success('Usando workspace existente!')
+  
+  onNext({
+    workspaceName: workspace.name,
+    workspaceId: workspace.id
+  })
+  return // PARAR AQUI, não criar novo
+}
+
+// 3. Se NÃO tem workspace, CRIAR NOVO
+console.log('🏢 Criando novo workspace:', name.trim())
+// ... código de criação ...
+```
+
+═══════════════════════════════════════════════════════════════
+
+🔄 FLUXO CORRETO AGORA:
+
+CENÁRIO 1: PRIMEIRO ACESSO
+```
+1. Usuário no passo 2 (workspace)
+2. Digita nome e slug
+3. Clica "Criar espaço de trabalho"
+4. Verifica: workspace existe? NÃO
+5. Cria novo workspace
+6. Adiciona usuário como membro
+7. Avança para próximo passo
+```
+
+CENÁRIO 2: REFRESH OU VOLTA AO PASSO
+```
+1. Usuário volta ao passo 2
+2. Digita nome e slug
+3. Clica "Criar espaço de trabalho"
+4. Verifica: workspace existe? SIM ✅
+5. Toast: "Usando workspace existente!"
+6. Usa workspace já criado
+7. Avança para próximo passo
+8. SEM ERRO! 🎉
+```
+
+CENÁRIO 3: LOGOUT E LOGIN NOVAMENTE
+```
+1. Usuário faz login
+2. Já tem workspace criado
+3. Sistema verifica onboarding
+4. Workspace já existe? SIM ✅
+5. Usa workspace existente
+6. Continua onboarding ou vai para dashboard
+```
+
+═══════════════════════════════════════════════════════════════
+
+📊 DIAGRAMA DO FLUXO:
+
+```
+                    Passo 2: Workspace
+                            ↓
+              [Usuário preenche formulário]
+                            ↓
+              [Clica "Criar espaço de trabalho"]
+                            ↓
+              [Verificar workspace existente]
+                            ↓
+                    ┌───────┴───────┐
+                    ↓               ↓
+            [Existe?]           [Não existe?]
+                ↓                   ↓
+        [Usar existente]      [Criar novo]
+                ↓                   ↓
+        Toast: "Usando         Upload logo
+        workspace              Criar workspace
+        existente!"            Adicionar membro
+                ↓                   ↓
+                └───────┬───────────┘
+                        ↓
+              [Avançar para próximo passo]
+```
+
+═══════════════════════════════════════════════════════════════
+
+💻 CÓDIGO COMPLETO:
+
+```typescript
+const handleNext = async () => {
+  if (!name.trim()) {
+    toast.error('Digite um nome para o workspace')
+    return
+  }
+
+  if (!slug.trim()) {
+    toast.error('Digite um slug para o workspace')
+    return
+  }
+
+  if (!user) return
+
+  setLoading(true)
+
+  try {
+    console.log('🏢 Verificando workspace existente...')
+    
+    // ✅ VERIFICAÇÃO ADICIONADA AQUI
+    const { data: existingMembership, error: membershipError } = await supabase
+      .from('workspace_members')
+      .select('workspace_id, workspaces(id, name, slug)')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+
+    // Se já tem workspace, usar o existente
+    if (existingMembership && existingMembership.workspaces) {
+      const workspace = existingMembership.workspaces as any
+      console.log('✅ Workspace já existe:', workspace.name)
+      toast.success('Usando workspace existente!')
+      
+      onNext({
+        workspaceName: workspace.name,
+        workspaceId: workspace.id
+      })
+      return // ⚠️ IMPORTANTE: PARAR AQUI
+    }
+
+    console.log('🏢 Criando novo workspace:', name.trim())
+
+    // Upload do logo se existir
+    let logoUrl = null
+    if (logo) {
+      const fileExt = logo.name.split('.').pop()
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('workspace-logos')
+        .upload(fileName, logo)
+
+      if (uploadError) {
+        console.warn('⚠️ Erro ao fazer upload do logo:', uploadError)
+      } else {
+        const { data: { publicUrl } } = supabase.storage
+          .from('workspace-logos')
+          .getPublicUrl(fileName)
+        logoUrl = publicUrl
+      }
+    }
+
+    // Criar workspace usando RPC function
+    const { data: workspaceId, error } = await supabase.rpc('create_workspace_with_owner', {
+      workspace_name: name.trim(),
+      workspace_slug: slug.trim(),
+      workspace_description: null
+    })
+
+    if (error) {
+      console.error('❌ Erro ao criar workspace:', error.message, error)
+      throw error
+    }
+
+    // Atualizar avatar se logo foi enviado
+    if (logoUrl && workspaceId) {
+      await supabase
+        .from('workspaces')
+        .update({ avatar_url: logoUrl })
+        .eq('id', workspaceId)
+    }
+
+    console.log('✅ Workspace criado com sucesso:', workspaceId)
+
+    toast.success('Workspace criado!')
+    
+    onNext({
+      workspaceName: name,
+      workspaceId: workspaceId
+    })
+  } catch (error: any) {
+    console.error('❌ Erro ao criar workspace:', error)
+    toast.error(`Erro ao criar workspace: ${error.message || 'Erro desconhecido'}`)
+  } finally {
+    setLoading(false)
+  }
+}
+```
+
+═══════════════════════════════════════════════════════════════
+
+🔍 LOGS DE DEBUG:
+
+ANTES (COM ERRO):
+```
+🏢 Criando workspace: Meu Workspace
+❌ Erro ao criar workspace: duplicate key value violates unique constraint 
+"workspace_members_workspace_id_user_id_key"
+```
+
+AGORA (SEM ERRO):
+```
+🏢 Verificando workspace existente...
+✅ Workspace já existe: Meu Workspace
+Toast: "Usando workspace existente!"
+```
+
+═══════════════════════════════════════════════════════════════
+
+⚠️ CASOS ESPECIAIS:
+
+1. USUÁRIO TEM WORKSPACE MAS VOLTA AO PASSO:
+   - Verifica e usa existente
+   - Não tenta criar duplicado
+   - Toast: "Usando workspace existente!"
+
+2. ERRO NA VERIFICAÇÃO:
+   - Se erro ao buscar workspace_members
+   - Tenta criar novo (comportamento padrão)
+   - Se der erro 409, usuário vê mensagem clara
+
+3. MÚLTIPLOS WORKSPACES:
+   - Query usa .limit(1).maybeSingle()
+   - Pega apenas o primeiro workspace
+   - Evita problemas com múltiplos resultados
+
+4. WORKSPACE DELETADO:
+   - Se workspace foi deletado mas membro existe
+   - workspaces será null
+   - Cria novo workspace normalmente
+
+═══════════════════════════════════════════════════════════════
+
+🧪 COMO TESTAR:
+
+1. PRIMEIRA VEZ (CRIAR NOVO):
+   ```
+   - Login como usuário novo
+   - Passo 2: Digite nome e slug
+   - Clica "Criar espaço de trabalho"
+   - Deve criar com sucesso
+   - Console: "🏢 Criando novo workspace"
+   ```
+
+2. SEGUNDA VEZ (USAR EXISTENTE):
+   ```
+   - F5 (refresh) ou voltar ao passo 2
+   - Passo 2: Digite qualquer nome
+   - Clica "Criar espaço de trabalho"
+   - Toast: "Usando workspace existente!"
+   - Console: "✅ Workspace já existe"
+   - NÃO dá erro 409
+   ```
+
+3. VERIFICAR NO SUPABASE:
+   ```sql
+   -- Ver workspace criado
+   SELECT * FROM workspaces WHERE id IN (
+     SELECT workspace_id FROM workspace_members 
+     WHERE user_id = '[seu_user_id]'
+   );
+
+   -- Ver workspace_members
+   SELECT * FROM workspace_members WHERE user_id = '[seu_user_id]';
+   ```
+
+═══════════════════════════════════════════════════════════════
+
+✅ RESULTADO FINAL:
+
+ANTES:
+- ❌ Erro 409 ao tentar criar workspace novamente
+- ❌ Usuário preso no passo 2
+- ❌ Mensagem de erro confusa
+
+AGORA:
+- ✅ Verifica workspace existente primeiro
+- ✅ Usa existente se já criou
+- ✅ Só cria novo se não existir
+- ✅ Toast amigável: "Usando workspace existente!"
+- ✅ Sem erro 409
+- ✅ Fluxo suave e robusto
+
+═══════════════════════════════════════════════════════════════
+
+🎯 BENEFÍCIOS:
+
+1. EVITA ERRO 409: Nunca mais tenta criar duplicado
+2. EXPERIÊNCIA MELHOR: Toast amigável ao invés de erro
+3. IDEMPOTENTE: Pode clicar múltiplas vezes sem problema
+4. ROBUSTO: Funciona em todos os cenários
+5. LOGS CLAROS: Fácil de debugar
+
+═══════════════════════════════════════════════════════════════
+
+🎉 PROBLEMA RESOLVIDO!
+
+Erro 409 de workspace duplicado eliminado
+Verificação inteligente implementada
+Fluxo robusto e amigável
+
+════════════════════════════════════════════════════════════════

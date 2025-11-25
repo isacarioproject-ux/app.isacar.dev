@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { ResizableCard } from '@/components/ui/resizable-card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,15 +28,21 @@ import {
   Trash2,
   GripVertical,
   Maximize2,
+  Minimize2,
   Users,
   FileText,
   CheckSquare,
+  X,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { useRealtimeProjects } from '@/hooks/use-realtime-projects'
 import { toast } from 'sonner'
+import { useI18n } from '@/hooks/use-i18n'
 import { cn } from '@/lib/utils'
+import { ProjectDialogManager } from './project-dialog-manager'
+import { CreateProjectDialog } from './create-project-dialog'
+import { ProjectManager } from './project-manager'
 
 interface ProjectsCardProps {
   workspaceId?: string
@@ -51,10 +58,13 @@ interface Project {
   user_id: string
   created_at: string
   updated_at: string
+  taskCount?: number
+  financeCount?: number
 }
 
 export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps) {
   const { currentWorkspace } = useWorkspace()
+  const { t } = useI18n()
   const finalWorkspaceId = workspaceId || currentWorkspace?.id
 
   const [cardName, setCardName] = useState(() => {
@@ -62,10 +72,15 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
   })
   const [isEditingName, setIsEditingName] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>()
+  const [selectedProjectName, setSelectedProjectName] = useState<string>('')
+  const [expandedMode, setExpandedMode] = useState<'list' | 'manager' | 'create'>('list')
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Função para carregar projetos
+  // Função para carregar projetos com contadores
   const loadProjects = useCallback(async () => {
     setLoading(true)
     try {
@@ -83,10 +98,35 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error
-      setProjects(data || [])
+      
+      // Buscar contadores para cada projeto
+      const projectsWithCounts = await Promise.all(
+        (data || []).map(async (project) => {
+          // Contar documentos de projeto (tarefas)
+          const { count: taskCount } = await supabase
+            .from('project_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('project_id', project.id)
+          
+          // Contar documentos financeiros vinculados aos documentos do projeto
+          const { count: financeCount } = await supabase
+            .from('finance_documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('project_id', project.id)
+          
+          return {
+            ...project,
+            taskCount: taskCount || 0,
+            financeCount: financeCount || 0,
+          }
+        })
+      )
+      
+      console.log('🔢 Projetos com contadores:', projectsWithCounts)
+      setProjects(projectsWithCounts)
     } catch (error: any) {
-      console.error('Erro ao carregar projetos:', error)
-      toast.error('Erro ao carregar projetos')
+      console.error('❌ Erro ao carregar projetos:', error)
+      toast.error(t('projects.errorLoad'))
     } finally {
       setLoading(false)
     }
@@ -99,27 +139,26 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
 
   // Realtime para atualizar lista quando houver mudanças
   useRealtimeProjects(finalWorkspaceId || null, {
-    enabled: !!finalWorkspaceId,
+    enabled: true, // Sempre habilitado, inclusive no modo Pessoal
     showNotifications: false, // Não mostrar toast (já mostra no onboarding)
     onUpdate: loadProjects,
   })
 
-  // Carregar projetos
+  // Carregar projetos (sempre carrega, inclusive no modo Pessoal onde finalWorkspaceId = null)
   useEffect(() => {
-    if (!finalWorkspaceId) return
     loadProjects()
-  }, [finalWorkspaceId, loadProjects])
+  }, [loadProjects])
 
   const handleDeleteCard = () => {
     if (confirm('Tem certeza que deseja remover este card?')) {
       const event = new CustomEvent('delete-card', { detail: 'projects-card' })
       window.dispatchEvent(event)
-      toast.success('Card removido')
+      toast.success(t('projects.cardRemoved'))
     }
   }
 
   const handleDuplicateCard = () => {
-    toast.info('Funcionalidade em desenvolvimento')
+    toast.info(t('projects.featureInDevelopment'))
   }
 
   const statusColors = {
@@ -145,34 +184,14 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
         maxHeight={500}
         storageKey={`projects-card-${finalWorkspaceId || 'default'}`}
       >
-        <Card className="h-full flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 gap-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+        <Card className="h-full flex flex-col group">
+          <CardHeader className="p-0">
+            <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
+            <div className="flex items-center gap-1 flex-1 min-w-0">
               {/* Drag Handle */}
               <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
                 <GripVertical className="h-4 w-4 text-muted-foreground" />
               </div>
-
-              {/* Ícone */}
-              <motion.div
-                whileHover={{ rotate: 5 }}
-                transition={{ duration: 0.2 }}
-              >
-                <FolderKanban className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
-              </motion.div>
-
-              {/* Badge de Contagem */}
-              {projects.length > 0 && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 500 }}
-                >
-                  <Badge variant="secondary" className="text-xs h-5 px-1.5">
-                    {projects.length}
-                  </Badge>
-                </motion.div>
-              )}
 
               {/* Nome Editável */}
               {isEditingName ? (
@@ -197,21 +216,8 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
             </div>
 
             {/* Botões de Ação */}
-            <div className="flex items-center gap-1 shrink-0">
-              {projects.length > 0 && (
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs hover:bg-accent/60"
-                    onClick={() => setIsExpanded(true)}
-                  >
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Novo
-                  </Button>
-                </motion.div>
-              )}
-
+            <div className="flex items-center gap-1 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+              {/* Expandir */}
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   variant="ghost"
@@ -223,6 +229,23 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                 </Button>
               </motion.div>
 
+              {/* Adicionar */}
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-accent/60"
+                  onClick={() => {
+                    setSelectedProjectId(undefined)
+                    setSelectedProjectName('')
+                    setIsCreateDialogOpen(true)
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </motion.div>
+
+              {/* Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
@@ -244,9 +267,10 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+            </div>
           </CardHeader>
 
-          <CardContent className="flex-1 overflow-auto">
+          <CardContent className="flex-1 overflow-auto flex flex-col">
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -264,26 +288,13 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
-                className="flex flex-col items-center justify-center h-full text-center p-6"
+                className="flex flex-col items-center justify-center h-full text-center py-16 px-6"
               >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
-                  className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mb-3"
-                >
-                  <FolderKanban className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </motion.div>
-                <h3 className="font-medium text-sm mb-1">Nenhum projeto ainda</h3>
-                <p className="text-xs text-muted-foreground mb-4">
+                <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                <p className="text-sm font-medium mb-2">Nenhum projeto ainda</p>
+                <p className="text-xs text-muted-foreground">
                   Projetos organizam tarefas, documentos e progresso
                 </p>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="sm" onClick={() => setIsExpanded(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar projeto
-                  </Button>
-                </motion.div>
               </motion.div>
             ) : (
               <div className="space-y-2">
@@ -295,9 +306,52 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="group p-3 rounded-lg border bg-card hover:bg-accent/50 transition-all cursor-pointer shadow-sm hover:shadow-md"
-                    onClick={() => setIsExpanded(true)}
+                    className="group relative p-3 rounded-lg border bg-card hover:bg-accent/50 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                    onClick={() => {
+                      setSelectedProjectId(project.id)
+                      setSelectedProjectName(project.name)
+                      setIsCreateDialogOpen(true)
+                    }}
                   >
+                    {/* Menu 3 pontinhos - Posição absoluta no canto superior direito */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (confirm(`Tem certeza que deseja excluir o projeto "${project.name}"?`)) {
+                              try {
+                                const { error } = await supabase
+                                  .from('projects')
+                                  .delete()
+                                  .eq('id', project.id)
+                                
+                                if (error) throw error
+                                toast.success(t('projects.deleted'))
+                                loadProjects()
+                              } catch (error: any) {
+                                console.error('Erro ao excluir projeto:', error)
+                                toast.error(t('projects.errorDelete'))
+                              }
+                            }
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          Excluir projeto
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <div className="flex items-start gap-3">
                       <div className={cn(
                         "w-1 h-full rounded-full",
@@ -318,15 +372,11 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <CheckSquare className="h-3 w-3" />
-                            0 tarefas
+                            {project.taskCount || 0} {project.taskCount === 1 ? 'tarefa' : 'tarefas'}
                           </span>
                           <span className="flex items-center gap-1">
                             <FileText className="h-3 w-3" />
-                            0 docs
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            1
+                            {project.financeCount || 0} docs
                           </span>
                         </div>
                       </div>
@@ -352,37 +402,249 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
 
       {/* Dialog Expandido */}
       <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
-        <DialogContent className="max-w-6xl h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FolderKanban className="h-5 w-5" />
-              Projetos
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-auto">
-            <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <FolderKanban className="h-8 w-8 text-primary" />
+        <DialogContent 
+          showClose={false}
+          className={`!w-screen !max-w-5xl md:!rounded-lg !rounded-none !p-0 [&>*]:!m-0 !gap-0 !space-y-0 [&>button]:hidden overflow-hidden flex flex-col ${
+            isFullscreen ? '!h-screen !max-w-full !rounded-none' : '!h-[85vh] md:!w-[90vw]'
+          }`}
+        >
+          {/* Header - apenas no modo lista */}
+          {expandedMode === 'list' && (
+            <div className="flex items-center justify-between gap-2 px-[5px] py-0.5 border-b border-border">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <FolderKanban className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                <h2 className="text-sm font-semibold truncate">{cardName}</h2>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Funcionalidade em Desenvolvimento</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                A visualização completa de projetos está sendo desenvolvida.
-                Em breve você poderá organizar tarefas, documentos e acompanhar o progresso aqui!
-              </p>
-              <div className="flex gap-2 justify-center">
-                <Button variant="outline" onClick={() => setIsExpanded(false)}>
-                  Fechar
+
+              <div className="flex items-center gap-0.5">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-7 w-7"
+                  onClick={() => {
+                    setSelectedProjectId(undefined)
+                    setSelectedProjectName('')
+                    setIsCreateDialogOpen(true)
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
-                <Button onClick={() => toast.info('Em breve!')}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar Projeto
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-7 w-7">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleDuplicateCard}>
+                      <Copy className="mr-2 h-3.5 w-3.5" />
+                      Duplicar
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleDeleteCard} className="text-destructive">
+                      <Trash2 className="mr-2 h-3.5 w-3.5" />
+                      Remover card
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-7 w-7"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <Maximize2 className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-7 w-7"
+                  onClick={() => {
+                    setIsExpanded(false)
+                    setExpandedMode('list')
+                    setSelectedProjectId(undefined)
+                    setSelectedProjectName('')
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
+          )}
+
+          {/* Conteúdo */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {expandedMode === 'create' ? (
+              <CreateProjectDialog
+                open={true}
+                onOpenChange={() => setExpandedMode('list')}
+                onProjectCreated={(projectId, projectName) => {
+                  if (projectId && projectName) {
+                    setSelectedProjectId(projectId)
+                    setSelectedProjectName(projectName)
+                    setExpandedMode('manager')
+                  }
+                  loadProjects()
+                }}
+                embedded
+              />
+            ) : expandedMode === 'manager' ? (
+              <ProjectManager
+                projectId={selectedProjectId!}
+                projectName={selectedProjectName}
+                onBack={() => {
+                  setExpandedMode('list')
+                  setSelectedProjectId(undefined)
+                  setSelectedProjectName('')
+                }}
+              />
+            ) : (
+            <div className="flex-1 overflow-auto">
+            {loading ? (
+              <div className="space-y-2 px-2 py-1.5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-md" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : projects.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center h-full text-center"
+              >
+                <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mb-4">
+                  <FolderKanban className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Nenhum projeto ainda</h3>
+                <p className="text-muted-foreground max-w-md">
+                  Projetos organizam tarefas, documentos e progresso em um só lugar
+                </p>
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pb-4 pt-2">
+                {projects.map((project, index) => (
+                  <motion.div
+                    key={project.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="group relative p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSelectedProjectId(project.id)
+                      setSelectedProjectName(project.name)
+                      setExpandedMode('manager')
+                    }}
+                  >
+                    {/* Menu 3 pontinhos - Posição absoluta no canto superior direito */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (confirm(`Tem certeza que deseja excluir o projeto "${project.name}"?`)) {
+                              try {
+                                const { error } = await supabase
+                                  .from('projects')
+                                  .delete()
+                                  .eq('id', project.id)
+                                
+                                if (error) throw error
+                                toast.success(t('projects.deleted'))
+                                loadProjects()
+                              } catch (error: any) {
+                                console.error('Erro ao excluir projeto:', error)
+                                toast.error(t('projects.errorDelete'))
+                              }
+                            }
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          Excluir projeto
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        "w-1 h-full rounded-full",
+                        statusColors[project.status]
+                      )} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm">{project.name}</h4>
+                        </div>
+                        <Badge variant="secondary" className="text-xs mb-2">
+                          {statusLabels[project.status]}
+                        </Badge>
+                        {project.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                            {project.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <CheckSquare className="h-3 w-3" />
+                            {project.taskCount || 0} {project.taskCount === 1 ? 'tarefa' : 'tarefas'}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            {project.financeCount || 0} docs
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
+            )}
+          </div>
+
+          <DialogDescription className="sr-only">
+            Visualização expandida de projetos
+          </DialogDescription>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Gestor de Projetos */}
+      <ProjectDialogManager
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open)
+          if (!open) {
+            // Resetar seleção ao fechar
+            setSelectedProjectId(undefined)
+            setSelectedProjectName('')
+          }
+        }}
+        onProjectCreated={loadProjects}
+        initialProjectId={selectedProjectId}
+        initialProjectName={selectedProjectName}
+      />
     </>
   )
 }

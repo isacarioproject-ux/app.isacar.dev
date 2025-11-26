@@ -45,6 +45,8 @@ import {
   Target,
   ArrowLeft,
   Layers,
+  X,
+  Calendar,
 } from 'lucide-react'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { useFinanceCard } from '@/hooks/use-finance-card'

@@ -238,56 +238,59 @@ export function GmailInvoiceScanner() {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+      <CardHeader className="px-3 sm:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
               {t('gmail.title')}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm mt-1">
               {t('gmail.description')}
             </CardDescription>
           </div>
           
-          <Button
-            onClick={handleScan}
-            disabled={scanning}
-            size="sm"
-          >
-            {scanning ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('gmail.scanning')}
-              </>
-            ) : (
-              <>
-                <Mail className="mr-2 h-4 w-4" />
-                {t('gmail.scan')}
-              </>
-            )}
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={handleScan}
+              disabled={scanning}
+              size="sm"
+              className="w-full sm:w-auto"
+            >
+              {scanning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="truncate">{t('gmail.scanning')}</span>
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  <span className="truncate">{t('gmail.scan')}</span>
+                </>
+              )}
+            </Button>
+          </motion.div>
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="px-3 sm:px-6">
         <AnimatePresence mode="wait">
           {messages.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-center py-12 text-muted-foreground"
+              className="text-center py-8 sm:py-12 text-muted-foreground"
             >
-              <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{t('gmail.clickToScan')}</p>
+              <Mail className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+              <p className="text-sm sm:text-base">{t('gmail.clickToScan')}</p>
             </motion.div>
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-3"
+              className="space-y-2 sm:space-y-3"
             >
               {messages.map((message) => (
                 <motion.div
@@ -295,30 +298,31 @@ export function GmailInvoiceScanner() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -100 }}
-                  className="border rounded-lg p-4 hover:bg-accent/50 transition-colors"
+                  whileHover={{ scale: 1.01 }}
+                  className="border rounded-lg p-3 sm:p-4 hover:bg-accent/50 transition-colors"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium truncate">{message.subject}</h4>
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 className="font-medium text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">{message.subject}</h4>
                         {message.hasAttachments && (
-                          <Badge variant="outline" className="text-xs">
-                            <Download className="h-3 w-3 mr-1" />
+                          <Badge variant="outline" className="text-[10px] sm:text-xs">
+                            <Download className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                             PDF
                           </Badge>
                         )}
                       </div>
                       
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground mb-2 truncate">
                         {t('gmail.from')}: {message.from}
                       </p>
                       
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                         {message.snippet}
                       </p>
                       
                       {/* Info extraída */}
-                      <div className="flex items-center gap-3 mt-3 flex-wrap">
+                      <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-3 flex-wrap">
                         {/* Valor detectado */}
                         <div className="flex items-center gap-1">
                           <DollarSign className="h-3 w-3 text-green-600" />
@@ -326,7 +330,7 @@ export function GmailInvoiceScanner() {
                             <Input
                               type="number"
                               step="0.01"
-                              className="h-6 w-24 text-xs"
+                              className="h-6 w-20 sm:w-24 text-xs"
                               placeholder="Valor"
                               defaultValue={customAmounts[message.id] || extractAmount(`${message.subject} ${message.snippet}`)}
                               onChange={(e) => setCustomAmounts(prev => ({
@@ -339,45 +343,47 @@ export function GmailInvoiceScanner() {
                           ) : (
                             <button 
                               onClick={() => setEditingAmount(message.id)}
-                              className="text-xs font-medium text-green-600 hover:underline flex items-center gap-1"
+                              className="text-[10px] sm:text-xs font-medium text-green-600 hover:underline flex items-center gap-1"
                             >
                               R$ {(customAmounts[message.id] || extractAmount(`${message.subject} ${message.snippet}`)).toFixed(2)}
-                              <Edit2 className="h-2.5 w-2.5" />
+                              <Edit2 className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
                             </button>
                           )}
                         </div>
                         
                         {/* Categoria detectada */}
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-[10px] sm:text-xs">
                           {detectCategory(message.from, message.subject)}
                         </Badge>
                         
                         {/* Data */}
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
+                        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+                          <Calendar className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                           {new Date(message.date).toLocaleDateString('pt-BR')}
                         </div>
                       </div>
                     </div>
 
-                    <Button
-                      onClick={() => handleImport(message)}
-                      disabled={importing === message.id}
-                      size="sm"
-                      className="shrink-0"
-                    >
-                      {importing === message.id ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {t('gmail.importing')}
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-4 w-4" />
-                          {t('gmail.import')}
-                        </>
-                      )}
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
+                      <Button
+                        onClick={() => handleImport(message)}
+                        disabled={importing === message.id}
+                        size="sm"
+                        className="w-full sm:w-auto shrink-0"
+                      >
+                        {importing === message.id ? (
+                          <>
+                            <Loader2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                            <span className="text-xs sm:text-sm">{t('gmail.importing')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                            <span className="text-xs sm:text-sm">{t('gmail.import')}</span>
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
                   </div>
                 </motion.div>
               ))}
@@ -386,18 +392,18 @@ export function GmailInvoiceScanner() {
         </AnimatePresence>
 
         {/* Status da integração */}
-        <div className="mt-6 pt-6 border-t">
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
             <span className="text-muted-foreground">
               {t('gmail.connectedReady')}
             </span>
           </div>
           
-          <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+          <div className="mt-2 p-2 sm:p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-blue-700 dark:text-blue-300">
+              <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
                 <strong>{t('gmail.howItWorks')}</strong> {t('gmail.howItWorksDesc')}
               </p>
             </div>

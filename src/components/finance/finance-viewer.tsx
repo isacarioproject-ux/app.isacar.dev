@@ -44,6 +44,7 @@ import { OfflineIndicator } from '@/components/offline-indicator'
 import { cacheData, getCachedData } from '@/hooks/use-offline-sync'
 import { FINANCE_BLOCKS_REGISTRY, getBlocksByCategory } from '@/lib/finance-blocks-registry'
 import { useFinanceBlocks } from '@/hooks/use-finance-blocks'
+import { verifyAndFixDocumentTotals } from '@/lib/finance-totals'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import { FinanceDock } from './finance-dock'
 import { useGoogleIntegration } from '@/hooks/use-google-integration'
@@ -226,6 +227,23 @@ export const FinanceViewer = ({
         setCoverImg(externalCurrentCover !== undefined ? externalCurrentCover : data.cover_image)
         setReferenceMonth(data.reference_month)
         setReferenceYear(data.reference_year)
+        
+        // Verificar e corrigir totais se necessário (executa em background)
+        verifyAndFixDocumentTotals(docId).then((fixed) => {
+          if (fixed) {
+            // Recarregar documento para atualizar totais na UI
+            supabase
+              .from('finance_documents')
+              .select('total_income, total_expenses, balance')
+              .eq('id', docId)
+              .single()
+              .then(({ data: updatedDoc }) => {
+                if (updatedDoc) {
+                  setFinanceDoc(prev => prev ? { ...prev, ...updatedDoc } : prev)
+                }
+              })
+          }
+        })
       } else {
         toast.error('Documento não encontrado')
       }

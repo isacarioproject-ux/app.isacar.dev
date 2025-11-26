@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, AlertTriangle, Clock } from 'lucide-react'
 import { FinanceTransaction } from '@/types/finance'
 import { FinanceBlockProps } from '@/types/finance-blocks'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from 'date-fns'
@@ -81,11 +81,86 @@ export function CalendarBlock({ transactions }: CalendarBlockProps) {
       .filter((t) => t.type === 'expense')
       .reduce((sum, t) => sum + Number(t.amount), 0)
     
-    return { income, expense, count: dayTransactions.length }
+    // Contar pendentes e atrasados
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const pendingCount = dayTransactions.filter(t => t.status === 'pending').length
+    const overdueCount = dayTransactions.filter(t => {
+      if (t.status !== 'pending') return false
+      const txDate = parseISO(t.transaction_date)
+      return txDate < today
+    }).length
+    
+    return { income, expense, count: dayTransactions.length, pendingCount, overdueCount }
   }
+  
+  // Calcular resumo do mês
+  const monthSummary = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    let totalIncome = 0
+    let totalExpense = 0
+    let pendingCount = 0
+    let overdueCount = 0
+    let overdueAmount = 0
+    
+    transactions.forEach(t => {
+      if (t.type === 'income') {
+        totalIncome += Number(t.amount)
+      } else {
+        totalExpense += Number(t.amount)
+      }
+      
+      if (t.status === 'pending') {
+        pendingCount++
+        const txDate = parseISO(t.transaction_date)
+        if (txDate < today) {
+          overdueCount++
+          overdueAmount += Number(t.amount)
+        }
+      }
+    })
+    
+    return { totalIncome, totalExpense, pendingCount, overdueCount, overdueAmount }
+  }, [transactions])
 
   return (
     <div className="space-y-4">
+      {/* Alerta de contas atrasadas */}
+      {monthSummary.overdueCount > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-800 dark:text-red-200">
+              {monthSummary.overdueCount} {monthSummary.overdueCount === 1 ? 'conta atrasada' : 'contas atrasadas'}
+            </p>
+            <p className="text-xs text-red-600 dark:text-red-400">
+              Total: {formatCurrency(monthSummary.overdueAmount)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Resumo do mês */}
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950/30">
+          <p className="text-xs text-muted-foreground">{t('finance.charts.income')}</p>
+          <p className="text-sm font-semibold text-green-600">+{formatCurrency(monthSummary.totalIncome)}</p>
+        </div>
+        <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30">
+          <p className="text-xs text-muted-foreground">{t('finance.charts.expenses')}</p>
+          <p className="text-sm font-semibold text-red-600">-{formatCurrency(monthSummary.totalExpense)}</p>
+        </div>
+        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+          <p className="text-xs text-muted-foreground">{t('finance.card.balance')}</p>
+          <p className={`text-sm font-semibold ${monthSummary.totalIncome - monthSummary.totalExpense >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatCurrency(monthSummary.totalIncome - monthSummary.totalExpense)}
+          </p>
+        </div>
+      </div>
+
       {/* Header com navegação */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">

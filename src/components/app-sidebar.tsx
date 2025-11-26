@@ -173,7 +173,7 @@ export function AppSidebar() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.2 }}
           >
-            <Logo size="md" showText={false} className="shrink-0" />
+            <Logo size="lg" showText={false} className="shrink-0" />
             <div className="flex-1 min-w-0 overflow-hidden">
               <WorkspaceSwitcher />
             </div>

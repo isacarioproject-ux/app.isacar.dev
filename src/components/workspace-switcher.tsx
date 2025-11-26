@@ -140,7 +140,7 @@ export function WorkspaceSwitcher() {
             whileHover={{ backgroundColor: 'hsl(var(--accent) / 0.5)' }}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="flex items-center gap-1.5 h-7 px-1.5 rounded-md hover:bg-accent/50 cursor-pointer transition-colors w-full max-w-full"
+            className="flex items-center gap-2 h-7 px-1.5 rounded-md hover:bg-accent/50 cursor-pointer transition-colors w-full max-w-full"
           >
             {/* Avatar quadrado estilo Notion */}
             <div className="h-5 w-5 shrink-0 rounded bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
@@ -149,14 +149,14 @@ export function WorkspaceSwitcher() {
               </span>
             </div>
             {/* Nome truncado */}
-            <span className="text-xs font-medium text-foreground/90 truncate min-w-0">
+            <span className="text-xs font-medium text-foreground/90 truncate min-w-0 flex-1">
               {currentLabel}
             </span>
-            {/* Chevron pequeno */}
+            {/* Chevron no final */}
             <motion.div
               animate={{ rotate: open ? 180 : 0 }}
               transition={{ duration: 0.15 }}
-              className="shrink-0"
+              className="shrink-0 ml-auto"
             >
               <ChevronsUpDown className="h-3 w-3 text-muted-foreground/50" />
             </motion.div>

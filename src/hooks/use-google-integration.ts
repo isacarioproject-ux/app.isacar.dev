@@ -253,25 +253,17 @@ export function useGoogleIntegration() {
   // Conectar Google (OAuth via Supabase Auth)
   const connect = useCallback(async () => {
     setLoading(true)
+    console.log('🔗 Iniciando conexão Google...')
 
     try {
-      // Avisar usuário que precisará fazer login novamente
-      const confirmConnect = confirm(
-        '⚠️ IMPORTANTE: Conectar o Google vai deslogar você temporariamente.\n\n' +
-        'Após conectar, você será redirecionado para fazer login novamente.\n\n' +
-        'Deseja continuar?'
-      )
-
-      if (!confirmConnect) {
-        setLoading(false)
-        return
-      }
+      const redirectUrl = `${window.location.origin}/settings/integrations`
+      console.log('📍 Redirect URL:', redirectUrl)
 
       // Usar Supabase Auth Provider
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/settings/integrations`,
+          redirectTo: redirectUrl,
           scopes: 'email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents',
           queryParams: {
             access_type: 'offline',
@@ -280,16 +272,27 @@ export function useGoogleIntegration() {
         }
       })
 
-      if (error) throw error
+      console.log('📤 Resposta OAuth:', { data, error })
 
-      // O Supabase vai redirecionar automaticamente
-      toast.info('Redirecionando para Google...', {
-        description: 'Você será redirecionado de volta após conectar'
-      })
+      if (error) {
+        console.error('❌ Erro OAuth:', error)
+        throw error
+      }
+
+      if (data?.url) {
+        console.log('🚀 Redirecionando para:', data.url)
+        toast.info('Redirecionando para Google...')
+        // Forçar redirecionamento se não acontecer automaticamente
+        window.location.href = data.url
+      } else {
+        console.warn('⚠️ Nenhuma URL de redirect retornada')
+        toast.error('Erro: Não foi possível iniciar OAuth')
+        setLoading(false)
+      }
       
     } catch (error: any) {
-      console.error('Erro ao conectar Google:', error)
-      toast.error('Erro ao conectar Google: ' + error.message)
+      console.error('❌ Erro ao conectar Google:', error)
+      toast.error('Erro ao conectar: ' + (error.message || 'Erro desconhecido'))
       setLoading(false)
     }
   }, [])

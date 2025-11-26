@@ -94,7 +94,6 @@ export default defineConfig({
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
           'supabase': ['@supabase/supabase-js'],
           'charts': ['recharts'],
-          'editor': ['@tiptap/react', '@tiptap/starter-kit'],
         },
       },
     },

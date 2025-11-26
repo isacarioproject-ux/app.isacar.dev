@@ -10,7 +10,6 @@ import { toast } from 'sonner'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import { nanoid } from 'nanoid'
 import { useI18n } from '@/hooks/use-i18n'
 import { useGoogleIntegration } from '@/hooks/use-google-integration'
 import { GoogleAuthService } from '@/services/google/google-auth.service'
@@ -240,7 +239,10 @@ export function GmailInvoiceScanner() {
             workspace_id: workspaceFilter,
             name: 'Importados do Gmail',
             description: t('gmail.importedDocDesc'),
-            currency: 'BRL'
+            template_type: 'expenses', // Required field
+            icon: '📧',
+            reference_month: new Date().getMonth() + 1,
+            reference_year: new Date().getFullYear()
           })
           .select('id')
           .single()
@@ -275,7 +277,6 @@ export function GmailInvoiceScanner() {
       const { error: txError } = await supabase
         .from('finance_transactions')
         .insert({
-          id: nanoid(),
           finance_document_id: financeDoc.id,
           type: 'expense',
           category: category,

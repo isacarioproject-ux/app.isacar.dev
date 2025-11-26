@@ -119,7 +119,7 @@ export function FinanceNotificationsBadge({ onOpenScanner }: FinanceNotification
           <div className="flex items-center justify-between p-2 bg-muted rounded-lg">
             <span className="text-xs">Auto-sync Gmail</span>
             <Button
-              variant={autoSyncEnabled ? "default" : "outline"}
+              variant={autoSyncEnabled ? 'primary' : 'outline'}
               size="sm"
               className="h-6 text-xs"
               onClick={() => setAutoSyncEnabled(!autoSyncEnabled)}

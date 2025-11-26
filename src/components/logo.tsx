@@ -3,20 +3,39 @@ import { cn } from '@/lib/utils'
 interface LogoProps {
   className?: string
   collapsed?: boolean
+  size?: 'sm' | 'md' | 'lg'
+  showText?: boolean
 }
 
-export function Logo({ className, collapsed = false }: LogoProps) {
+export function Logo({ className, collapsed = false, size = 'md', showText = true }: LogoProps) {
+  const sizeClasses = {
+    sm: 'h-5 w-5',
+    md: 'h-6 w-6',
+    lg: 'h-8 w-8'
+  }
+
   if (collapsed) {
     return (
       <div className={cn('flex items-center justify-center', className)}>
-        <span className="text-lg font-bold text-primary">I</span>
+        <img 
+          src="/pwa-192x192.png" 
+          alt="ISACAR" 
+          className={cn(sizeClasses[size], 'rounded-md')}
+        />
       </div>
     )
   }
 
   return (
-    <div className={cn('flex items-center transition-all', className)}>
-      <span className="text-lg font-semibold tracking-tight">ISACAR</span>
+    <div className={cn('flex items-center gap-2 transition-all', className)}>
+      <img 
+        src="/pwa-192x192.png" 
+        alt="ISACAR" 
+        className={cn(sizeClasses[size], 'rounded-md')}
+      />
+      {showText && (
+        <span className="text-sm font-semibold tracking-tight">ISACAR</span>
+      )}
     </div>
   )
 }

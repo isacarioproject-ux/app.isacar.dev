@@ -136,45 +136,31 @@ export function WorkspaceSwitcher() {
     <>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <motion.div
-            whileHover={{ scale: 1.02 }}
+          <motion.button
+            whileHover={{ backgroundColor: 'hsl(var(--accent) / 0.5)' }}
             whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
+            className="flex items-center gap-1.5 h-7 px-1.5 rounded-md hover:bg-accent/50 cursor-pointer transition-colors w-full max-w-full"
           >
-            <Button
-              variant="ghost"
-              role="combobox"
-              aria-expanded={open}
-              className="w-[200px] h-10 justify-between px-2 py-2 bg-background/60 hover:bg-accent/50 border border-border/40 rounded-md backdrop-blur-sm transition-all duration-200 shadow-sm hover:shadow-md"
+            {/* Avatar quadrado estilo Notion */}
+            <div className="h-5 w-5 shrink-0 rounded bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+              <span className="text-[10px] font-bold text-primary">
+                {currentInitials}
+              </span>
+            </div>
+            {/* Nome truncado */}
+            <span className="text-xs font-medium text-foreground/90 truncate min-w-0">
+              {currentLabel}
+            </span>
+            {/* Chevron pequeno */}
+            <motion.div
+              animate={{ rotate: open ? 180 : 0 }}
+              transition={{ duration: 0.15 }}
+              className="shrink-0"
             >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <motion.div
-                  whileHover={{ rotate: 5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="h-6 w-6 rounded-md bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-1 ring-border/20">
-                    <span className="text-xs font-semibold text-primary">
-                      {currentInitials}
-                    </span>
-                  </div>
-                </motion.div>
-                <motion.span 
-                  className="truncate text-sm font-medium text-foreground/90"
-                  initial={{ opacity: 0.8 }}
-                  whileHover={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {currentLabel}
-                </motion.span>
-              </div>
-              <motion.div
-                animate={{ rotate: open ? 180 : 0 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-              </motion.div>
-            </Button>
-          </motion.div>
+              <ChevronsUpDown className="h-3 w-3 text-muted-foreground/50" />
+            </motion.div>
+          </motion.button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent 

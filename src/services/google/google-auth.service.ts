@@ -98,8 +98,9 @@ export class GoogleAuthService {
    */
   private static isTokenExpired(expiresAt: string | null): boolean {
     if (!expiresAt) {
-      // Se não tem data de expiração, assumir que precisa refresh
-      return true
+      // Se não tem data de expiração, assumir que token ainda é válido
+      // Isso evita quebrar integrações antigas sem token_expires_at
+      return false
     }
     
     const expirationTime = new Date(expiresAt).getTime()

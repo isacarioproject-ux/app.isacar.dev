@@ -173,8 +173,8 @@ export function AppSidebar() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.2 }}
           >
-            <Logo size="sm" showText={false} className="shrink-0" />
-            <div className="flex-1 min-w-0">
+            <Logo size="lg" showText={false} className="shrink-0" />
+            <div className="flex-1 min-w-0 max-w-[120px]">
               <WorkspaceSwitcher />
             </div>
             <motion.div
@@ -185,7 +185,7 @@ export function AppSidebar() {
             </motion.div>
           </motion.div>
           
-          {/* Sidebar Fechada: Logo pequena */}
+          {/* Sidebar Fechada: Toggle para abrir */}
           <motion.div 
             className="hidden group-data-[collapsible=icon]:flex w-full justify-center"
             initial={{ opacity: 0 }}
@@ -196,7 +196,7 @@ export function AppSidebar() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Logo size="sm" collapsed showText={false} />
+              <SidebarTrigger className="transition-colors duration-200 hover:bg-sidebar-accent/50" />
             </motion.div>
           </motion.div>
         </motion.div>

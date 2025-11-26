@@ -65,38 +65,15 @@ export class GoogleAuthService {
       const needsRefresh = this.isTokenExpired(integration.token_expires_at)
       
       if (needsRefresh) {
-        console.log('🔄 Token expirado ou próximo de expirar, fazendo refresh...')
+        console.log('⚠️ Token expirado ou próximo de expirar')
+        console.log('ℹ️ O usuário precisa reconectar o Google nas configurações')
         
-        const refreshed = await this.refreshToken(integration.id)
+        // Limpar cache
+        this.tokenCache.delete(cacheKey)
         
-        if (refreshed) {
-          // Buscar token atualizado
-          const { data: updatedIntegration } = await supabase
-            .from('google_integrations')
-            .select('access_token, token_expires_at')
-            .eq('id', integration.id)
-            .single()
-          
-          if (updatedIntegration) {
-            // Atualizar cache
-            const expiresAt = updatedIntegration.token_expires_at 
-              ? new Date(updatedIntegration.token_expires_at).getTime() - this.REFRESH_MARGIN_MS
-              : Date.now() + 55 * 60 * 1000 // 55 minutos default
-            
-            this.tokenCache.set(cacheKey, {
-              token: updatedIntegration.access_token,
-              expiresAt
-            })
-            
-            console.log('✅ Token refreshed e cacheado')
-            return updatedIntegration.access_token
-          }
-        } else {
-          console.error('❌ Falha no refresh do token')
-          // Limpar cache
-          this.tokenCache.delete(cacheKey)
-          return null
-        }
+        // Retornar null para sinalizar que precisa reconectar
+        // Os componentes vão exibir mensagem apropriada
+        throw new Error('Token de acesso expirado. Reconecte o Google nas configurações.')
       }
 
       // Token ainda válido, cachear e retornar
@@ -133,31 +110,52 @@ export class GoogleAuthService {
   }
 
   /**
-   * Refresh token via Edge Function
+   * Refresh token - Edge Function não disponível
+   * Retorna false para forçar reconexão do usuário
    */
   static async refreshToken(integrationId: string): Promise<boolean> {
+    console.log('⚠️ Token expirado. Refresh automático não disponível.')
+    console.log('ℹ️ O usuário precisa reconectar o Google.')
+    
+    // Marcar integração como expirada para mostrar aviso
     try {
-      console.log('🔄 Chamando Edge Function google-refresh-token...')
+      await supabase
+        .from('google_integrations')
+        .update({ token_expired: true })
+        .eq('id', integrationId)
+    } catch (e) {
+      // Ignorar erro se coluna não existir
+    }
+    
+    return false
+  }
+
+  /**
+   * Verificar se precisa reconectar (token expirado)
+   */
+  static async needsReconnection(workspaceId?: string): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return true
+
+      let query = supabase
+        .from('google_integrations')
+        .select('token_expires_at, is_active')
+        .eq('is_active', true)
+
+      if (workspaceId) {
+        query = query.eq('workspace_id', workspaceId)
+      } else {
+        query = query.eq('user_id', user.id).is('workspace_id', null)
+      }
+
+      const { data } = await query.maybeSingle()
       
-      const { data, error } = await supabase.functions.invoke('google-refresh-token', {
-        body: { integration_id: integrationId }
-      })
-
-      if (error) {
-        console.error('❌ Erro na Edge Function:', error)
-        throw error
-      }
-
-      if (data?.error) {
-        console.error('❌ Erro retornado pela Edge Function:', data.error)
-        return false
-      }
-
-      console.log('✅ Token refreshed via Edge Function')
+      if (!data) return true
+      
+      return this.isTokenExpired(data.token_expires_at)
+    } catch {
       return true
-    } catch (error) {
-      console.error('Erro ao fazer refresh do token:', error)
-      return false
     }
   }
 

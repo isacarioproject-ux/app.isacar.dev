@@ -9,6 +9,7 @@ interface GoogleIntegration {
   google_email: string
   is_active: boolean
   scopes: string[]
+  token_expires_at?: string
   settings: {
     gmail: { enabled: boolean; auto_import: boolean }
     calendar: { enabled: boolean; sync_tasks: boolean }
@@ -52,12 +53,17 @@ const saveGoogleIntegration = async (accessToken: string, user: any) => {
 
     // Salvar na tabela
     console.log('💾 Salvando na tabela google_integrations...')
+    
+    // Token do Google expira em 1 hora (3600 segundos)
+    const tokenExpiresAt = new Date(Date.now() + 3600 * 1000).toISOString()
+    
     const dataToInsert = {
       user_id: user.id,
       workspace_id: null, // Pode ser atualizado depois
       google_email: userInfo.email,
       google_id: userInfo.id,
       access_token: accessToken,
+      token_expires_at: tokenExpiresAt,
       is_active: true,
       scopes: [
         'https://www.googleapis.com/auth/gmail.readonly',
@@ -106,6 +112,16 @@ export function useGoogleIntegration() {
   const [integration, setIntegration] = useState<GoogleIntegration | null>(null)
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [tokenExpired, setTokenExpired] = useState(false)
+
+  // Verificar se token expirou
+  const checkTokenExpiration = (expiresAt?: string): boolean => {
+    if (!expiresAt) return false
+    const expirationTime = new Date(expiresAt).getTime()
+    const now = Date.now()
+    // Considerar expirado se faltam menos de 5 minutos
+    return now >= expirationTime - (5 * 60 * 1000)
+  }
 
   // Verificar se Google está conectado
   const checkConnection = useCallback(async () => {
@@ -117,7 +133,7 @@ export function useGoogleIntegration() {
         return
       }
 
-      // Buscar integração (pessoal OU do workspace)
+      // Buscar integração - primeiro tenta do workspace, depois pessoal
       let query = supabase
         .from('google_integrations')
         .select('*')
@@ -131,11 +147,33 @@ export function useGoogleIntegration() {
         query = query.eq('user_id', user.id).is('workspace_id', null)
       }
 
-      const { data, error } = await query.maybeSingle()
+      let { data, error } = await query.maybeSingle()
+
+      // Se não encontrou no workspace, tentar buscar pessoal como fallback
+      if (!data && currentWorkspace?.id) {
+        const { data: personalData } = await supabase
+          .from('google_integrations')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('workspace_id', null)
+          .eq('is_active', true)
+          .maybeSingle()
+        
+        data = personalData
+      }
 
       if (error) throw error
 
       setIntegration(data)
+      
+      // Verificar se token expirou
+      if (data?.token_expires_at) {
+        const expired = checkTokenExpiration(data.token_expires_at)
+        setTokenExpired(expired)
+        if (expired) {
+          console.warn('⚠️ Token do Google expirou. Reconexão necessária.')
+        }
+      }
     } catch (error) {
       console.error('Erro ao verificar integração Google:', error)
     } finally {
@@ -313,11 +351,13 @@ export function useGoogleIntegration() {
   return {
     integration,
     isConnected: !!integration,
+    tokenExpired,
     loading,
     checking,
     connect,
     disconnect,
     updateSettings,
-    refresh: checkConnection
+    refresh: checkConnection,
+    reconnect: connect // Alias para reconexão
   }
 }

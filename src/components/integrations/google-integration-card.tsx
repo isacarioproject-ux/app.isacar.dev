@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Mail, Calendar, Table, CheckCircle, FolderOpen, FileText, RefreshCw, Unlink } from 'lucide-react'
+import { Loader2, Mail, Calendar, Table, CheckCircle, FolderOpen, FileText, RefreshCw, Unlink, AlertTriangle } from 'lucide-react'
 import { useI18n } from '@/hooks/use-i18n'
 
 export function GoogleIntegrationCard() {
@@ -11,11 +11,13 @@ export function GoogleIntegrationCard() {
   const { 
     integration, 
     isConnected, 
+    tokenExpired,
     loading, 
     checking,
     connect, 
     disconnect,
-    updateSettings 
+    updateSettings,
+    reconnect
   } = useGoogleIntegration()
 
   if (checking) {
@@ -63,13 +65,46 @@ export function GoogleIntegrationCard() {
         </div>
 
         {/* Badge de status */}
-        {isConnected && (
+        {isConnected && !tokenExpired && (
           <Badge variant="secondary" className="gap-1.5 text-green-600 bg-green-500/10">
             <CheckCircle className="h-3 w-3" />
             {t('google.connected')}
           </Badge>
         )}
+        {isConnected && tokenExpired && (
+          <Badge variant="destructive" className="gap-1.5">
+            <AlertTriangle className="h-3 w-3" />
+            Expirado
+          </Badge>
+        )}
       </div>
+
+      {/* Aviso de token expirado */}
+      {isConnected && tokenExpired && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 space-y-2"
+        >
+          <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm font-medium">Token expirado</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Sua conexão com o Google expirou. Reconecte para continuar usando Gmail, Calendar e Sheets.
+          </p>
+          <Button 
+            onClick={reconnect} 
+            disabled={loading}
+            variant="outline"
+            size="sm"
+            className="w-full"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Reconectar Google
+          </Button>
+        </motion.div>
+      )}
 
       {/* Content */}
       {!isConnected ? (

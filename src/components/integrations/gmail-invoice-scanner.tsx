@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Loader2, Mail, Download, CheckCircle2, AlertCircle, DollarSign, Calendar, Edit2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, Mail, Download, CheckCircle2, AlertCircle, DollarSign, Calendar, Edit2, AlertTriangle, RefreshCw } from 'lucide-react'
 import { GmailService, type GmailMessage } from '@/services/google/gmail.service'
 import { toast } from 'sonner'
 import { useWorkspace } from '@/contexts/workspace-context'
@@ -11,6 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { nanoid } from 'nanoid'
 import { useI18n } from '@/hooks/use-i18n'
+import { useGoogleIntegration } from '@/hooks/use-google-integration'
+import { GoogleAuthService } from '@/services/google/google-auth.service'
 
 /**
  * 📧 Gmail Invoice Scanner
@@ -93,13 +96,40 @@ const detectCategory = (from: string, subject: string): string => {
 export function GmailInvoiceScanner() {
   const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
+  const { isConnected, tokenExpired, reconnect } = useGoogleIntegration()
   const [scanning, setScanning] = useState(false)
   const [messages, setMessages] = useState<GmailMessage[]>([])
   const [importing, setImporting] = useState<string | null>(null)
   const [editingAmount, setEditingAmount] = useState<string | null>(null)
   const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({})
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected' | 'expired'>('checking')
+
+  // Verificar conexão Google ao montar
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const connected = await GoogleAuthService.isConnected(currentWorkspace?.id)
+        if (!connected) {
+          setConnectionStatus('disconnected')
+        } else if (tokenExpired) {
+          setConnectionStatus('expired')
+        } else {
+          setConnectionStatus('connected')
+        }
+      } catch {
+        setConnectionStatus('disconnected')
+      }
+    }
+    checkConnection()
+  }, [currentWorkspace?.id, tokenExpired, isConnected])
 
   const handleScan = async () => {
+    // Verificar se Google está conectado
+    if (connectionStatus !== 'connected') {
+      toast.error(t('gmail.notConnected'))
+      return
+    }
+
     try {
       setScanning(true)
       toast.info(`🔍 ${t('gmail.scanningGmail')}`)
@@ -115,13 +145,26 @@ export function GmailInvoiceScanner() {
       }
     } catch (error: any) {
       console.error('Erro ao escanear:', error)
-      toast.error(`${t('gmail.errorScan')}: ${error.message}`)
+      
+      // Detectar erros de token
+      if (error.message?.includes('Token') || error.message?.includes('access')) {
+        setConnectionStatus('expired')
+        toast.error(t('gmail.tokenExpired'))
+      } else {
+        toast.error(`${t('gmail.errorScan')}: ${error.message}`)
+      }
     } finally {
       setScanning(false)
     }
   }
 
   const handleImport = async (message: GmailMessage) => {
+    // Verificar conexão
+    if (connectionStatus !== 'connected') {
+      toast.error(t('gmail.notConnected'))
+      return
+    }
+
     try {
       setImporting(message.id)
       toast.info(`📥 ${t('gmail.importingInvoice')}`)
@@ -169,32 +212,64 @@ export function GmailInvoiceScanner() {
 
       // 4. Buscar ou criar documento financeiro padrão
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Usuário não autenticado')
+      if (!user) {
+        toast.error(t('gmail.notAuthenticated'))
+        return
+      }
 
       // Buscar documento "Importados do Gmail" ou criar
-      let { data: financeDoc } = await supabase
+      // Usar workspace_id se disponível, senão null (pessoal)
+      const workspaceFilter = currentWorkspace?.id || null
+      
+      let { data: financeDoc, error: fetchError } = await supabase
         .from('finance_documents')
         .select('id')
         .eq('user_id', user.id)
         .eq('name', 'Importados do Gmail')
         .maybeSingle()
 
+      if (fetchError) {
+        console.error('Erro ao buscar documento:', fetchError)
+      }
+
       if (!financeDoc) {
-        const { data: newDoc } = await supabase
+        const { data: newDoc, error: insertError } = await supabase
           .from('finance_documents')
           .insert({
             user_id: user.id,
-            workspace_id: currentWorkspace?.id || null,
+            workspace_id: workspaceFilter,
             name: 'Importados do Gmail',
-            description: 'Boletos e faturas importados automaticamente do Gmail',
+            description: t('gmail.importedDocDesc'),
             currency: 'BRL'
           })
           .select('id')
           .single()
-        financeDoc = newDoc
+
+        if (insertError) {
+          console.error('Erro ao criar documento:', insertError)
+          // Tentar buscar novamente caso já exista
+          const { data: existingDoc } = await supabase
+            .from('finance_documents')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('name', 'Importados do Gmail')
+            .maybeSingle()
+          
+          if (existingDoc) {
+            financeDoc = existingDoc
+          } else {
+            toast.error(t('gmail.errorCreateDoc'))
+            return
+          }
+        } else {
+          financeDoc = newDoc
+        }
       }
 
-      if (!financeDoc) throw new Error('Erro ao criar documento')
+      if (!financeDoc) {
+        toast.error(t('gmail.errorCreateDoc'))
+        return
+      }
 
       // 5. Criar transação
       const { error: txError } = await supabase
@@ -209,18 +284,26 @@ export function GmailInvoiceScanner() {
           transaction_date: dueDate,
           status: 'pending',
           payment_method: 'boleto',
-          notes: `Importado do Gmail em ${new Date().toLocaleDateString('pt-BR')}\nDe: ${message.from}`,
+          notes: `${t('gmail.importedFromGmail')} ${new Date().toLocaleDateString('pt-BR')}\n${t('gmail.from')}: ${message.from}`,
           tags: ['gmail-import', 'boleto']
         })
 
-      if (txError) throw txError
+      if (txError) {
+        console.error('Erro ao criar transação:', txError)
+        toast.error(t('gmail.errorCreateTransaction'))
+        return
+      }
 
       // 6. Marcar email como processado (opcional - não falha se der erro)
-      await GmailService.addLabel(
-        message.id,
-        'ISACAR_IMPORTED',
-        currentWorkspace?.id
-      )
+      try {
+        await GmailService.addLabel(
+          message.id,
+          'ISACAR_IMPORTED',
+          currentWorkspace?.id
+        )
+      } catch (labelError) {
+        console.warn('Não foi possível adicionar label:', labelError)
+      }
 
       toast.success(`✅ ${t('gmail.invoiceImported')} R$ ${amount.toFixed(2)}`, {
         description: `${t('gmail.category')}: ${category} | ${t('gmail.dueDate')}: ${new Date(dueDate).toLocaleDateString('pt-BR')}`
@@ -230,7 +313,14 @@ export function GmailInvoiceScanner() {
       setMessages(prev => prev.filter(m => m.id !== message.id))
     } catch (error: any) {
       console.error('Erro ao importar:', error)
-      toast.error(t('gmail.errorImport'))
+      
+      // Mensagem específica para erros de token
+      if (error.message?.includes('Token') || error.message?.includes('access')) {
+        setConnectionStatus('expired')
+        toast.error(t('gmail.tokenExpired'))
+      } else {
+        toast.error(`${t('gmail.errorImport')}: ${error.message || t('gmail.unknownError')}`)
+      }
     } finally {
       setImporting(null)
     }
@@ -250,27 +340,74 @@ export function GmailInvoiceScanner() {
             </CardDescription>
           </div>
           
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              onClick={handleScan}
-              disabled={scanning}
-              size="sm"
-              className="w-full sm:w-auto"
-            >
-              {scanning ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span className="truncate">{t('gmail.scanning')}</span>
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  <span className="truncate">{t('gmail.scan')}</span>
-                </>
-              )}
-            </Button>
-          </motion.div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            {connectionStatus === 'expired' && (
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={reconnect}
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  <span className="text-xs sm:text-sm">{t('gmail.reconnect')}</span>
+                </Button>
+              </motion.div>
+            )}
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-none">
+              <Button
+                onClick={handleScan}
+                disabled={scanning || connectionStatus !== 'connected'}
+                size="sm"
+                className="w-full sm:w-auto"
+              >
+                {scanning ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span className="truncate">{t('gmail.scanning')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    <span className="truncate">{t('gmail.scan')}</span>
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </div>
         </div>
+
+        {/* Alertas de status */}
+        <AnimatePresence>
+          {connectionStatus === 'disconnected' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Alert variant="destructive" className="mt-3">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs sm:text-sm">
+                  {t('gmail.notConnectedAlert')}
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+          {connectionStatus === 'expired' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Alert className="mt-3 border-orange-200 bg-orange-50 dark:bg-orange-950/20">
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                <AlertDescription className="text-xs sm:text-sm text-orange-700 dark:text-orange-300">
+                  {t('gmail.tokenExpiredAlert')}
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardHeader>
 
       <CardContent className="px-3 sm:px-6">
@@ -394,10 +531,35 @@ export function GmailInvoiceScanner() {
         {/* Status da integração */}
         <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
           <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
-            <span className="text-muted-foreground">
-              {t('gmail.connectedReady')}
-            </span>
+            {connectionStatus === 'connected' ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
+                <span className="text-muted-foreground">
+                  {t('gmail.connectedReady')}
+                </span>
+              </>
+            ) : connectionStatus === 'expired' ? (
+              <>
+                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
+                <span className="text-orange-600 dark:text-orange-400">
+                  {t('gmail.needsReconnection')}
+                </span>
+              </>
+            ) : connectionStatus === 'disconnected' ? (
+              <>
+                <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500" />
+                <span className="text-red-600 dark:text-red-400">
+                  {t('gmail.disconnected')}
+                </span>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  {t('gmail.checkingConnection')}
+                </span>
+              </>
+            )}
           </div>
           
           <div className="mt-2 p-2 sm:p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">

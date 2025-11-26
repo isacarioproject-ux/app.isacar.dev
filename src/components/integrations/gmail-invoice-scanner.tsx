@@ -10,6 +10,7 @@ import { useWorkspace } from '@/contexts/workspace-context'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { nanoid } from 'nanoid'
+import { useI18n } from '@/hooks/use-i18n'
 
 /**
  * 📧 Gmail Invoice Scanner
@@ -90,6 +91,7 @@ const detectCategory = (from: string, subject: string): string => {
 }
 
 export function GmailInvoiceScanner() {
+  const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
   const [scanning, setScanning] = useState(false)
   const [messages, setMessages] = useState<GmailMessage[]>([])
@@ -100,20 +102,20 @@ export function GmailInvoiceScanner() {
   const handleScan = async () => {
     try {
       setScanning(true)
-      toast.info('🔍 Escaneando Gmail...')
+      toast.info(`🔍 ${t('gmail.scanningGmail')}`)
 
       const results = await GmailService.searchInvoices(currentWorkspace?.id)
       
       setMessages(results)
       
       if (results.length === 0) {
-        toast.info('Nenhum boleto encontrado')
+        toast.info(t('gmail.noInvoices'))
       } else {
-        toast.success(`✅ ${results.length} boleto(s) encontrado(s)!`)
+        toast.success(`✅ ${results.length} ${t('gmail.invoicesFound')}`)
       }
     } catch (error: any) {
       console.error('Erro ao escanear:', error)
-      toast.error('Erro ao escanear Gmail: ' + error.message)
+      toast.error(`${t('gmail.errorScan')}: ${error.message}`)
     } finally {
       setScanning(false)
     }
@@ -122,7 +124,7 @@ export function GmailInvoiceScanner() {
   const handleImport = async (message: GmailMessage) => {
     try {
       setImporting(message.id)
-      toast.info('📥 Importando boleto...')
+      toast.info(`📥 ${t('gmail.importingInvoice')}`)
 
       // 1. Buscar anexos
       const attachments = await GmailService.getAttachments(
@@ -131,14 +133,14 @@ export function GmailInvoiceScanner() {
       )
 
       if (attachments.length === 0) {
-        toast.error('Nenhum anexo encontrado')
+        toast.error(t('gmail.noAttachment'))
         return
       }
 
       // 2. Download do PDF
       const pdfAttachment = attachments.find(att => att.mimeType === 'application/pdf')
       if (!pdfAttachment) {
-        toast.error('Nenhum PDF encontrado')
+        toast.error(t('gmail.noPdf'))
         return
       }
 
@@ -149,7 +151,7 @@ export function GmailInvoiceScanner() {
       )
 
       if (!pdfData) {
-        toast.error('Erro ao baixar PDF')
+        toast.error(t('gmail.errorDownload'))
         return
       }
 
@@ -160,7 +162,7 @@ export function GmailInvoiceScanner() {
       const category = detectCategory(message.from, message.subject)
       
       if (amount <= 0) {
-        toast.error('Não foi possível detectar o valor. Edite manualmente.')
+        toast.error(t('gmail.noValueDetected'))
         setEditingAmount(message.id)
         return
       }
@@ -220,15 +222,15 @@ export function GmailInvoiceScanner() {
         currentWorkspace?.id
       )
 
-      toast.success(`✅ Boleto de R$ ${amount.toFixed(2)} importado!`, {
-        description: `Categoria: ${category} | Vencimento: ${new Date(dueDate).toLocaleDateString('pt-BR')}`
+      toast.success(`✅ ${t('gmail.invoiceImported')} R$ ${amount.toFixed(2)}`, {
+        description: `${t('gmail.category')}: ${category} | ${t('gmail.dueDate')}: ${new Date(dueDate).toLocaleDateString('pt-BR')}`
       })
       
       // Remover da lista
       setMessages(prev => prev.filter(m => m.id !== message.id))
     } catch (error: any) {
       console.error('Erro ao importar:', error)
-      toast.error('Erro ao importar boleto')
+      toast.error(t('gmail.errorImport'))
     } finally {
       setImporting(null)
     }
@@ -241,10 +243,10 @@ export function GmailInvoiceScanner() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
-              Importar Boletos do Gmail
+              {t('gmail.title')}
             </CardTitle>
             <CardDescription>
-              Encontre e importe automaticamente boletos e faturas do seu email
+              {t('gmail.description')}
             </CardDescription>
           </div>
           
@@ -256,12 +258,12 @@ export function GmailInvoiceScanner() {
             {scanning ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Escaneando...
+                {t('gmail.scanning')}
               </>
             ) : (
               <>
                 <Mail className="mr-2 h-4 w-4" />
-                Escanear Gmail
+                {t('gmail.scan')}
               </>
             )}
           </Button>
@@ -278,7 +280,7 @@ export function GmailInvoiceScanner() {
               className="text-center py-12 text-muted-foreground"
             >
               <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Clique em "Escanear Gmail" para buscar boletos</p>
+              <p>{t('gmail.clickToScan')}</p>
             </motion.div>
           ) : (
             <motion.div
@@ -308,7 +310,7 @@ export function GmailInvoiceScanner() {
                       </div>
                       
                       <p className="text-sm text-muted-foreground mb-2">
-                        De: {message.from}
+                        {t('gmail.from')}: {message.from}
                       </p>
                       
                       <p className="text-sm text-muted-foreground line-clamp-2">
@@ -367,12 +369,12 @@ export function GmailInvoiceScanner() {
                       {importing === message.id ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Importando...
+                          {t('gmail.importing')}
                         </>
                       ) : (
                         <>
                           <Download className="mr-2 h-4 w-4" />
-                          Importar
+                          {t('gmail.import')}
                         </>
                       )}
                     </Button>
@@ -388,7 +390,7 @@ export function GmailInvoiceScanner() {
           <div className="flex items-center gap-2 text-sm">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             <span className="text-muted-foreground">
-              Gmail conectado e pronto para uso
+              {t('gmail.connectedReady')}
             </span>
           </div>
           
@@ -396,9 +398,7 @@ export function GmailInvoiceScanner() {
             <div className="flex items-start gap-2">
               <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-blue-700 dark:text-blue-300">
-                <strong>Como funciona:</strong> Escaneamos seu Gmail em busca de emails com
-                anexos PDF que contenham palavras como "fatura", "boleto" ou "invoice". 
-                Você pode revisar e importar com um clique.
+                <strong>{t('gmail.howItWorks')}</strong> {t('gmail.howItWorksDesc')}
               </p>
             </div>
           </div>

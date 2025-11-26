@@ -1,20 +1,8 @@
 import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { DashboardLayout } from '@/components/dashboard-layout'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Link } from 'react-router-dom'
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import {
   Accordion,
   AccordionContent,
@@ -30,14 +18,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  Check,
   CreditCard,
   Download,
   FileText,
-  Zap,
-  Crown,
-  Rocket,
-  Star,
   Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -46,105 +29,92 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PricingSection } from '@/components/ui/pricing-section'
 
+// Planos compatíveis com PricingSection
 const plans = [
   {
-    id: 'free',
-    name: 'Grátis',
-    price: 0,
-    period: 'mês',
-    description: 'Perfeito para começar',
-    icon: Star,
-    color: 'from-slate-500 to-slate-600',
-    features: [
-      '1 projeto',
-      
-      'Até 2 membros (você + 1 convidado)',
-      '1 GB de armazenamento',
-      'Documentos ilimitados',
-      'Suporte por email',
-    ],
-    limits: {
-      projects: 1,
-      whiteboards_per_project: 3,
-      members: 2,
-      invited_members: 1,
-      storage_gb: 1,
+    name: "Grátis",
+    info: "Perfeito para começar",
+    price: {
+      mensal: "Personalizado",
+      anual: "Personalizado",
     },
+    features: [
+      { text: "1 projeto" },
+      { text: "3 whiteboards por projeto" },
+      { text: "Até 2 membros (você + 1 convidado)" },
+      { text: "1 GB de armazenamento" },
+      { text: "Documentos ilimitados" },
+      { text: "Suporte por email" },
+    ],
+    highlighted: false,
+    id: 'free' as const,
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    price: 65,
-    period: 'mês',
-    description: 'Para equipes pequenas',
-    icon: Zap,
-    color: 'from-primary to-primary',
-    popular: true,
-    features: [
-      'Até 5 projetos',
-      'Whiteboards ilimitados',
-      'Até 10 membros (5 free + 5 pro)',
-      '50 GB de armazenamento',
-      'Documentos ilimitados',
-      'Analytics avançado',
-      'Exportação CSV/JSON',
-      'Suporte prioritário',
-    ],
-    limits: {
-      projects: 5,
-      whiteboards_per_project: -1, // ilimitado
-      members: 10,
-      invited_members: 5,
-      storage_gb: 50,
+    name: "Pro",
+    info: "Para equipes pequenas",
+    price: {
+      mensal: 65,
+      anual: 624,
     },
+    originalPrice: 780,
+    discount: 20,
+    features: [
+      { text: "Até 5 projetos" },
+      { text: "Whiteboards ilimitados" },
+      { text: "Até 10 membros (5 free + 5 pro)" },
+      { text: "50 GB de armazenamento" },
+      { text: "Documentos ilimitados" },
+      { text: "Analytics avançado" },
+      { text: "Exportação CSV/JSON" },
+      { text: "Suporte prioritário" },
+    ],
+    highlighted: true,
+    id: 'pro' as const,
   },
   {
-    id: 'business',
-    name: 'Business',
-    price: 197,
-    period: 'mês',
-    description: 'Para empresas em crescimento',
-    icon: Crown,
-    color: 'from-amber-500 to-orange-500',
-    features: [
-      'Projetos ilimitados',
-      'Whiteboards ilimitados',
-      'Membros ilimitados',
-      '200 GB de armazenamento',
-      'Documentos ilimitados',
-      'Branding customizado',
-      'SSO (Single Sign-On)',
-      'Backup automático',
-      'Suporte 24/7',
-    ],
-    limits: {
-      projects: -1, // ilimitado
-      whiteboards_per_project: -1, // ilimitado
-      members: -1, // ilimitado
-      invited_members: -1, // ilimitado
-      storage_gb: 200,
+    name: "Business",
+    info: "Para empresas em crescimento",
+    price: {
+      mensal: 197,
+      anual: 1891,
     },
+    originalPrice: 2364,
+    discount: 20,
+    features: [
+      { text: "Projetos ilimitados" },
+      { text: "Whiteboards ilimitados" },
+      { text: "Membros ilimitados" },
+      { text: "200 GB de armazenamento" },
+      { text: "Documentos ilimitados" },
+      { text: "Branding customizado" },
+      { text: "SSO (Single Sign-On)" },
+      { text: "Backup automático" },
+      { text: "Suporte 24/7" },
+    ],
+    highlighted: false,
+    id: 'business' as const,
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: null,
-    period: 'personalizado',
-    description: 'Para grandes organizações',
-    icon: Rocket,
-    color: 'from-emerald-500 to-green-500',
+    name: "Enterprise",
+    info: "Para grandes organizações",
+    price: {
+      mensal: "Personalizado",
+      anual: "Personalizado",
+    },
     features: [
-      'Tudo do Business +',
-      'Armazenamento ilimitado',
-      'On-premise deployment',
-      'SLA 99.9%',
-      'Auditoria de segurança',
-      'Treinamento personalizado',
-      'Integrações customizadas',
-      'Contrato anual',
+      { text: "Tudo do Business +" },
+      { text: "Armazenamento ilimitado" },
+      { text: "On-premise deployment" },
+      { text: "SLA 99.9%" },
+      { text: "Auditoria de segurança" },
+      { text: "Treinamento personalizado" },
+      { text: "Integrações customizadas" },
+      { text: "Contrato anual" },
     ],
-    contactOnly: true,
+    highlighted: false,
+    id: 'enterprise' as const,
   },
 ]
 
@@ -256,9 +226,6 @@ export default function BillingPage() {
     return paymentMethods.find((method) => method.id === selectedMethodId) ?? null
   }, [paymentMethods, selectedMethodId])
 
-  const currentPlan = subscription?.plan_id || 'free'
-  const currentPlanData = plans.find(p => p.id === currentPlan) || plans[0]
-
   const maskedCardNumber = (method: any) => `•••• •••• •••• ${method.last_four}`
 
   const handleNewMethodChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -344,64 +311,81 @@ export default function BillingPage() {
     toast.info('Download de faturas estará disponível após integração com gateway de pagamento')
   }
 
-  const getDiscountedPrice = (price: number | null) => {
-    if (!price) return null
-    if (billingPeriod === 'yearly') {
-      return Math.round(price * 12 * 0.8) // 20% de desconto anual
+  const currentPlan = subscription?.plan_id || 'free'
+  const currentPlanData = plans.find(p => p.id === currentPlan) || plans[0]
+
+  // Preparar planos com ações
+  const plansWithActions = plans.map(plan => ({
+    ...plan,
+    selected: plan.id === currentPlan,
+    btn: plan.id === currentPlan ? undefined : {
+      text: plan.id === 'enterprise' ? t('billing.contactSales') : t('billing.upgrade'),
+      onClick: () => {
+        if (plan.id === 'enterprise') {
+          window.location.href = 'mailto:contato@isacar.io?subject=Interesse no Plano Enterprise'
+        } else {
+          toast.info('Integração com gateway de pagamento em breve!')
+        }
+      },
     }
-    return price
-  }
+  }))
 
   // Loading Skeleton
   if (loadingSubscription) {
     return (
       <DashboardLayout>
-        <div className="space-y-6 p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-6"
-          >
-            {/* Header Skeleton */}
-            <div className="space-y-2">
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-64" />
-            </div>
-
-            {/* Current Plan Skeleton */}
-            <div className="p-6 rounded-lg border space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-4 w-48" />
-                </div>
-                <Skeleton className="h-9 w-32" />
+        <div className="min-h-screen w-full flex items-start justify-center pt-6 pb-8">
+          <div className="w-full px-6 md:px-8 max-w-7xl space-y-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-8"
+            >
+              {/* Header Skeleton */}
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-64" />
               </div>
-            </div>
 
-            {/* Plans Grid Skeleton */}
-            <div className="grid md:grid-cols-3 gap-4">
-              {[1, 2, 3].map((i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="p-6 rounded-lg border space-y-4"
-                >
-                  <Skeleton className="h-10 w-10 rounded-lg" />
-                  <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-8 w-32" />
+              {/* Current Plan Skeleton */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    {[1, 2, 3, 4].map((j) => (
-                      <Skeleton key={j} className="h-4 w-full" />
-                    ))}
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-48" />
                   </div>
-                  <Skeleton className="h-9 w-full" />
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+                  <Skeleton className="h-6 w-20" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Plans Grid Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="p-6 rounded-lg space-y-4 bg-muted/20"
+                  >
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-8 w-32" />
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4].map((j) => (
+                        <Skeleton key={j} className="h-4 w-full" />
+                      ))}
+                    </div>
+                    <Skeleton className="h-9 w-full" />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </DashboardLayout>
     )
@@ -409,48 +393,37 @@ export default function BillingPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        {/* Breadcrumb */}
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">{t('nav.dashboard')}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/settings">{t('settings.title')}</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{t('billing.title')}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+      <div className="min-h-screen w-full flex items-start justify-center pt-6 pb-8">
+        <div className="w-full px-6 md:px-8 max-w-7xl space-y-8">
+          {/* Header */}
+          <div className="space-y-0.5">
+            <h1 className="text-xl font-semibold tracking-tight">{t('billing.title')}</h1>
+            <p className="text-xs text-muted-foreground">
+              {t('billing.description')}
+            </p>
+          </div>
 
-        {/* Current Plan */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
+          {/* Current Plan - Totalmente minimalista */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-base">{t('billing.currentPlan')}</CardTitle>
-                <CardDescription className="text-xs mt-1">
-                  Você está no plano {currentPlanData.name}
-                </CardDescription>
+                <h2 className="text-base font-medium">{t('billing.currentPlan')}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t('billing.currentPlanDesc').replace('{plan}', currentPlanData.name)}
+                </p>
               </div>
               <Badge className="w-fit">
                 {currentPlanData.name}
               </Badge>
             </div>
-          </CardHeader>
-          <CardContent>
             <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-lg border border-border bg-card/50 p-3">
+              <div className="rounded-lg p-4 bg-muted/30">
                 <p className="text-xs text-muted-foreground">{t('billing.nextCharge')}</p>
-                <p className="mt-1 text-lg font-bold">
+                <p className="mt-1 text-xl font-bold">
                   {subscription ? `R$ ${subscription.amount}` : 'R$ 0'}
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -460,18 +433,18 @@ export default function BillingPage() {
                   }
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-card/50 p-3">
+              <div className="rounded-lg p-4 bg-muted/30">
                 <p className="text-xs text-muted-foreground">{t('billing.members')}</p>
-                <p className="mt-1 text-lg font-bold">
+                <p className="mt-1 text-xl font-bold">
                   {subscription?.members_used || 1} / {subscription?.members_limit || 2}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {subscription ? Math.round((subscription.members_used / subscription.members_limit) * 100) : 50}{t('billing.percentUsed')}
+                  {subscription ? Math.round((subscription.members_used / subscription.members_limit) * 100) : 50}% {t('billing.used').replace('{percent}', '')}
                 </p>
               </div>
-              <div className="rounded-lg border border-border bg-card/50 p-3">
+              <div className="rounded-lg p-4 bg-muted/30">
                 <p className="text-xs text-muted-foreground">{t('billing.storage')}</p>
-                <p className="mt-1 text-lg font-bold">
+                <p className="mt-1 text-xl font-bold">
                   {subscription?.storage_used_gb || 0} GB
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -479,131 +452,37 @@ export default function BillingPage() {
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </motion.div>
 
-        {/* Billing Period Toggle */}
-        <div className="flex justify-center">
-          <Tabs value={billingPeriod} onValueChange={(v) => setBillingPeriod(v as 'monthly' | 'yearly')}>
-            <TabsList>
-              <TabsTrigger value="monthly">{t('billing.monthly')}</TabsTrigger>
-              <TabsTrigger value="yearly" className="relative">
-                {t('billing.yearly')}
-                {billingPeriod === 'yearly' && (
-                  <Badge className="absolute -right-2 -top-2 h-5 text-xs bg-green-500">
-                    -20%
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+          {/* Pricing Section - Usando o componente do onboarding */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <PricingSection
+              plans={plansWithActions}
+              className="!px-0"
+            />
+          </motion.div>
 
-        {/* Pricing Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {plans.map((plan) => {
-            const Icon = plan.icon
-            const discountedPrice = getDiscountedPrice(plan.price)
-            const isCurrentPlan = plan.id === currentPlan
-
-            return (
-              <Card
-                key={plan.id}
-                className={cn(
-                  'relative overflow-hidden',
-                  plan.popular && 'border-primary/50 shadow-lg shadow-primary/20',
-                  isCurrentPlan && 'ring-2 ring-primary'
-                )}
-              >
-                {plan.popular && (
-                  <div className="absolute right-3 top-3">
-                    <Badge>{t('billing.popular')}</Badge>
-                  </div>
-                )}
-
-                {isCurrentPlan && (
-                  <div className="absolute left-3 top-3">
-                    <Badge variant="outline" className="border-primary text-primary">
-                      Atual
-                    </Badge>
-                  </div>
-                )}
-
-                <CardHeader>
-                  <div className={cn(
-                    'mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br shrink-0',
-                    plan.color
-                  )}>
-                    <Icon className="h-5 w-5 text-white" />
-                  </div>
-                  <CardTitle className="text-base">{plan.name}</CardTitle>
-                  <CardDescription className="text-xs">{plan.description}</CardDescription>
-                  <div className="mt-3">
-                    {discountedPrice !== null ? (
-                      <>
-                        <span className="text-2xl font-bold">
-                          R$ {discountedPrice}
-                        </span>
-                        <span className="text-xs text-muted-foreground">/{plan.period}</span>
-                        {billingPeriod === 'yearly' && plan.price && (
-                          <p className="mt-0.5 text-xs text-muted-foreground line-through">
-                            R$ {plan.price * 12}
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-xl font-bold">
-                        {t('billing.custom')}
-                      </span>
-                    )}
-                  </div>
-                </CardHeader>
-
-                <CardContent>
-                  <Separator className="mb-3" />
-                  <ul className="space-y-2">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <Check className="h-4 w-4 shrink-0 text-green-400 mt-0.5" />
-                        <span className="text-xs">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button 
-                    className="mt-4 w-full h-9" 
-                    variant={plan.popular ? 'primary' : 'outline'}
-                    disabled={isCurrentPlan}
-                    onClick={() => {
-                      if (plan.contactOnly) {
-                        window.location.href = 'mailto:contato@isacar.io?subject=Interesse no Plano Enterprise'
-                      }
-                    }}
-                  >
-                    {isCurrentPlan ? 'Plano Atual' : plan.contactOnly ? 'Entrar em Contato' : 'Upgrade'}
-                  </Button>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-
-        {/* Payment Method */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              {t('billing.paymentMethod')}
-            </CardTitle>
-            <CardDescription className="text-xs">
-              {t('billing.paymentMethodDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          {/* Payment Method - Minimalista */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-medium">{t('billing.paymentMethod')}</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">{t('billing.paymentMethodDesc')}</p>
+            
             {loadingMethods ? (
               <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
             ) : defaultMethod ? (
-              <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between bg-muted/30 rounded-lg p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shrink-0">
                     <CreditCard className="h-5 w-5 text-white" />
@@ -626,111 +505,115 @@ export default function BillingPage() {
             <Button variant="ghost" className="w-full h-9" onClick={() => setShowAddMethodDialog(true)}>
               {t('billing.addNewMethod')}
             </Button>
-          </CardContent>
-        </Card>
+          </motion.div>
 
-        {/* Invoice History */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              {t('billing.invoiceHistory')}
-            </CardTitle>
-            <CardDescription className="text-xs">
-              {t('billing.invoiceHistoryDesc')}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          {/* Invoice History - Minimalista */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-medium">{t('billing.invoiceHistory')}</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">{t('billing.invoiceHistoryDesc')}</p>
+            
             {loadingInvoices ? (
               <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
             ) : invoices.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('billing.noInvoices')}</p>
             ) : (
-              <Accordion type="single" collapsible className="w-full">
-                {invoices.map((invoice) => (
-                  <AccordionItem key={invoice.id} value={invoice.id}>
-                    <AccordionTrigger className="text-sm hover:no-underline">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">{invoice.invoice_number}</span>
-                          <Badge 
+              <div className="bg-muted/20 rounded-lg">
+                <Accordion type="single" collapsible className="w-full">
+                  {invoices.map((invoice) => (
+                    <AccordionItem key={invoice.id} value={invoice.id} className="border-none">
+                      <AccordionTrigger className="text-sm hover:no-underline px-4">
+                        <div className="flex items-center justify-between w-full pr-4">
+                          <div className="flex items-center gap-3">
+                            <span className="font-medium">{invoice.invoice_number}</span>
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                'text-xs border-none',
+                                invoice.status === 'paid' && 'bg-green-500/10 text-green-500',
+                                invoice.status === 'pending' && 'bg-yellow-500/10 text-yellow-500',
+                                invoice.status === 'failed' && 'bg-red-500/10 text-red-500'
+                              )}
+                            >
+                              {invoice.status === 'paid' ? t('billing.paid') : invoice.status === 'pending' ? 'Pendente' : 'Falhou'}
+                            </Badge>
+                          </div>
+                          <span className="font-medium text-sm">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(invoice.amount))}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="text-xs text-muted-foreground px-4">
+                        <div className="space-y-2 pt-2">
+                          <div className="flex justify-between">
+                            <span>Data:</span>
+                            <span>{new Date(invoice.billing_date).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Plano:</span>
+                            <span>{invoice.plan_name || 'Pro'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Período:</span>
+                            <span>{invoice.billing_period || 'Mensal'}</span>
+                          </div>
+                          <Button 
                             variant="outline" 
-                            className={cn(
-                              'text-xs',
-                              invoice.status === 'paid' && 'border-green-500/50 text-green-400',
-                              invoice.status === 'pending' && 'border-yellow-500/50 text-yellow-400',
-                              invoice.status === 'failed' && 'border-red-500/50 text-red-400'
-                            )}
+                            size="sm" 
+                            className="w-full mt-2 h-8"
+                            onClick={() => handleDownloadInvoice(invoice)}
                           >
-                            {invoice.status === 'paid' ? 'Pago' : invoice.status === 'pending' ? 'Pendente' : 'Falhou'}
-                          </Badge>
+                            <Download className="h-3 w-3 mr-2" />
+                            {t('billing.downloadInvoice')}
+                          </Button>
                         </div>
-                        <span className="font-medium text-sm">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(invoice.amount))}
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="text-xs text-muted-foreground">
-                      <div className="space-y-2 pt-2">
-                        <div className="flex justify-between">
-                          <span>Data:</span>
-                          <span>{new Date(invoice.billing_date).toLocaleDateString('pt-BR')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Plano:</span>
-                          <span>{invoice.plan_name || 'Pro'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Período:</span>
-                          <span>{invoice.billing_period || 'Mensal'}</span>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full mt-2 h-8"
-                          onClick={() => handleDownloadInvoice(invoice)}
-                        >
-                          <Download className="h-3 w-3 mr-2" />
-                          Baixar PDF
-                        </Button>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </motion.div>
 
-        {/* FAQ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t('billing.faq')}</CardTitle>
-            <CardDescription className="text-xs">Perguntas frequentes sobre faturamento</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="faq-1">
-                <AccordionTrigger className="text-sm">{t('billing.faq1Question')}</AccordionTrigger>
-                <AccordionContent className="text-xs text-muted-foreground">
-                  {t('billing.faq1Answer')}
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-2">
-                <AccordionTrigger className="text-sm">{t('billing.faq2Question')}</AccordionTrigger>
-                <AccordionContent className="text-xs text-muted-foreground">
-                  {t('billing.faq2Answer')}
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="faq-3">
-                <AccordionTrigger className="text-sm">{t('billing.faq3Question')}</AccordionTrigger>
-                <AccordionContent className="text-xs text-muted-foreground">
-                  {t('billing.faq3Answer')}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
+          {/* FAQ - Minimalista */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-4"
+          >
+            <h2 className="text-base font-medium">{t('billing.faq')}</h2>
+            <div className="bg-muted/20 rounded-lg">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="faq-1" className="border-none">
+                  <AccordionTrigger className="text-sm px-4">{t('billing.faq1Question')}</AccordionTrigger>
+                  <AccordionContent className="text-xs text-muted-foreground px-4">
+                    {t('billing.faq1Answer')}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="faq-2" className="border-none">
+                  <AccordionTrigger className="text-sm px-4">{t('billing.faq2Question')}</AccordionTrigger>
+                  <AccordionContent className="text-xs text-muted-foreground px-4">
+                    {t('billing.faq2Answer')}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="faq-3" className="border-none">
+                  <AccordionTrigger className="text-sm px-4">{t('billing.faq3Question')}</AccordionTrigger>
+                  <AccordionContent className="text-xs text-muted-foreground px-4">
+                    {t('billing.faq3Answer')}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Add Payment Method Dialog */}

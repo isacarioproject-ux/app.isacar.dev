@@ -14,6 +14,7 @@ import { SheetsService } from '@/services/google/sheets.service'
 import { toast } from 'sonner'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { motion } from 'framer-motion'
+import { useI18n } from '@/hooks/use-i18n'
 
 /**
  * 📊 Sheets Export Dialog
@@ -26,6 +27,7 @@ import { motion } from 'framer-motion'
  */
 
 export function SheetsExportDialog() {
+  const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
   const [exporting, setExporting] = useState(false)
   const [exportType, setExportType] = useState<'finance' | 'tasks' | null>(null)
@@ -35,7 +37,7 @@ export function SheetsExportDialog() {
     try {
       setExporting(true)
       setExportType('finance')
-      toast.info('📊 Criando planilha financeira...')
+      toast.info(`📊 ${t('sheets.creatingFinance')}`)
 
       const now = new Date()
       const month = now.getMonth() + 1
@@ -49,24 +51,24 @@ export function SheetsExportDialog() {
 
       if (url) {
         setLastExportUrl(url)
-        toast.success('✅ Planilha criada com sucesso!')
+        toast.success(`✅ ${t('sheets.spreadsheetCreated')}`)
         
         // Abrir em nova aba
         window.open(url, '_blank')
       } else {
-        toast.error('Erro ao criar planilha')
+        toast.error(t('sheets.errorCreate'))
       }
     } catch (error: any) {
       console.error('Erro ao exportar:', error)
       
       // Se for erro 403, avisar sobre permissões
       if (error.message?.includes('403') || error.message?.includes('Erro ao criar planilha')) {
-        toast.error('❌ Sem permissão! Você precisa RECONECTAR o Google com as novas permissões.', {
+        toast.error(`❌ ${t('sheets.noPermission')}`, {
           duration: 8000,
-          description: 'Vá em Integrações → Desconectar Google → Conectar novamente'
+          description: t('sheets.noPermissionDesc')
         })
       } else {
-        toast.error('Erro ao exportar: ' + error.message)
+        toast.error(`${t('sheets.errorCreate')}: ${error.message}`)
       }
     } finally {
       setExporting(false)
@@ -78,7 +80,7 @@ export function SheetsExportDialog() {
     try {
       setExporting(true)
       setExportType('tasks')
-      toast.info('📋 Criando planilha de tasks...')
+      toast.info(`📋 ${t('sheets.creatingTasks')}`)
 
       const url = await SheetsService.exportTasks(
         currentWorkspace?.id
@@ -86,24 +88,24 @@ export function SheetsExportDialog() {
 
       if (url) {
         setLastExportUrl(url)
-        toast.success('✅ Planilha criada com sucesso!')
+        toast.success(`✅ ${t('sheets.spreadsheetCreated')}`)
         
         // Abrir em nova aba
         window.open(url, '_blank')
       } else {
-        toast.error('Erro ao criar planilha')
+        toast.error(t('sheets.errorCreate'))
       }
     } catch (error: any) {
       console.error('Erro ao exportar:', error)
       
       // Se for erro 403, avisar sobre permissões
       if (error.message?.includes('403') || error.message?.includes('Erro ao criar planilha')) {
-        toast.error('❌ Sem permissão! Você precisa RECONECTAR o Google com as novas permissões.', {
+        toast.error(`❌ ${t('sheets.noPermission')}`, {
           duration: 8000,
-          description: 'Vá em Integrações → Desconectar Google → Conectar novamente'
+          description: t('sheets.noPermissionDesc')
         })
       } else {
-        toast.error('Erro ao exportar: ' + error.message)
+        toast.error(`${t('sheets.errorCreate')}: ${error.message}`)
       }
     } finally {
       setExporting(false)
@@ -116,10 +118,10 @@ export function SheetsExportDialog() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileSpreadsheet className="h-5 w-5" />
-          Exportar para Google Sheets
+          {t('sheets.title')}
         </CardTitle>
         <CardDescription>
-          Crie planilhas automáticas com seus dados
+          {t('sheets.description')}
         </CardDescription>
       </CardHeader>
 
@@ -139,14 +141,14 @@ export function SheetsExportDialog() {
                         <FileSpreadsheet className="h-6 w-6 text-green-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium">Relatório Financeiro</h3>
+                        <h3 className="font-medium">{t('sheets.financeReport')}</h3>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Exportar receitas e despesas do mês
+                          {t('sheets.financeReportDesc')}
                         </p>
                       </div>
                       <Button className="w-full" size="sm">
                         <Download className="mr-2 h-4 w-4" />
-                        Exportar
+                        {t('sheets.export')}
                       </Button>
                     </div>
                   </CardContent>
@@ -155,21 +157,21 @@ export function SheetsExportDialog() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Exportar Relatório Financeiro</DialogTitle>
+                <DialogTitle>{t('sheets.exportFinanceTitle')}</DialogTitle>
                 <DialogDescription>
-                  Será criada uma planilha com todas as transações financeiras do mês atual
+                  {t('sheets.exportFinanceDesc')}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">O que será incluído:</h4>
+                  <h4 className="font-medium mb-2">{t('sheets.whatIncluded')}</h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>✅ Todas as receitas</li>
-                    <li>✅ Todas as despesas</li>
-                    <li>✅ Categorias e métodos de pagamento</li>
-                    <li>✅ Status e datas</li>
-                    <li>✅ Valores formatados em R$</li>
+                    <li>✅ {t('sheets.allIncome')}</li>
+                    <li>✅ {t('sheets.allExpenses')}</li>
+                    <li>✅ {t('sheets.categoriesPayment')}</li>
+                    <li>✅ {t('sheets.statusDates')}</li>
+                    <li>✅ {t('sheets.formattedValues')}</li>
                   </ul>
                 </div>
 
@@ -181,12 +183,12 @@ export function SheetsExportDialog() {
                   {exporting && exportType === 'finance' ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Criando planilha...
+                      {t('sheets.creatingSpreadsheet')}
                     </>
                   ) : (
                     <>
                       <FileSpreadsheet className="mr-2 h-4 w-4" />
-                      Criar Planilha
+                      {t('sheets.createSpreadsheet')}
                     </>
                   )}
                 </Button>
@@ -194,7 +196,7 @@ export function SheetsExportDialog() {
                 {lastExportUrl && (
                   <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                     <p className="text-sm text-green-700 dark:text-green-300 mb-2">
-                      ✅ Planilha criada com sucesso!
+                      ✅ {t('sheets.spreadsheetCreated')}
                     </p>
                     <Button
                       onClick={() => window.open(lastExportUrl, '_blank')}
@@ -203,7 +205,7 @@ export function SheetsExportDialog() {
                       className="w-full"
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Abrir Planilha
+                      {t('sheets.openSpreadsheet')}
                     </Button>
                   </div>
                 )}
@@ -225,14 +227,14 @@ export function SheetsExportDialog() {
                         <FileSpreadsheet className="h-6 w-6 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="font-medium">Lista de Tasks</h3>
+                        <h3 className="font-medium">{t('sheets.tasksList')}</h3>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Exportar todas as tasks do projeto
+                          {t('sheets.tasksListDesc')}
                         </p>
                       </div>
                       <Button className="w-full" size="sm" variant="outline">
                         <Download className="mr-2 h-4 w-4" />
-                        Exportar
+                        {t('sheets.export')}
                       </Button>
                     </div>
                   </CardContent>
@@ -241,21 +243,21 @@ export function SheetsExportDialog() {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Exportar Lista de Tasks</DialogTitle>
+                <DialogTitle>{t('sheets.exportTasksTitle')}</DialogTitle>
                 <DialogDescription>
-                  Será criada uma planilha com todas as tasks do workspace
+                  {t('sheets.exportTasksDesc')}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">O que será incluído:</h4>
+                  <h4 className="font-medium mb-2">{t('sheets.whatIncluded')}</h4>
                   <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>✅ Título e descrição</li>
-                    <li>✅ Status e prioridade</li>
-                    <li>✅ Datas de início e fim</li>
-                    <li>✅ Responsáveis</li>
-                    <li>✅ Tags e categorias</li>
+                    <li>✅ {t('sheets.titleDescription')}</li>
+                    <li>✅ {t('sheets.statusPriority')}</li>
+                    <li>✅ {t('sheets.startEndDates')}</li>
+                    <li>✅ {t('sheets.assignees')}</li>
+                    <li>✅ {t('sheets.tagsCategories')}</li>
                   </ul>
                 </div>
 
@@ -267,12 +269,12 @@ export function SheetsExportDialog() {
                   {exporting && exportType === 'tasks' ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Criando planilha...
+                      {t('sheets.creatingSpreadsheet')}
                     </>
                   ) : (
                     <>
                       <FileSpreadsheet className="mr-2 h-4 w-4" />
-                      Criar Planilha
+                      {t('sheets.createSpreadsheet')}
                     </>
                   )}
                 </Button>
@@ -280,7 +282,7 @@ export function SheetsExportDialog() {
                 {lastExportUrl && (
                   <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
                     <p className="text-sm text-green-700 dark:text-green-300 mb-2">
-                      ✅ Planilha criada com sucesso!
+                      ✅ {t('sheets.spreadsheetCreated')}
                     </p>
                     <Button
                       onClick={() => window.open(lastExportUrl, '_blank')}
@@ -289,7 +291,7 @@ export function SheetsExportDialog() {
                       className="w-full"
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Abrir Planilha
+                      {t('sheets.openSpreadsheet')}
                     </Button>
                   </div>
                 )}
@@ -301,8 +303,7 @@ export function SheetsExportDialog() {
         {/* Info */}
         <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            <strong>💡 Dica:</strong> As planilhas criadas ficam salvas no seu
-            Google Drive e podem ser compartilhadas com sua equipe.
+            <strong>💡 {t('sheets.tip')}</strong> {t('sheets.tipDesc')}
           </p>
         </div>
       </CardContent>

@@ -68,7 +68,7 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
   const { currentWorkspace } = useWorkspace()
   const [cardName, setCardName] = useState(() => {
     const saved = localStorage.getItem('budget-card-name')
-    return saved || 'Gerenciador de Orçamentos'
+    return saved || t('budget.title')
   })
   const [isEditingName, setIsEditingName] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -257,11 +257,11 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
 
   const chartData = useMemo(() => {
     return [
-      { name: 'Entradas', value: budgetData.incomes, color: COLORS[0] },
-      { name: 'Gastos', value: budgetData.expenses, color: COLORS[1] },
-      { name: 'Reservas', value: budgetData.reserves, color: COLORS[2] },
-      { name: 'Metas', value: budgetData.goals, color: COLORS[3] },
-      { name: 'Orçamento', value: budgetData.budgets, color: COLORS[4] },
+      { name: t('budget.incomes'), value: budgetData.incomes, color: COLORS[0] },
+      { name: t('budget.expenses'), value: budgetData.expenses, color: COLORS[1] },
+      { name: t('budget.reserves'), value: budgetData.reserves, color: COLORS[2] },
+      { name: t('budget.goals'), value: budgetData.goals, color: COLORS[3] },
+      { name: t('budget.budgets'), value: budgetData.budgets, color: COLORS[4] },
     ].filter(item => item.value > 0)
   }, [budgetData])
 
@@ -272,9 +272,9 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
   }
 
   const handleDelete = () => {
-    const confirmed = window.confirm('Deseja deletar este card?')
+    const confirmed = window.confirm(t('budget.deleteConfirm'))
     if (confirmed) {
-      toast.info('Funcionalidade em desenvolvimento')
+      toast.info(t('budget.comingSoon'))
     }
   }
 
@@ -314,7 +314,7 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') setIsEditingName(false)
                       }}
-                      placeholder="Gerenciador de Orçamentos"
+                      placeholder={t('budget.title')}
                       className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[200px] sm:max-w-[250px] truncate"
                       autoFocus
                     />
@@ -353,7 +353,7 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                       </motion.div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Expandir gerenciador</p>
+                      <p>{t('budget.expand')}</p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -374,13 +374,13 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                         </DropdownMenuTrigger>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Mais opções</p>
+                        <p>{t('budget.moreOptions')}</p>
                       </TooltipContent>
                     </Tooltip>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast.info('Em breve')}>
+                      <DropdownMenuItem onClick={() => toast.info(t('budget.comingSoon'))}>
                         <Copy className="h-4 w-4 mr-2" />
-                        Duplicar card
+                        {t('budget.duplicate')}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
@@ -388,7 +388,7 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Deletar card
+                        {t('budget.delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -422,8 +422,8 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                 className="text-center text-muted-foreground"
               >
                 <Target className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                <p className="text-sm font-medium">Nenhum dado disponível</p>
-                <p className="text-xs mt-1">Crie documentos financeiros para ver o gráfico</p>
+                <p className="text-sm font-medium">{t('budget.noData')}</p>
+                <p className="text-xs mt-1">{t('budget.noDataDesc')}</p>
               </motion.div>
             ) : (
               <motion.div
@@ -503,7 +503,7 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                               </div>
                               <div className="space-y-1.5">
                                 <div className="flex items-baseline justify-between gap-3">
-                                  <span className="text-[10px] text-muted-foreground">Valor</span>
+                                  <span className="text-[10px] text-muted-foreground">{t('budget.value')}</span>
                                   <span className="text-sm font-mono font-bold tabular-nums">
                                     {formatCurrency(Number(data.value))}
                                   </span>

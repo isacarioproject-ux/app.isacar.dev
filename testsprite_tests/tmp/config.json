@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3005/auth",
+  "loginUser": "kleovekleh@gmail.com",
+  "loginPassword": "24948180@Kk",
+  "executionArgs": {
+    "projectName": "app.isacar.dev",
+    "projectPath": "c:\\Isacar.dev\\app.isacar.dev",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-ftIM9LK8FgveXMFJK7K55bI1i4x2OjDqETvKiuOQo0mLstZnZl_Det6kpsnX29tQmckQ116xdBOzYXIq2fI15FjGk-LPzV74iVwL319yC1s79o-mxC2Zno8_bBE-CKx4qHQ"
+    }
+  },
+  "proxy": "http://25142632-c843-4657-ac9f-d5b57cb46ee0:zJgvk78I3RQCK5bBCBmCI8XNCC7w0f42@tun.testsprite.com:8080"
+}

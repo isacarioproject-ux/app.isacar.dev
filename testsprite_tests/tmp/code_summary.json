@@ -1,0 +1,127 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "React 18",
+    "Vite",
+    "TailwindCSS",
+    "shadcn/ui",
+    "Supabase",
+    "Framer Motion",
+    "React Router",
+    "Zod",
+    "React Hook Form",
+    "Recharts",
+    "Lucide Icons"
+  ],
+  "features": [
+    {
+      "name": "Authentication",
+      "description": "User authentication with Supabase Auth, including login, register, password reset and OAuth providers",
+      "files": [
+        "src/contexts/auth-context.tsx",
+        "src/pages/auth/login.tsx",
+        "src/pages/auth/register.tsx",
+        "src/pages/auth/reset-password.tsx"
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Main dashboard with overview cards, recent activities, tasks summary and quick actions",
+      "files": [
+        "src/pages/dashboard.tsx",
+        "src/components/dashboard-layout.tsx",
+        "src/components/recent/recent-card.tsx",
+        "src/components/tasks/tasks-card.tsx"
+      ]
+    },
+    {
+      "name": "Finance Management",
+      "description": "Complete financial management with transactions, budgets, categories, income/expenses tracking",
+      "files": [
+        "src/pages/my-finance.tsx",
+        "src/components/finance/budget-manager-page.tsx",
+        "src/components/finance/budget-card.tsx",
+        "src/components/finance/finance-page-view.tsx",
+        "src/components/finance/transaction-table.tsx"
+      ]
+    },
+    {
+      "name": "Project Management",
+      "description": "Project and task management with kanban boards, timelines and team collaboration",
+      "files": [
+        "src/pages/projects.tsx",
+        "src/pages/my-work.tsx",
+        "src/components/projects/project-card.tsx",
+        "src/components/tasks/task-board.tsx"
+      ]
+    },
+    {
+      "name": "Google Workspace Integration",
+      "description": "Integration with Google services including Gmail invoice scanner, Calendar sync and Sheets export",
+      "files": [
+        "src/pages/settings/integrations.tsx",
+        "src/components/integrations/google-integration-card.tsx",
+        "src/components/integrations/gmail-invoice-scanner.tsx",
+        "src/components/integrations/calendar-sync-panel.tsx",
+        "src/components/integrations/sheets-export-dialog.tsx",
+        "src/services/google/sheets.service.ts"
+      ]
+    },
+    {
+      "name": "Workspace Management",
+      "description": "Multi-workspace support with workspace switcher, member management and invites",
+      "files": [
+        "src/contexts/workspace-context.tsx",
+        "src/components/workspace/workspace-switcher.tsx",
+        "src/components/onboarding/steps/team-invite-step.tsx"
+      ]
+    },
+    {
+      "name": "Internationalization",
+      "description": "Multi-language support with Portuguese, English and Spanish translations",
+      "files": [
+        "src/lib/i18n.ts",
+        "src/hooks/use-i18n.ts",
+        "src/components/language-switcher.tsx"
+      ]
+    },
+    {
+      "name": "Settings",
+      "description": "User settings including profile, notifications, billing and integrations",
+      "files": [
+        "src/pages/settings/profile.tsx",
+        "src/pages/settings/notifications.tsx",
+        "src/pages/settings/billing.tsx",
+        "src/pages/settings/preferences.tsx",
+        "src/pages/settings/integrations.tsx"
+      ]
+    },
+    {
+      "name": "PWA Support",
+      "description": "Progressive Web App with install prompts and offline capabilities",
+      "files": [
+        "src/hooks/use-pwa-install.ts",
+        "src/components/pwa-install-button.tsx",
+        "vite.config.ts"
+      ]
+    },
+    {
+      "name": "UI Components",
+      "description": "Reusable UI components based on shadcn/ui with custom styling",
+      "files": [
+        "src/components/ui/button.tsx",
+        "src/components/ui/card.tsx",
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/input.tsx",
+        "src/components/ui/select.tsx"
+      ]
+    },
+    {
+      "name": "App Sidebar",
+      "description": "Navigation sidebar with menu items, workspace switcher and user menu",
+      "files": [
+        "src/components/app-sidebar.tsx"
+      ]
+    }
+  ]
+}

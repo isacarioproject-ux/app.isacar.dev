@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Loader2, Mail, Calendar, Table, CheckCircle, FolderOpen, FileText, RefreshCw, Unlink } from 'lucide-react'
+import { useI18n } from '@/hooks/use-i18n'
 
 export function GoogleIntegrationCard() {
+  const { t } = useI18n()
   const { 
     integration, 
     isConnected, 
@@ -50,11 +52,11 @@ export function GoogleIntegrationCard() {
           </div>
           
           <div>
-            <h4 className="text-sm font-medium">Google Workspace</h4>
+            <h4 className="text-sm font-medium">{t('google.workspace')}</h4>
             <p className="text-xs text-muted-foreground">
               {isConnected 
                 ? integration?.google_email 
-                : 'Gmail, Calendar, Sheets, Drive & Docs'
+                : t('google.services')
               }
             </p>
           </div>
@@ -64,7 +66,7 @@ export function GoogleIntegrationCard() {
         {isConnected && (
           <Badge variant="secondary" className="gap-1.5 text-green-600 bg-green-500/10">
             <CheckCircle className="h-3 w-3" />
-            Conectado
+            {t('google.connected')}
           </Badge>
         )}
       </div>
@@ -81,10 +83,10 @@ export function GoogleIntegrationCard() {
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Conectando...
+              {t('google.connecting')}
             </>
           ) : (
-            'Conectar Google'
+            t('google.connect')
           )}
         </Button>
       ) : (
@@ -162,7 +164,7 @@ export function GoogleIntegrationCard() {
               className="flex-1 h-8 text-xs"
             >
               <RefreshCw className="h-3 w-3 mr-1.5" />
-              Atualizar
+              {t('google.update')}
             </Button>
             <Button
               variant="ghost"
@@ -172,7 +174,7 @@ export function GoogleIntegrationCard() {
               className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <Unlink className="h-3 w-3 mr-1.5" />
-              Desconectar
+              {t('google.disconnect')}
             </Button>
           </div>
         </>

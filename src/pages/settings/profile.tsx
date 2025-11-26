@@ -332,9 +332,9 @@ export default function ProfilePage() {
         <div className="w-full px-4 md:w-[60%] md:px-0 space-y-4">
         {/* Header */}
         <div className="space-y-0.5">
-          <h1 className="text-xl font-semibold tracking-tight">Minhas configurações</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t('profile.title')}</h1>
           <p className="text-xs text-muted-foreground">
-            Suas informações pessoais e configurações de segurança da conta.
+            {t('profile.description')}
           </p>
         </div>
 
@@ -342,15 +342,15 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
           {/* Coluna Esquerda: Perfil */}
           <div className="space-y-1">
-            <h2 className="text-base font-medium">Perfil</h2>
+            <h2 className="text-base font-medium">{t('profile.personalInfo')}</h2>
             <p className="text-xs text-muted-foreground">
-              Suas informações pessoais e configurações de segurança da conta.
+              {t('profile.personalInfoDesc')}
             </p>
           </div>
 
           {/* Coluna Direita: Avatar */}
           <div className="flex flex-col items-center space-y-3">
-            <h3 className="text-sm font-medium self-center">Avatar</h3>
+            <h3 className="text-sm font-medium self-center">{t('profile.avatar')}</h3>
             
             <div className="relative group">
               <Avatar className="h-[100px] w-[100px] border">
@@ -378,7 +378,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            <p className="text-sm font-medium">{profile.full_name || 'Sem nome'}</p>
+            <p className="text-sm font-medium">{profile.full_name || t('profile.noName')}</p>
           </div>
         </div>
 
@@ -387,12 +387,12 @@ export default function ProfilePage() {
             <div></div>
             <div className="space-y-2">
             <div className="space-y-2">
-              <Label htmlFor="full_name" className="text-sm font-medium">Nome completo</Label>
+              <Label htmlFor="full_name" className="text-sm font-medium">{t('profile.fullName')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="full_name"
-                  placeholder="Seu nome completo"
+                  placeholder={t('profile.fullNamePlaceholder')}
                   value={profile.full_name}
                   onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                   className="pl-10"
@@ -401,7 +401,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">E-mail</Label>
+              <Label htmlFor="email" className="text-sm font-medium">{t('profile.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -415,13 +415,13 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="new_password" className="text-sm font-medium">Senha</Label>
+              <Label htmlFor="new_password" className="text-sm font-medium">{t('profile.newPassword')}</Label>
               <div className="relative">
                 <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="new_password"
                   type="password"
-                  placeholder="Insira a nova senha"
+                  placeholder={t('profile.minChars')}
                   value={passwordData.new}
                   onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
                   className="pl-10"
@@ -430,13 +430,13 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirm_password" className="text-sm font-medium">Confirmar senha</Label>
+              <Label htmlFor="confirm_password" className="text-sm font-medium">{t('profile.confirmNewPassword')}</Label>
               <div className="relative">
                 <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirm_password"
                   type="password"
-                  placeholder="Digite novamente"
+                  placeholder={t('profile.typeAgain')}
                   value={passwordData.confirm}
                   onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
                   className="pl-10"
@@ -460,12 +460,12 @@ export default function ProfilePage() {
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
+                  {t('common.saving')}
                 </>
               ) : (
                 <>
                   <Check className="mr-2 h-4 w-4" />
-                  Salvar alterações
+                  {t('common.save')}
                 </>
               )}
             </Button>

@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useI18n } from '@/hooks/use-i18n'
 
 /**
  * 📅 Calendar Sync Panel
@@ -31,6 +32,7 @@ interface Task {
 }
 
 export function CalendarSyncPanel() {
+  const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
   const [autoSync, setAutoSync] = useState(false)
   const [syncing, setSyncing] = useState(false)
@@ -71,14 +73,14 @@ export function CalendarSyncPanel() {
       setSyncedCount(data?.filter(t => t.calendar_event_id).length || 0)
     } catch (error) {
       console.error('Erro ao carregar tasks:', error)
-      toast.error('Erro ao carregar tasks. Verifique o console.')
+      toast.error(t('calendar.errorLoad'))
     }
   }
 
   const handleSyncAll = async () => {
     try {
       setSyncing(true)
-      toast.info('🔄 Sincronizando tasks com Google Calendar...')
+      toast.info(`🔄 ${t('calendar.syncing')}`)
 
       let successCount = 0
       let errorCount = 0
@@ -108,15 +110,15 @@ export function CalendarSyncPanel() {
       await loadTasks()
 
       if (successCount > 0) {
-        toast.success(`✅ ${successCount} task(s) sincronizada(s)!`)
+        toast.success(`✅ ${successCount} ${t('calendar.tasksSynced')}`)
       }
 
       if (errorCount > 0) {
-        toast.warning(`⚠️ ${errorCount} task(s) com erro`)
+        toast.warning(`⚠️ ${errorCount} ${t('calendar.tasksError')}`)
       }
     } catch (error: any) {
       console.error('Erro ao sincronizar:', error)
-      toast.error('Erro ao sincronizar tasks')
+      toast.error(t('calendar.errorSync'))
     } finally {
       setSyncing(false)
     }
@@ -139,14 +141,14 @@ export function CalendarSyncPanel() {
           .update({ calendar_event_id: null })
           .eq('id', task.id)
 
-        toast.success('✅ Task desvinculada do Calendar')
+        toast.success(`✅ ${t('calendar.taskUnlinked')}`)
         await loadTasks()
       } else {
-        toast.error('Erro ao desvincular task')
+        toast.error(t('calendar.errorUnlink'))
       }
     } catch (error) {
       console.error('Erro:', error)
-      toast.error('Erro ao desvincular task')
+      toast.error(t('calendar.errorUnlink'))
     }
   }
 
@@ -168,13 +170,13 @@ export function CalendarSyncPanel() {
       setShowImport(true)
       
       if (newEvents.length === 0) {
-        toast.info('Todos os eventos já estão sincronizados!')
+        toast.info(t('calendar.allEventsSynced'))
       } else {
-        toast.success(`${newEvents.length} evento(s) disponíveis para importar`)
+        toast.success(`${newEvents.length} ${t('calendar.eventsToImport')}`)
       }
     } catch (error) {
       console.error('Erro ao carregar eventos:', error)
-      toast.error('Erro ao carregar eventos do Calendar')
+      toast.error(t('calendar.errorLoadEvents'))
     }
   }
 
@@ -182,7 +184,7 @@ export function CalendarSyncPanel() {
   const handleImportEvents = async () => {
     try {
       setImporting(true)
-      toast.info('📥 Importando eventos do Calendar...')
+      toast.info(`📥 ${t('calendar.importingEvents')}`)
 
       const startDate = new Date()
       const endDate = new Date()
@@ -196,11 +198,11 @@ export function CalendarSyncPanel() {
       )
 
       if (result.imported > 0) {
-        toast.success(`✅ ${result.imported} evento(s) importado(s) como tasks!`)
+        toast.success(`✅ ${result.imported} ${t('calendar.eventsImported')}`)
       }
       
       if (result.skipped > 0) {
-        toast.info(`${result.skipped} evento(s) já sincronizados`)
+        toast.info(`${result.skipped} ${t('calendar.eventsSkipped')}`)
       }
 
       // Recarregar dados
@@ -209,7 +211,7 @@ export function CalendarSyncPanel() {
       setUpcomingEvents([])
     } catch (error: any) {
       console.error('Erro ao importar:', error)
-      toast.error('Erro ao importar eventos')
+      toast.error(t('calendar.errorImport'))
     } finally {
       setImporting(false)
     }
@@ -222,16 +224,16 @@ export function CalendarSyncPanel() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Sincronizar com Google Calendar
+              {t('calendar.title')}
             </CardTitle>
             <CardDescription>
-              Tasks com data de vencimento viram eventos no Calendar
+              {t('calendar.description')}
             </CardDescription>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Auto-sync:</span>
+              <span className="text-sm text-muted-foreground">{t('calendar.autoSync')}:</span>
               <Switch
                 checked={autoSync}
                 onCheckedChange={setAutoSync}
@@ -242,17 +244,17 @@ export function CalendarSyncPanel() {
               onClick={handleSyncAll}
               disabled={syncing || tasks.length === 0}
               size="sm"
-              title={tasks.length === 0 ? 'Crie tasks com data de vencimento para sincronizar' : 'Sincronizar todas as tasks pendentes'}
+              title={tasks.length === 0 ? t('calendar.createTasksWithDate') : t('calendar.syncAll')}
             >
               {syncing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sincronizando...
+                  {t('calendar.syncing')}
                 </>
               ) : (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Sincronizar Tudo
+                  {t('calendar.syncAll')}
                   {tasks.length === 0 && ' (0 tasks)'}
                 </>
               )}
@@ -263,10 +265,10 @@ export function CalendarSyncPanel() {
               disabled={importing}
               size="sm"
               variant="outline"
-              title="Importar eventos do Google Calendar como tasks"
+              title={t('calendar.importFromCalendar')}
             >
               <ArrowDownToLine className="mr-2 h-4 w-4" />
-              Importar do Calendar
+              {t('calendar.importFromCalendar')}
             </Button>
           </div>
         </div>
@@ -277,17 +279,17 @@ export function CalendarSyncPanel() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="text-center p-4 bg-muted/50 rounded-lg">
             <div className="text-2xl font-bold">{tasks.length}</div>
-            <div className="text-xs text-muted-foreground">Tasks com data</div>
+            <div className="text-xs text-muted-foreground">{t('calendar.tasksWithDate')}</div>
           </div>
           <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
             <div className="text-2xl font-bold text-green-600">{syncedCount}</div>
-            <div className="text-xs text-muted-foreground">Sincronizadas</div>
+            <div className="text-xs text-muted-foreground">{t('calendar.synced')}</div>
           </div>
           <div className="text-center p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
             <div className="text-2xl font-bold text-orange-600">
               {tasks.length - syncedCount}
             </div>
-            <div className="text-xs text-muted-foreground">Pendentes</div>
+            <div className="text-xs text-muted-foreground">{t('calendar.pending')}</div>
           </div>
         </div>
 
@@ -296,9 +298,9 @@ export function CalendarSyncPanel() {
           {tasks.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="font-medium">Nenhuma task com data de vencimento</p>
+              <p className="font-medium">{t('calendar.noTasksWithDate')}</p>
               <p className="text-xs mt-2">
-                💡 Crie tasks com <strong>Data Fim</strong> para sincronizar com o Calendar
+                💡 {t('calendar.createTasksWithDate')}
               </p>
             </div>
           ) : (
@@ -316,22 +318,22 @@ export function CalendarSyncPanel() {
                       {task.calendar_event_id ? (
                         <Badge variant="outline" className="gap-1">
                           <CheckCircle2 className="h-3 w-3 text-green-500" />
-                          Sincronizado
+                          {t('calendar.syncedBadge')}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="gap-1">
                           <XCircle className="h-3 w-3 text-orange-500" />
-                          Não sincronizado
+                          {t('calendar.notSyncedBadge')}
                         </Badge>
                       )}
                     </div>
 
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                       {task.start_date && (
-                        <span>📅 Início: {new Date(task.start_date).toLocaleDateString('pt-BR')}</span>
+                        <span>📅 {t('calendar.start')}: {new Date(task.start_date).toLocaleDateString('pt-BR')}</span>
                       )}
                       {task.due_date && (
-                        <span>⏰ Fim: {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+                        <span>⏰ {t('calendar.end')}: {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
                       )}
                     </div>
                   </div>
@@ -363,7 +365,7 @@ export function CalendarSyncPanel() {
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium flex items-center gap-2">
                   <Download className="h-4 w-4 text-purple-600" />
-                  Eventos disponíveis ({upcomingEvents.length})
+                  {t('calendar.eventsAvailable')} ({upcomingEvents.length})
                 </h4>
                 <div className="flex gap-2">
                   <Button
@@ -376,7 +378,7 @@ export function CalendarSyncPanel() {
                     ) : (
                       <Download className="mr-2 h-4 w-4" />
                     )}
-                    Importar Todos
+                    {t('calendar.importAll')}
                   </Button>
                   <Button
                     onClick={() => setShowImport(false)}
@@ -410,8 +412,7 @@ export function CalendarSyncPanel() {
         {/* Info */}
         <div className="mt-6 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
           <p className="text-xs text-blue-700 dark:text-blue-300">
-            <strong>💡 Sync Bidirecional:</strong> Tasks com data viram eventos no Calendar.
-            Use "Importar do Calendar" para trazer eventos como tasks.
+            <strong>💡 {t('calendar.bidirectionalSync')}</strong> {t('calendar.bidirectionalSyncDesc')}
           </p>
         </div>
       </CardContent>

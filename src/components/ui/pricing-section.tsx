@@ -10,8 +10,9 @@ import {
 import { cn } from '@/lib/utils';
 import { CheckCircle, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useI18n } from '@/hooks/use-i18n';
 
-const frequencies = ['mensal', 'anual'];
+// Frequências traduzíveis via hook
 
 interface PricingFeature {
   text: string;
@@ -57,7 +58,13 @@ export function PricingSection({
   defaultFrequency = 'mensal',
 	...props
 }: PricingSectionProps) {
+	const { t } = useI18n();
 	const [frequency, setFrequency] = React.useState<'mensal' | 'anual'>(defaultFrequency);
+
+  const frequencies = [
+    { key: 'mensal' as const, label: t('pricing.monthly') },
+    { key: 'anual' as const, label: t('pricing.yearly') }
+  ];
 
   const handleFrequencyChange = (freq: 'mensal' | 'anual') => {
     setFrequency(freq);
@@ -84,13 +91,13 @@ export function PricingSection({
           )}
         </div>
       )}
-			<div className="w-full flex justify-center">
+			<div className="w-full flex justify-center mb-6">
 				<PricingFrequencyToggle
 					frequency={frequency}
 					setFrequency={handleFrequencyChange}
 				/>
 			</div>
-			<div className="w-full max-w-7xl mx-auto grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 px-6 md:px-8">
+			<div className="w-full max-w-7xl mx-auto grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 px-0">
 				{plans.map((plan) => (
 					<PricingCard plan={plan} key={plan.name} frequency={frequency} />
 				))}
@@ -111,6 +118,12 @@ export function PricingFrequencyToggle({
 	className,
 	...props
 }: PricingFrequencyToggleProps) {
+	const { t } = useI18n();
+	const frequencies = [
+		{ key: 'mensal' as const, label: t('pricing.monthly') },
+		{ key: 'anual' as const, label: t('pricing.yearly') }
+	];
+
 	return (
 		<div
 			className={cn(
@@ -121,16 +134,16 @@ export function PricingFrequencyToggle({
 		>
 			{frequencies.map((freq) => (
 				<button
-					key={freq}
-					onClick={() => setFrequency(freq as 'mensal' | 'anual')}
+					key={freq.key}
+					onClick={() => setFrequency(freq.key)}
 					className={cn(
-						'relative px-6 py-2 text-sm capitalize font-medium rounded-full transition-all duration-300',
-						frequency === freq 
+						'relative px-6 py-2 text-sm font-medium rounded-full transition-all duration-300',
+						frequency === freq.key 
 							? 'bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 shadow-md font-semibold' 
 							: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
 					)}
 				>
-					{freq}
+					{freq.label}
 				</button>
 			))}
 		</div>
@@ -149,6 +162,7 @@ export function PricingCard({
 	frequency = 'mensal',
 	...props
 }: PricingCardProps) {
+	const { t } = useI18n();
 	const isCustomPrice = typeof plan.price[frequency] === 'string';
 	const showDiscount = frequency === 'anual' && !isCustomPrice;
 
@@ -182,7 +196,7 @@ export function PricingCard({
 					{plan.highlighted && (
 						<p className="bg-primary text-primary-foreground flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold">
 							<Star className="h-3 w-3 fill-current" />
-							Popular
+							{t('pricing.popular')}
 						</p>
 					)}
 					{showDiscount && plan.discount && (
@@ -208,7 +222,7 @@ export function PricingCard({
 								R$ {plan.price[frequency]}
 							</span>
 							<span className="text-muted-foreground text-xs pb-0.5">
-								/{frequency === 'mensal' ? 'mês' : 'ano'}
+								/{frequency === 'mensal' ? t('pricing.month') : t('pricing.year')}
 							</span>
 						</>
 					)}

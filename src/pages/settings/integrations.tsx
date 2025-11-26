@@ -16,9 +16,11 @@ import { SheetsExportDialog } from '@/components/integrations/sheets-export-dial
 import { supabase } from '@/lib/supabase'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { useGoogleIntegration } from '@/hooks/use-google-integration'
+import { useI18n } from '@/hooks/use-i18n'
 
 export default function IntegrationsPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
   const { isConnected: isGoogleConnected } = useGoogleIntegration()
   const [config, setConfig] = useState({
@@ -179,12 +181,12 @@ export default function IntegrationsPage() {
       
       setHasChanges(false)
       
-      toast.success('✅ Configuração salva!', {
-        description: 'Mudanças aplicadas automaticamente.',
+      toast.success(t('integrations.configSaved'), {
+        description: t('integrations.configSavedDesc'),
       })
       
     } catch (error) {
-      toast.error('❌ Erro ao salvar configuração')
+      toast.error(t('integrations.configError'))
     } finally {
       setSaving(false)
     }
@@ -234,7 +236,7 @@ export default function IntegrationsPage() {
         <div className="flex items-center justify-between gap-2 px-[5px] py-0.5 border-b border-border">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Plug className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <h2 className="text-sm font-semibold truncate">Integrações</h2>
+            <h2 className="text-sm font-semibold truncate">{t('integrations.title')}</h2>
           </div>
 
           <div className="flex items-center gap-0.5">
@@ -310,16 +312,16 @@ export default function IntegrationsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
           >
-            <h2 className="text-base font-medium">Integrações API REST</h2>
+            <h2 className="text-base font-medium">{t('integrations.apiRest')}</h2>
             <GoogleIntegrationCard />
             
             {/* Google Features - só aparece se conectado */}
             {isGoogleConnected && (
               <div className="mt-8 space-y-6">
                 <div>
-                  <h2 className="text-base font-medium mb-1">Google Workspace Tools</h2>
+                  <h2 className="text-base font-medium mb-1">{t('integrations.googleWorkspace')}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Ferramentas poderosas para automação e sincronização
+                    {t('integrations.googleWorkspaceDesc')}
                   </p>
                 </div>
 
@@ -339,10 +341,10 @@ export default function IntegrationsPage() {
                     <CardHeader>
                       <div className="flex items-center gap-2">
                         <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        <CardTitle className="text-base">Analytics & Métricas</CardTitle>
+                        <CardTitle className="text-base">{t('integrations.analytics')}</CardTitle>
                       </div>
                       <CardDescription>
-                        Visualize estatísticas completas, gráficos e histórico de todas as sincronizações
+                        {t('integrations.analyticsDesc')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -352,7 +354,7 @@ export default function IntegrationsPage() {
                         variant="primary"
                       >
                         <BarChart3 className="mr-2 h-4 w-4" />
-                        Ver Analytics Completo
+                        {t('integrations.viewAnalytics')}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </CardContent>
@@ -369,11 +371,11 @@ export default function IntegrationsPage() {
             transition={{ delay: 0.1 }}
             className="space-y-3"
           >
-            <h2 className="text-base font-medium">Sistema de Integrações Internas</h2>
+            <h2 className="text-base font-medium">{t('integrations.internalSystem')}</h2>
             <div className="space-y-1">
               <IntegrationItem
-                title="Ativar Sistema de Integrações"
-                description="Ativa ou desativa todas as integrações internas de uma vez"
+                title={t('integrations.enableSystem')}
+                description={t('integrations.enableSystemDesc')}
                 settingKey="ENABLED"
               />
             </div>
@@ -386,7 +388,7 @@ export default function IntegrationsPage() {
             transition={{ delay: 0.2 }}
             className="space-y-3"
           >
-            <h2 className="text-base font-medium">Integrações Disponíveis</h2>
+            <h2 className="text-base font-medium">{t('integrations.available')}</h2>
             <div className="space-y-1">
               <IntegrationItem
                 icon={
@@ -396,8 +398,8 @@ export default function IntegrationsPage() {
                     <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                 }
-                title="Tasks → Finance"
-                description="Completar task com custo cria despesa automaticamente"
+                title={t('integrations.tasksToFinance')}
+                description={t('integrations.tasksToFinanceDesc')}
                 settingKey="TASKS_TO_FINANCE"
                 disabled={!config.ENABLED}
               />
@@ -409,8 +411,8 @@ export default function IntegrationsPage() {
                     <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                 }
-                title="Projects → Finance"
-                description="Vincular documentos financeiros a projetos específicos"
+                title={t('integrations.projectsToFinance')}
+                description={t('integrations.projectsToFinanceDesc')}
                 settingKey="PROJECTS_TO_FINANCE"
                 disabled={!config.ENABLED}
               />
@@ -424,23 +426,23 @@ export default function IntegrationsPage() {
             transition={{ delay: 0.3 }}
             className="space-y-3"
           >
-            <h2 className="text-base font-medium">Opções de Comportamento</h2>
+            <h2 className="text-base font-medium">{t('integrations.behaviorOptions')}</h2>
             <div className="space-y-1">
               <IntegrationItem
-                title="Criação Automática"
-                description="Criar automaticamente sem perguntar"
+                title={t('integrations.autoCreate')}
+                description={t('integrations.autoCreateDesc')}
                 settingKey="AUTO_CREATE"
                 disabled={!config.ENABLED}
               />
               <IntegrationItem
-                title="Notificações"
-                description="Mostrar toast ao criar via integração"
+                title={t('integrations.notifications')}
+                description={t('integrations.notificationsDesc')}
                 settingKey="SHOW_NOTIFICATIONS"
                 disabled={!config.ENABLED}
               />
               <IntegrationItem
-                title="Modo Debug"
-                description="Logs detalhados no console (desenvolvimento)"
+                title={t('integrations.debugMode')}
+                description={t('integrations.debugModeDesc')}
                 settingKey="DEBUG_MODE"
                 disabled={!config.ENABLED}
               />
@@ -457,10 +459,10 @@ export default function IntegrationsPage() {
             >
               <div>
                 <p className="font-medium text-sm text-green-600 dark:text-green-400">
-                  ✅ Sistema Ativo
+                  ✅ {t('integrations.systemActive')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  As integrações estão funcionando. Eventos serão processados automaticamente.
+                  {t('integrations.systemActiveDesc')}
                 </p>
               </div>
             </motion.div>

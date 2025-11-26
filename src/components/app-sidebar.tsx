@@ -39,7 +39,11 @@ import {
   Plug,
   FolderKanban,
   PieChart,
+  Activity,
 } from 'lucide-react'
+
+// Email autorizado para ver analytics de onboarding
+const ADMIN_EMAIL = 'isacar.io.project@gmail.com'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
@@ -64,7 +68,7 @@ export function AppSidebar() {
       href: '/meu-trabalho',
     },
     {
-      title: 'Meus Projetos',
+      title: t('nav.myProjects'),
       icon: FolderKanban,
       href: '/meus-projetos',
     },
@@ -74,21 +78,30 @@ export function AppSidebar() {
       href: '/minha-financa',
     },
     {
-      title: 'Gerenciador',
+      title: t('nav.manager'),
       icon: PieChart,
       href: '/meu-gerenciador',
     },
     {
-      title: 'Integrações',
+      title: t('nav.integrations'),
       icon: Plug,
       href: '/settings/integrations',
     },
     {
-      title: 'Analytics',
+      title: t('nav.analytics'),
       icon: BarChart3,
       href: '/analytics/google',
     },
   ]
+
+  // Itens de menu admin (apenas para email autorizado)
+  const adminMenuItems = user?.email === ADMIN_EMAIL ? [
+    {
+      title: 'Onboarding Analytics',
+      icon: Activity,
+      href: '/admin/onboarding-analytics',
+    },
+  ] : []
 
   useEffect(() => {
     // Carregar usuário inicial
@@ -238,6 +251,64 @@ export function AppSidebar() {
                 </motion.div>
               )
             })}
+            
+            {/* Admin Menu Items - Apenas para email autorizado */}
+            {adminMenuItems.length > 0 && (
+              <>
+                <div className="my-2 px-2">
+                  <div className="h-px bg-border/50" />
+                </div>
+                {adminMenuItems.map((item, index) => {
+                  const Icon = item.icon
+                  const isActive = location.pathname === item.href
+
+                  return (
+                    <motion.div
+                      key={item.href}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ 
+                        delay: (menuItems.length + index) * 0.1, 
+                        duration: 0.3, 
+                        ease: "easeOut" 
+                      }}
+                    >
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.title}
+                          className="group transition-all duration-200 hover:bg-sidebar-accent/50"
+                        >
+                          <Link to={item.href} className="gap-3 flex items-center">
+                            <motion.div
+                              whileHover={{ scale: 1.1, rotate: 5 }}
+                              whileTap={{ scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              className={`transition-colors duration-200 ${
+                                isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 group-hover:text-sidebar-accent-foreground'
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </motion.div>
+                            <motion.span
+                              initial={{ opacity: 0.8 }}
+                              whileHover={{ opacity: 1 }}
+                              transition={{ duration: 0.2 }}
+                              className={`transition-colors duration-200 ${
+                                isActive ? 'text-sidebar-accent-foreground font-medium' : 'text-sidebar-foreground/80 group-hover:text-sidebar-accent-foreground'
+                              }`}
+                            >
+                              {item.title}
+                            </motion.span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </motion.div>
+                  )
+                })}
+              </>
+            )}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

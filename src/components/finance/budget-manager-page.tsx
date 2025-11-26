@@ -547,7 +547,7 @@ export const BudgetManagerPage = () => {
         setTargetMeta(value)
       }
     } catch (err: any) {
-      toast.error('Erro ao salvar meta', { description: err.message })
+      toast.error(t('budget.errorSaveGoal'), { description: err.message })
     }
   }
 
@@ -848,7 +848,7 @@ export const BudgetManagerPage = () => {
 
       if (error) throw error
     } catch (err: any) {
-      toast.error('Erro ao salvar entradas', { description: err.message })
+      toast.error(t('budget.errorSaveEntry'), { description: err.message })
     }
   }
 
@@ -881,7 +881,7 @@ export const BudgetManagerPage = () => {
 
       if (error) throw error
     } catch (err: any) {
-      toast.error('Erro ao salvar reservas', { description: err.message })
+      toast.error(t('budget.errorSaveReserve'), { description: err.message })
     }
   }
 
@@ -930,7 +930,7 @@ export const BudgetManagerPage = () => {
 
       if (error) throw error
     } catch (err: any) {
-      toast.error('Erro ao salvar meta', { description: err.message })
+      toast.error(t('budget.errorSaveGoal'), { description: err.message })
     }
   }
 
@@ -960,7 +960,7 @@ export const BudgetManagerPage = () => {
         <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0">
           <h1 className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <BarChart3 className="h-4 w-4" />
-            Meu Gerenciador
+            {t('budget.myManager')}
           </h1>
             
             {/* Switcher de Período do Gráfico */}
@@ -972,10 +972,10 @@ export const BudgetManagerPage = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 Mês</SelectItem>
-                <SelectItem value="3">3 Meses</SelectItem>
-                <SelectItem value="6">6 Meses</SelectItem>
-                <SelectItem value="12">1 Ano</SelectItem>
+                <SelectItem value="1">{t('budget.month1')}</SelectItem>
+                <SelectItem value="3">{t('budget.months3')}</SelectItem>
+                <SelectItem value="6">{t('budget.months6')}</SelectItem>
+                <SelectItem value="12">{t('budget.year1')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -986,25 +986,25 @@ export const BudgetManagerPage = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-6 gap-1 px-2">
                   <Menu className="h-3 w-3" />
-                  <span className="text-[10px]">Opções</span>
+                  <span className="text-[10px]">{t('budget.options')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setActiveDrawer('entradas')}>
                   <TrendingUpIcon className="h-4 w-4 mr-2" />
-                  Entradas
+                  {t('budget.incomes')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setActiveDrawer('gastos')}>
                   <TrendingDown className="h-4 w-4 mr-2" />
-                  Gastos
+                  {t('budget.expenses')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setActiveDrawer('reservas')}>
                   <PiggyBank className="h-4 w-4 mr-2" />
-                  Reservas
+                  {t('budget.reserves')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setActiveDrawer('metas')}>
                   <Target className="h-4 w-4 mr-2" />
-                  Metas
+                  {t('budget.goals')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1029,7 +1029,7 @@ export const BudgetManagerPage = () => {
                   </Toggle>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {showLeftSidebar ? 'Ocultar Entrada' : 'Mostrar Entrada'}
+                  {showLeftSidebar ? t('budget.hideEntry') : t('budget.showEntry')}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -1051,7 +1051,7 @@ export const BudgetManagerPage = () => {
                   </Toggle>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {showRightSidebar1 ? 'Ocultar Gastos' : 'Mostrar Gastos'}
+                  {showRightSidebar1 ? t('budget.hideExpenses') : t('budget.showExpenses')}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -1073,7 +1073,7 @@ export const BudgetManagerPage = () => {
                   </Toggle>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {showRightSidebar2 ? 'Ocultar Reservas' : 'Mostrar Reservas'}
+                  {showRightSidebar2 ? t('budget.hideReserves') : t('budget.showReserves')}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -1095,7 +1095,7 @@ export const BudgetManagerPage = () => {
                   </Toggle>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {showRightSidebar3 ? 'Ocultar Meta' : 'Mostrar Meta'}
+                  {showRightSidebar3 ? t('budget.hideGoal') : t('budget.showGoal')}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -1123,7 +1123,7 @@ export const BudgetManagerPage = () => {
               <div className="space-y-4 overflow-y-auto flex-1 min-h-0">
                     <div className="flex items-center gap-2 mb-4">
                       <TrendingUpIcon className="h-4 w-4 text-green-600" />
-                      <h3 className="text-sm font-semibold">Entrada</h3>
+                      <h3 className="text-sm font-semibold">{t('budget.entry')}</h3>
                     </div>
 
                     {/* Tabela Editável de Entradas */}
@@ -1131,10 +1131,10 @@ export const BudgetManagerPage = () => {
                       <Table>
                         <TableHeader>
                           <TableRow className="h-8">
-                            <TableHead className="h-8 text-xs">Nome</TableHead>
-                            <TableHead className="h-8 text-xs text-right">Valor</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.name')}</TableHead>
+                            <TableHead className="h-8 text-xs text-right">{t('budget.value')}</TableHead>
                             <TableHead className="h-8 text-xs text-right">%</TableHead>
-                            <TableHead className="h-8 text-xs">Data</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.date')}</TableHead>
                             <TableHead className="h-8 w-8"></TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1160,7 +1160,7 @@ export const BudgetManagerPage = () => {
                                     onClick={() => handleCellEdit(entry.id, 'name', entry.name)}
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
-                                    {entry.name || <span className="text-muted-foreground">Nome...</span>}
+                                    {entry.name || <span className="text-muted-foreground">{t('budget.namePlaceholder')}</span>}
                             </div>
                                 )}
                               </TableCell>
@@ -1210,7 +1210,7 @@ export const BudgetManagerPage = () => {
                                     onClick={() => handleCellEdit(entry.id, 'date', entry.date || '')}
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
-                                    {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                    {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                                   </div>
                                 )}
                               </TableCell>
@@ -1257,7 +1257,7 @@ export const BudgetManagerPage = () => {
                                   onClick={() => handleCellEdit('new-income', 'name', '')}
                                   className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                                 >
-                                  + Adicionar entrada...
+                                  {t('budget.addEntry')}
                   </div>
                               )}
                             </TableCell>
@@ -1291,13 +1291,13 @@ export const BudgetManagerPage = () => {
           >
             <div className="h-full flex flex-col p-2 md:p-4 overflow-hidden">
               <div className="w-full h-full flex flex-col">
-                <h3 className="text-xs md:text-sm font-semibold mb-2 text-center flex-shrink-0">Evolução Financeira</h3>
+                <h3 className="text-xs md:text-sm font-semibold mb-2 text-center flex-shrink-0">{t('budget.financialEvolution')}</h3>
                 <ChartContainer
                   config={{
-                    entradas: { label: 'Entradas', color: '#10b981' },
-                    gastos: { label: 'Gastos', color: '#ef4444' },
-                    reservas: { label: 'Reservas', color: '#3b82f6' },
-                    metas: { label: 'Metas', color: '#8b5cf6' },
+                    entradas: { label: t('budget.incomes'), color: '#10b981' },
+                    gastos: { label: t('budget.expenses'), color: '#ef4444' },
+                    reservas: { label: t('budget.reserves'), color: '#3b82f6' },
+                    metas: { label: t('budget.goals'), color: '#8b5cf6' },
                   }}
                   className="flex-1 w-full min-h-0"
                 >
@@ -1418,7 +1418,7 @@ export const BudgetManagerPage = () => {
                   <div className="space-y-4 overflow-y-auto flex-1 min-h-0">
                     <div className="flex items-center gap-2 mb-4">
                       <TrendingDown className="h-4 w-4 text-red-600" />
-                      <h3 className="text-sm font-semibold">Gastos</h3>
+                      <h3 className="text-sm font-semibold">{t('budget.expenses')}</h3>
                 </div>
 
                     {/* Tabela Editável de Gastos */}
@@ -1426,10 +1426,10 @@ export const BudgetManagerPage = () => {
                 <Table>
                   <TableHeader>
                           <TableRow className="h-8">
-                            <TableHead className="h-8 text-xs">Categoria</TableHead>
-                            <TableHead className="h-8 text-xs">Pagamento</TableHead>
-                            <TableHead className="h-8 text-xs text-right">Valor</TableHead>
-                            <TableHead className="h-8 text-xs">Data</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.category')}</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.payment')}</TableHead>
+                            <TableHead className="h-8 text-xs text-right">{t('budget.value')}</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.date')}</TableHead>
                             <TableHead className="h-8 w-8"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1455,7 +1455,7 @@ export const BudgetManagerPage = () => {
                                     onClick={() => handleExpenseCellEdit(entry.id, 'category', entry.category)}
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
-                                    {entry.category || <span className="text-muted-foreground">Categoria...</span>}
+                                    {entry.category || <span className="text-muted-foreground">{t('budget.categoryPlaceholder')}</span>}
                             </div>
                                 )}
                           </TableCell>
@@ -1481,7 +1481,7 @@ export const BudgetManagerPage = () => {
                                           if (error) throw error
                                           await fetchTransactions()
                                         } catch (err: any) {
-                                          toast.error('Erro ao salvar forma de pagamento', { description: err.message })
+                                          toast.error(t('budget.errorSavePayment'), { description: err.message })
                                         }
                                       }
                                       setEditingCell(null)
@@ -1504,7 +1504,7 @@ export const BudgetManagerPage = () => {
                                     onClick={() => handleExpenseCellEdit(entry.id, 'paymentMethod', entry.paymentMethod)}
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
-                                    {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.icon} {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.label || 'Pagamento...'}
+                                    {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.icon} {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.label || t('budget.paymentPlaceholder')}
                             </div>
                                 )}
                           </TableCell>
@@ -1551,7 +1551,7 @@ export const BudgetManagerPage = () => {
                                     onClick={() => handleExpenseCellEdit(entry.id, 'date', entry.date)}
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
-                                    {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                    {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                             </div>
                                 )}
                           </TableCell>
@@ -1571,7 +1571,7 @@ export const BudgetManagerPage = () => {
                                       setExpenseEntries(expenseEntries.filter(e => e.id !== entry.id))
                                       await fetchTransactions()
                                     } catch (err: any) {
-                                      toast.error('Erro ao deletar gasto', { description: err.message })
+                                      toast.error(t('budget.errorDeleteExpense'), { description: err.message })
                                     }
                                   }}
                                 >
@@ -1602,7 +1602,7 @@ export const BudgetManagerPage = () => {
                                   onClick={() => handleExpenseCellEdit('new-expense', 'category', '')}
                                   className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                                 >
-                                  + Adicionar gasto...
+                                  {t('budget.addExpense')}
                                 </div>
                               )}
                             </TableCell>
@@ -1642,7 +1642,7 @@ export const BudgetManagerPage = () => {
                   <div className="space-y-4 overflow-y-auto flex-1 min-h-0">
                     <div className="flex items-center gap-2 mb-4">
                       <PiggyBank className="h-4 w-4 text-blue-600" />
-                      <h3 className="text-sm font-semibold">Reservas & Investimento</h3>
+                      <h3 className="text-sm font-semibold">{t('budget.reservesInvestment')}</h3>
                     </div>
 
                     {/* Tabela Editável de Reservas */}
@@ -1650,10 +1650,10 @@ export const BudgetManagerPage = () => {
                       <Table>
                         <TableHeader>
                           <TableRow className="h-8">
-                            <TableHead className="h-8 text-xs">Nome</TableHead>
-                            <TableHead className="h-8 text-xs">Tipo</TableHead>
-                            <TableHead className="h-8 text-xs text-right">Valor</TableHead>
-                            <TableHead className="h-8 text-xs">Data</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.name')}</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.type')}</TableHead>
+                            <TableHead className="h-8 text-xs text-right">{t('budget.value')}</TableHead>
+                            <TableHead className="h-8 text-xs">{t('budget.date')}</TableHead>
                             <TableHead className="h-8 w-8"></TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1678,7 +1678,7 @@ export const BudgetManagerPage = () => {
                                     onClick={() => handleReserveCellEdit(entry.id, 'name', entry.name)}
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
-                                    {entry.name || <span className="text-muted-foreground">Nome...</span>}
+                                    {entry.name || <span className="text-muted-foreground">{t('budget.namePlaceholder')}</span>}
                     </div>
                                 )}
                               </TableCell>
@@ -1695,8 +1695,8 @@ export const BudgetManagerPage = () => {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="reserve">Reserva</SelectItem>
-                                      <SelectItem value="investment">Investimento</SelectItem>
+                                      <SelectItem value="reserve">{t('budget.reserve')}</SelectItem>
+                                      <SelectItem value="investment">{t('budget.investment')}</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 ) : (
@@ -1705,7 +1705,7 @@ export const BudgetManagerPage = () => {
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
                                     <Badge variant={entry.type === 'investment' ? 'default' : 'secondary'} className="text-xs">
-                                      {entry.type === 'investment' ? 'Investimento' : 'Reserva'}
+                                      {entry.type === 'investment' ? t('budget.investment') : t('budget.reserve')}
                               </Badge>
                     </div>
                                 )}
@@ -1753,7 +1753,7 @@ export const BudgetManagerPage = () => {
                                     onClick={() => handleReserveCellEdit(entry.id, 'date', entry.date)}
                                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                   >
-                                    {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                    {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                   </div>
                                 )}
                               </TableCell>
@@ -1794,7 +1794,7 @@ export const BudgetManagerPage = () => {
                                   onClick={() => handleReserveCellEdit('new-reserve', 'name', '')}
                                   className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                                 >
-                                  + Adicionar reserva...
+                                  {t('budget.addReserve')}
                 </div>
                               )}
                             </TableCell>
@@ -1827,7 +1827,7 @@ export const BudgetManagerPage = () => {
                 <div className="space-y-4 overflow-y-auto flex-1 min-h-0">
                   <div className="flex items-center gap-2 mb-4">
                     <Target className="h-4 w-4 text-purple-600" />
-                    <h3 className="text-sm font-semibold">Meta & Investimento</h3>
+                    <h3 className="text-sm font-semibold">{t('budget.goalInvestment')}</h3>
                   </div>
 
                   {/* Tabela Editável de Metas */}
@@ -1835,10 +1835,10 @@ export const BudgetManagerPage = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="h-8">
-                          <TableHead className="h-8 text-xs">Nome</TableHead>
-                          <TableHead className="h-8 text-xs">Tipo</TableHead>
-                          <TableHead className="h-8 text-xs text-right">Valor</TableHead>
-                          <TableHead className="h-8 text-xs">Data</TableHead>
+                          <TableHead className="h-8 text-xs">{t('budget.name')}</TableHead>
+                          <TableHead className="h-8 text-xs">{t('budget.type')}</TableHead>
+                          <TableHead className="h-8 text-xs text-right">{t('budget.value')}</TableHead>
+                          <TableHead className="h-8 text-xs">{t('budget.date')}</TableHead>
                           <TableHead className="h-8 w-8"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1863,7 +1863,7 @@ export const BudgetManagerPage = () => {
                                   onClick={() => handleMetaCellEdit(entry.id, 'name', entry.name)}
                                   className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                 >
-                                  {entry.name || <span className="text-muted-foreground">Nome...</span>}
+                                  {entry.name || <span className="text-muted-foreground">{t('budget.namePlaceholder')}</span>}
                             </div>
                               )}
                             </TableCell>
@@ -1888,8 +1888,8 @@ export const BudgetManagerPage = () => {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="meta">Meta</SelectItem>
-                                    <SelectItem value="investment">Investimento</SelectItem>
+                                    <SelectItem value="meta">{t('budget.meta')}</SelectItem>
+                                    <SelectItem value="investment">{t('budget.investment')}</SelectItem>
                                   </SelectContent>
                                 </Select>
                               ) : (
@@ -1898,7 +1898,7 @@ export const BudgetManagerPage = () => {
                                   className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                 >
                                   <Badge variant={entry.type === 'investment' ? 'default' : 'secondary'} className="text-xs">
-                                    {entry.type === 'investment' ? 'Investimento' : 'Meta'}
+                                    {entry.type === 'investment' ? t('budget.investment') : t('budget.meta')}
                                   </Badge>
                                 </div>
                               )}
@@ -1946,7 +1946,7 @@ export const BudgetManagerPage = () => {
                                   onClick={() => handleMetaCellEdit(entry.id, 'date', entry.date)}
                                   className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                                 >
-                                  {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                  {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                     </div>
                               )}
                             </TableCell>
@@ -1987,7 +1987,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleMetaCellEdit('new-meta', 'name', '')}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                               >
-                                + Adicionar meta/investimento...
+                                {t('budget.addGoalInvestment')}
                   </div>
                 )}
                           </TableCell>
@@ -2205,7 +2205,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleCellEdit(entry.id, 'name', entry.name)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.name || <span className="text-muted-foreground">Nome...</span>}
+                                {entry.name || <span className="text-muted-foreground">{t('budget.namePlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2255,7 +2255,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleCellEdit(entry.id, 'date', entry.date || '')}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2301,7 +2301,7 @@ export const BudgetManagerPage = () => {
                               onClick={() => handleCellEdit('new-income', 'name', '')}
                               className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                             >
-                              + Adicionar entrada...
+                              {t('budget.addEntry')}
                             </div>
                           )}
                         </TableCell>
@@ -2365,7 +2365,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleExpenseCellEdit(entry.id, 'category', entry.category)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.category || <span className="text-muted-foreground">Categoria...</span>}
+                                {entry.category || <span className="text-muted-foreground">{t('budget.categoryPlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2390,7 +2390,7 @@ export const BudgetManagerPage = () => {
                                       if (error) throw error
                                       await fetchTransactions()
                                     } catch (err: any) {
-                                      toast.error('Erro ao salvar forma de pagamento', { description: err.message })
+                                      toast.error(t('budget.errorSavePayment'), { description: err.message })
                                     }
                                   }
                                   setEditingCell(null)
@@ -2413,7 +2413,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleExpenseCellEdit(entry.id, 'paymentMethod', entry.paymentMethod)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.icon} {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.label || 'Pagamento...'}
+                                {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.icon} {PAYMENT_METHODS.find(m => m.value === entry.paymentMethod)?.label || t('budget.paymentPlaceholder')}
                               </div>
                             )}
                           </TableCell>
@@ -2460,7 +2460,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleExpenseCellEdit(entry.id, 'date', entry.date)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2480,7 +2480,7 @@ export const BudgetManagerPage = () => {
                                   setExpenseEntries(expenseEntries.filter(e => e.id !== entry.id))
                                   await fetchTransactions()
                                 } catch (err: any) {
-                                  toast.error('Erro ao deletar gasto', { description: err.message })
+                                  toast.error(t('budget.errorDeleteExpense'), { description: err.message })
                                 }
                               }}
                             >
@@ -2510,7 +2510,7 @@ export const BudgetManagerPage = () => {
                               onClick={() => handleExpenseCellEdit('new-expense', 'category', '')}
                               className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                             >
-                              + Adicionar gasto...
+                              {t('budget.addExpense')}
                             </div>
                           )}
                         </TableCell>
@@ -2573,7 +2573,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleReserveCellEdit(entry.id, 'name', entry.name)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.name || <span className="text-muted-foreground">Nome...</span>}
+                                {entry.name || <span className="text-muted-foreground">{t('budget.namePlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2590,8 +2590,8 @@ export const BudgetManagerPage = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="reserve">Reserva</SelectItem>
-                                  <SelectItem value="investment">Investimento</SelectItem>
+                                  <SelectItem value="reserve">{t('budget.reserve')}</SelectItem>
+                                  <SelectItem value="investment">{t('budget.investment')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             ) : (
@@ -2600,7 +2600,7 @@ export const BudgetManagerPage = () => {
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
                                 <Badge variant={entry.type === 'investment' ? 'default' : 'secondary'} className="text-xs">
-                                  {entry.type === 'investment' ? 'Investimento' : 'Reserva'}
+                                  {entry.type === 'investment' ? t('budget.investment') : t('budget.reserve')}
                                 </Badge>
                               </div>
                             )}
@@ -2648,7 +2648,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleReserveCellEdit(entry.id, 'date', entry.date)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2688,7 +2688,7 @@ export const BudgetManagerPage = () => {
                               onClick={() => handleReserveCellEdit('new-reserve', 'name', '')}
                               className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                             >
-                              + Adicionar reserva...
+                              {t('budget.addReserve')}
                             </div>
                           )}
                         </TableCell>
@@ -2746,7 +2746,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleMetaCellEdit(entry.id, 'name', entry.name)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.name || <span className="text-muted-foreground">Nome...</span>}
+                                {entry.name || <span className="text-muted-foreground">{t('budget.namePlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2771,8 +2771,8 @@ export const BudgetManagerPage = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="meta">Meta</SelectItem>
-                                  <SelectItem value="investment">Investimento</SelectItem>
+                                  <SelectItem value="meta">{t('budget.meta')}</SelectItem>
+                                  <SelectItem value="investment">{t('budget.investment')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             ) : (
@@ -2781,7 +2781,7 @@ export const BudgetManagerPage = () => {
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
                                 <Badge variant={entry.type === 'investment' ? 'default' : 'secondary'} className="text-xs">
-                                  {entry.type === 'investment' ? 'Investimento' : 'Meta'}
+                                  {entry.type === 'investment' ? t('budget.investment') : t('budget.meta')}
                                 </Badge>
                               </div>
                             )}
@@ -2829,7 +2829,7 @@ export const BudgetManagerPage = () => {
                                 onClick={() => handleMetaCellEdit(entry.id, 'date', entry.date)}
                                 className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center"
                               >
-                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">Data...</span>}
+                                {entry.date ? new Date(entry.date).toLocaleDateString('pt-BR') : <span className="text-muted-foreground">{t('budget.datePlaceholder')}</span>}
                               </div>
                             )}
                           </TableCell>
@@ -2869,7 +2869,7 @@ export const BudgetManagerPage = () => {
                               onClick={() => handleMetaCellEdit('new-meta', 'name', '')}
                               className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                             >
-                              + Adicionar meta/investimento...
+                              {t('budget.addGoalInvestment')}
                             </div>
                           )}
                         </TableCell>

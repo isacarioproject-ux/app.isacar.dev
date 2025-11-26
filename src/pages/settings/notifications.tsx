@@ -224,19 +224,19 @@ export default function NotificationsPage() {
             <div className="space-y-0.5">
               <h1 className="text-xl font-semibold tracking-tight">{t('notifications.title')}</h1>
               <p className="text-xs text-muted-foreground">
-                Gerencie suas preferências de notificações
+                {t('notifications.description')}
               </p>
             </div>
             <Button onClick={handleSave} disabled={saving} size="sm">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                  Salvando...
+                  {t('common.saving')}
                 </>
               ) : (
                 <>
                   <Save className="mr-2 h-3.5 w-3.5" />
-                  Salvar
+                  {t('common.save')}
                 </>
               )}
             </Button>
@@ -368,7 +368,7 @@ export default function NotificationsPage() {
               onClick={handleDisableAll}
               size="sm"
             >
-              Desativar tudo
+              {t('notifications.disableAllButton')}
             </Button>
           </div>
           </>

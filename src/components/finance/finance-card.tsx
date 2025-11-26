@@ -5,8 +5,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import {
   Dialog,
@@ -37,24 +35,17 @@ import {
   MoreVertical, 
   Copy, 
   Trash2,
-  X,
   Wallet,
   TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Calendar,
-  Filter,
   Download,
   Sparkles,
   FileSpreadsheet,
   GripVertical,
   Tag,
   Target,
-  ArrowLeft, // Botão voltar
-  Layers, // Toggle sidebar
+  ArrowLeft,
+  Layers,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { useDateFnsLocale } from '@/hooks/use-date-fns-locale'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { useFinanceCard } from '@/hooks/use-finance-card'
 import { toast } from 'sonner'
@@ -104,7 +95,6 @@ const getDocumentIcon = (type: string) => {
 export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) {
   const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
-  const dateFnsLocale = useDateFnsLocale()
   const [cardName, setCardName] = useState(() => {
     const saved = localStorage.getItem('finance-card-name')
     return saved || t('finance.card.finances')

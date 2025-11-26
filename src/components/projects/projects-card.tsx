@@ -18,7 +18,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { ResizableCard } from '@/components/ui/resizable-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   FolderKanban,
@@ -175,15 +174,6 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
 
   return (
     <>
-      <ResizableCard
-        defaultWidth={450}
-        defaultHeight={400}
-        minWidth={350}
-        minHeight={350}
-        maxWidth={600}
-        maxHeight={500}
-        storageKey={`projects-card-${finalWorkspaceId || 'default'}`}
-      >
         <Card className="h-full flex flex-col group">
           <CardHeader className="p-0">
             <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
@@ -398,7 +388,6 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
             )}
           </CardContent>
         </Card>
-      </ResizableCard>
 
       {/* Dialog Expandido */}
       <Dialog open={isExpanded} onOpenChange={setIsExpanded}>

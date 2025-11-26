@@ -29,7 +29,6 @@ import {
 import { useWorkspace } from '@/contexts/workspace-context'
 import { toast } from 'sonner'
 import { BudgetManagerNotion } from './budget-manager-notion'
-import { ResizableCard } from '@/components/ui/resizable-card'
 import { supabase } from '@/lib/supabase'
 import {
   Tooltip,
@@ -280,16 +279,6 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
 
   return (
     <>
-      <ResizableCard
-        minWidth={350}
-        minHeight={350}
-        maxWidth={600}
-        maxHeight={500}
-        defaultWidth={450}
-        defaultHeight={400}
-        storageKey={`budget-card-${workspaceId || 'default'}`}
-        className="group"
-      >
         <Card className="border border-border bg-card rounded-lg overflow-hidden h-full flex flex-col group">
           {/* MENUBAR SUPERIOR */}
           <CardHeader className="p-0">
@@ -551,7 +540,6 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
             )}
           </CardContent>
         </Card>
-      </ResizableCard>
 
       {/* Dialog do Budget Manager */}
       <BudgetManagerNotion

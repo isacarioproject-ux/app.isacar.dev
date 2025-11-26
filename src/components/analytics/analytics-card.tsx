@@ -17,7 +17,6 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ResizableCard } from '@/components/ui/resizable-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   BarChart3,
@@ -159,15 +158,6 @@ export function AnalyticsCard({ workspaceId, dragHandleProps }: AnalyticsCardPro
 
   return (
     <>
-      <ResizableCard
-        defaultWidth={450}
-        defaultHeight={400}
-        minWidth={350}
-        minHeight={350}
-        maxWidth={600}
-        maxHeight={500}
-        storageKey={`analytics-card-${finalWorkspaceId || 'default'}`}
-      >
         <Card className="h-full flex flex-col group">
         <CardHeader className="p-0">
           <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
@@ -325,7 +315,6 @@ export function AnalyticsCard({ workspaceId, dragHandleProps }: AnalyticsCardPro
           )}
         </CardContent>
       </Card>
-    </ResizableCard>
 
     {/* Dialog Expandido */}
     <Dialog open={isExpanded} onOpenChange={setIsExpanded}>

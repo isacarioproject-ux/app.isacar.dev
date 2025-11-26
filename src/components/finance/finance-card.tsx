@@ -62,7 +62,6 @@ import { FinanceTemplateSelector } from './finance-template-selector'
 import { FinanceViewer } from './finance-viewer'
 import { CategoriesManager } from './categories-manager'
 import { BudgetManager } from './budget-manager'
-import { ResizableCard } from '@/components/ui/resizable-card'
 import { supabase } from '@/lib/supabase'
 import {
   Tooltip,
@@ -308,16 +307,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
 
   return (
     <>
-    <ResizableCard
-      minWidth={350}
-      minHeight={350}
-      maxWidth={1400}
-      maxHeight={900}
-      defaultWidth={500}
-      defaultHeight={500}
-      storageKey={`finance-card-${workspaceId || 'default'}`}
-      className="group"
-    >
     <Card className="border border-border bg-card rounded-lg overflow-hidden h-full flex flex-col group">
       {/* MENUBAR SUPERIOR */}
       <CardHeader className="p-0">
@@ -663,7 +652,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
           )}
       </CardContent>
     </Card>
-    </ResizableCard>
 
     {/* Template Selector */}
     <FinanceTemplateSelector

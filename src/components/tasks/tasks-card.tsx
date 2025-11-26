@@ -14,7 +14,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ResizableCard } from '@/components/ui/resizable-card';
 import { useTasksCard } from '@/hooks/tasks/use-tasks-card';
 import { TasksGroupView } from '@/components/tasks/tasks-group-view';
 import { TasksListView } from '@/components/tasks/tasks-list-view';
@@ -262,16 +261,6 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
 
   return (
     <>
-    <ResizableCard
-      minWidth={320}
-      minHeight={400}
-      maxWidth={1400}
-      maxHeight={900}
-      defaultWidth={500}
-      defaultHeight={500}
-      storageKey="tasks-card"
-      className="group"
-    >
     <Card className="flex flex-col w-full h-full bg-card overflow-hidden group">
         {/* Header Inline - Estilo Finance */}
         <CardHeader className="p-0">
@@ -527,7 +516,6 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
           </div>
         </CardContent>
       </Card>
-    </ResizableCard>
 
       {/* Task Modal */}
       <TaskModal

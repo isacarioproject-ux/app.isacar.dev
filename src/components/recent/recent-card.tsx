@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ResizableCard } from '@/components/ui/resizable-card';
 import { RecentExpandedView } from '@/components/recent/recent-expanded-view';
 import { 
   MoreVertical, 
@@ -109,16 +108,6 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
 
   return (
     <>
-    <ResizableCard
-      minWidth={350}
-      minHeight={350}
-      maxWidth={1400}
-      maxHeight={900}
-      defaultWidth={500}
-      defaultHeight={500}
-      storageKey="recent-card"
-      className="group"
-    >
       <Card className="flex flex-col w-full h-full bg-card overflow-hidden group">
         {/* Header Inline - Estilo Finance */}
         <CardHeader className="p-0">
@@ -262,7 +251,6 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
             )}
         </CardContent>
       </Card>
-    </ResizableCard>
 
       {/* Expanded View */}
       <RecentExpandedView

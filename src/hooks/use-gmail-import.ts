@@ -22,15 +22,11 @@ export function useGmailImport() {
 
   // Buscar emails com boletos
   const searchMessages = useCallback(async () => {
-    if (!currentWorkspace?.id) {
-      toast.error('Selecione um workspace')
-      return
-    }
-
     setLoading(true)
 
     try {
-      const results = await searchGmailForBills(currentWorkspace.id, {
+      // Passa workspaceId como opcional - a API usa fallback para integração pessoal
+      const results = await searchGmailForBills(currentWorkspace?.id, {
         maxResults: 20,
         daysBack: 30
       })
@@ -39,15 +35,21 @@ export function useGmailImport() {
       const messagesWithStatus = await Promise.all(
         results.map(async (msg) => ({
           ...msg,
-          isImported: await isMessageImported(currentWorkspace.id, msg.id)
+          isImported: currentWorkspace?.id 
+            ? await isMessageImported(currentWorkspace.id, msg.id)
+            : false
         }))
       )
 
       setMessages(messagesWithStatus)
-      toast.success(`${results.length} emails encontrados`)
+      if (results.length === 0) {
+        toast.info('Nenhum boleto encontrado nos últimos 30 dias')
+      } else {
+        toast.success(`${results.length} emails encontrados`)
+      }
     } catch (error: any) {
       console.error('Erro ao buscar emails:', error)
-      toast.error('Erro ao buscar emails do Gmail')
+      toast.error(error.message || 'Erro ao buscar emails do Gmail')
     } finally {
       setLoading(false)
     }

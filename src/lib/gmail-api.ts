@@ -63,7 +63,7 @@ async function getGoogleTokens(workspaceId?: string) {
  * Buscar emails com boletos/faturas
  */
 export async function searchGmailForBills(
-  workspaceId: string,
+  workspaceId?: string,
   options?: {
     maxResults?: number
     daysBack?: number

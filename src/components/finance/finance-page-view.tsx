@@ -48,7 +48,7 @@ import { useFinanceCard } from '@/hooks/use-finance-card'
 import { toast } from 'sonner'
 import { FinanceTemplateSelector } from './finance-template-selector'
 import { FinanceViewer } from './finance-viewer'
-import { GmailImportModal } from '@/components/gmail/gmail-import-modal'
+import { GmailInvoiceScanner } from '@/components/integrations/gmail-invoice-scanner'
 import { FinanceSettingsModal } from './finance-settings-modal'
 import { CategoriesManager } from './categories-manager'
 import { supabase } from '@/lib/supabase'
@@ -798,10 +798,22 @@ export const FinancePageView = () => {
       />
 
       {/* Modal/Drawer de Importação do Gmail */}
-      <GmailImportModal
-        open={showGmailImport}
-        onOpenChange={setShowGmailImport}
-      />
+      {showGmailImport && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative w-full max-w-4xl max-h-[85vh] overflow-y-auto bg-background rounded-lg shadow-lg border">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 z-10 h-8 w-8"
+              onClick={() => setShowGmailImport(false)}
+            >
+              <span className="sr-only">Fechar</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </Button>
+            <GmailInvoiceScanner />
+          </div>
+        </div>
+      )}
 
       {/* Modal/Drawer de Configurações */}
       <FinanceSettingsModal

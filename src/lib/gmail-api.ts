@@ -19,19 +19,43 @@ interface GmailMessage {
 /**
  * Obter tokens do Google (da integração)
  */
-async function getGoogleTokens(workspaceId: string) {
-  const { data, error } = await supabase
+async function getGoogleTokens(workspaceId?: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  // Buscar integração - primeiro tenta do workspace, depois pessoal
+  let query = supabase
     .from('google_integrations')
     .select('access_token, refresh_token, token_expires_at')
-    .eq('workspace_id', workspaceId)
     .eq('is_active', true)
-    .single()
 
-  if (error || !data) {
-    throw new Error('Google não conectado neste workspace')
+  if (workspaceId) {
+    query = query.eq('workspace_id', workspaceId)
+  } else {
+    query = query.eq('user_id', user.id).is('workspace_id', null)
   }
 
-  // Verificar se token expirou (refresh é feito automaticamente pelo hook)
+  const { data, error } = await query.maybeSingle()
+
+  // Fallback: se não encontrou no workspace, buscar pessoal
+  if (!data && workspaceId) {
+    const { data: personalData } = await supabase
+      .from('google_integrations')
+      .select('access_token, refresh_token, token_expires_at')
+      .eq('user_id', user.id)
+      .is('workspace_id', null)
+      .eq('is_active', true)
+      .maybeSingle()
+    
+    if (personalData) {
+      return personalData.access_token
+    }
+  }
+
+  if (error || !data) {
+    throw new Error('Google não conectado. Conecte nas configurações.')
+  }
+
   return data.access_token
 }
 

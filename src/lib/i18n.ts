@@ -1652,6 +1652,18 @@ const translations: Translations = {
   'gmail.importedDocDesc': { 'pt-BR': 'Boletos e faturas importados automaticamente do Gmail', 'en': 'Invoices automatically imported from Gmail', 'es': 'Facturas importadas automáticamente de Gmail' },
   'gmail.importedFromGmail': { 'pt-BR': 'Importado do Gmail em', 'en': 'Imported from Gmail on', 'es': 'Importado de Gmail en' },
   'gmail.unknownError': { 'pt-BR': 'Erro desconhecido', 'en': 'Unknown error', 'es': 'Error desconocido' },
+  'gmail.targetDocument': { 'pt-BR': 'Documento destino', 'en': 'Target document', 'es': 'Documento destino' },
+  'gmail.selectDocument': { 'pt-BR': 'Selecione um documento', 'en': 'Select a document', 'es': 'Seleccione un documento' },
+  'gmail.noDocuments': { 'pt-BR': 'Nenhum documento financeiro encontrado', 'en': 'No finance documents found', 'es': 'No se encontraron documentos financieros' },
+  'gmail.typeExpense': { 'pt-BR': 'Gasto', 'en': 'Expense', 'es': 'Gasto' },
+  'gmail.typeIncome': { 'pt-BR': 'Entrada', 'en': 'Income', 'es': 'Ingreso' },
+  'gmail.typeRecurring': { 'pt-BR': 'Conta Recorrente', 'en': 'Recurring Bill', 'es': 'Cuenta Recurrente' },
+  'gmail.expense': { 'pt-BR': 'Gasto', 'en': 'Expense', 'es': 'Gasto' },
+  'gmail.income': { 'pt-BR': 'Entrada', 'en': 'Income', 'es': 'Ingreso' },
+  'gmail.imported': { 'pt-BR': 'importado!', 'en': 'imported!', 'es': '¡importado!' },
+  'gmail.recurringCreated': { 'pt-BR': 'Conta recorrente criada!', 'en': 'Recurring bill created!', 'es': '¡Cuenta recurrente creada!' },
+  'gmail.dueDay': { 'pt-BR': 'Dia de vencimento', 'en': 'Due day', 'es': 'Día de vencimiento' },
+  'gmail.errorCreateRecurring': { 'pt-BR': 'Erro ao criar conta recorrente', 'en': 'Error creating recurring bill', 'es': 'Error al crear cuenta recurrente' },
 
   // ===== CALENDAR SYNC =====
   'calendar.title': { 'pt-BR': 'Sincronizar com Google Calendar', 'en': 'Sync with Google Calendar', 'es': 'Sincronizar con Google Calendar' },

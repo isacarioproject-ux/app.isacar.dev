@@ -4,7 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Download, CheckCircle2, AlertCircle, DollarSign, Calendar, Edit2, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Loader2, Mail, Download, CheckCircle2, AlertCircle, DollarSign, Calendar, Edit2, AlertTriangle, RefreshCw, FileText, Repeat, TrendingDown, TrendingUp } from 'lucide-react'
 import { GmailService, type GmailMessage } from '@/services/google/gmail.service'
 import { toast } from 'sonner'
 import { useWorkspace } from '@/contexts/workspace-context'
@@ -13,6 +15,14 @@ import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/hooks/use-i18n'
 import { useGoogleIntegration } from '@/hooks/use-google-integration'
 import { GoogleAuthService } from '@/services/google/google-auth.service'
+
+interface FinanceDocument {
+  id: string
+  name: string
+  icon: string | null
+}
+
+type ImportType = 'expense' | 'income' | 'recurring'
 
 /**
  * 📧 Gmail Invoice Scanner
@@ -102,6 +112,41 @@ export function GmailInvoiceScanner() {
   const [editingAmount, setEditingAmount] = useState<string | null>(null)
   const [customAmounts, setCustomAmounts] = useState<Record<string, number>>({})
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected' | 'expired'>('checking')
+  
+  // Novos estados para seleção de documento e tipo
+  const [financeDocuments, setFinanceDocuments] = useState<FinanceDocument[]>([])
+  const [selectedDocId, setSelectedDocId] = useState<string>('')
+  const [importTypes, setImportTypes] = useState<Record<string, ImportType>>({})
+  const [loadingDocs, setLoadingDocs] = useState(true)
+
+  // Carregar documentos financeiros do usuário
+  useEffect(() => {
+    const loadFinanceDocuments = async () => {
+      try {
+        setLoadingDocs(true)
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data, error } = await supabase
+          .from('finance_documents')
+          .select('id, name, icon')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+
+        if (error) throw error
+        
+        setFinanceDocuments(data || [])
+        if (data && data.length > 0) {
+          setSelectedDocId(data[0].id)
+        }
+      } catch (err) {
+        console.error('Erro ao carregar documentos:', err)
+      } finally {
+        setLoadingDocs(false)
+      }
+    }
+    loadFinanceDocuments()
+  }, [currentWorkspace?.id])
 
   // Verificar conexão Google ao montar
   useEffect(() => {
@@ -164,44 +209,24 @@ export function GmailInvoiceScanner() {
       return
     }
 
+    // Verificar se tem documento selecionado
+    if (!selectedDocId) {
+      toast.error(t('gmail.selectDocument'))
+      return
+    }
+
+    const importType = importTypes[message.id] || 'expense'
+
     try {
       setImporting(message.id)
       toast.info(`📥 ${t('gmail.importingInvoice')}`)
 
-      // 1. Buscar anexos
-      const attachments = await GmailService.getAttachments(
-        message.id,
-        currentWorkspace?.id
-      )
-
-      if (attachments.length === 0) {
-        toast.error(t('gmail.noAttachment'))
-        return
-      }
-
-      // 2. Download do PDF
-      const pdfAttachment = attachments.find(att => att.mimeType === 'application/pdf')
-      if (!pdfAttachment) {
-        toast.error(t('gmail.noPdf'))
-        return
-      }
-
-      const pdfData = await GmailService.downloadAttachment(
-        message.id,
-        pdfAttachment.attachmentId,
-        currentWorkspace?.id
-      )
-
-      if (!pdfData) {
-        toast.error(t('gmail.errorDownload'))
-        return
-      }
-
-      // 3. Extrair dados do email (subject/snippet)
+      // Extrair dados do email
       const textContent = `${message.subject} ${message.snippet}`
       const amount = customAmounts[message.id] || extractAmount(textContent)
       const dueDate = extractDueDate(textContent)
       const category = detectCategory(message.from, message.subject)
+      const dueDay = new Date(dueDate).getDate()
       
       if (amount <= 0) {
         toast.error(t('gmail.noValueDetected'))
@@ -209,113 +234,78 @@ export function GmailInvoiceScanner() {
         return
       }
 
-      // 4. Buscar ou criar documento financeiro padrão
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         toast.error(t('gmail.notAuthenticated'))
         return
       }
 
-      // Buscar documento "Importados do Gmail" ou criar
-      // Usar workspace_id se disponível, senão null (pessoal)
-      const workspaceFilter = currentWorkspace?.id || null
-      
-      let { data: financeDoc, error: fetchError } = await supabase
-        .from('finance_documents')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('name', 'Importados do Gmail')
-        .maybeSingle()
-
-      if (fetchError) {
-        console.error('Erro ao buscar documento:', fetchError)
-      }
-
-      if (!financeDoc) {
-        const { data: newDoc, error: insertError } = await supabase
-          .from('finance_documents')
+      // Inserir baseado no tipo selecionado
+      if (importType === 'recurring') {
+        // Inserir em recurring_bills (Contas Recorrentes)
+        const { error } = await supabase
+          .from('recurring_bills')
           .insert({
             user_id: user.id,
-            workspace_id: workspaceFilter,
-            name: 'Importados do Gmail',
-            description: t('gmail.importedDocDesc'),
-            template_type: 'expenses', // Required field
-            icon: '📧',
-            reference_month: new Date().getMonth() + 1,
-            reference_year: new Date().getFullYear()
+            finance_document_id: selectedDocId,
+            name: message.subject.substring(0, 100),
+            amount: amount,
+            due_day: dueDay,
+            category: category,
+            paid: false,
+            auto_create: true
           })
-          .select('id')
-          .single()
 
-        if (insertError) {
-          console.error('Erro ao criar documento:', insertError)
-          // Tentar buscar novamente caso já exista
-          const { data: existingDoc } = await supabase
-            .from('finance_documents')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('name', 'Importados do Gmail')
-            .maybeSingle()
-          
-          if (existingDoc) {
-            financeDoc = existingDoc
-          } else {
-            toast.error(t('gmail.errorCreateDoc'))
-            return
-          }
-        } else {
-          financeDoc = newDoc
+        if (error) {
+          console.error('Erro ao criar conta recorrente:', error)
+          toast.error(t('gmail.errorCreateRecurring'))
+          return
         }
-      }
 
-      if (!financeDoc) {
-        toast.error(t('gmail.errorCreateDoc'))
-        return
-      }
-
-      // 5. Criar transação
-      const { error: txError } = await supabase
-        .from('finance_transactions')
-        .insert({
-          finance_document_id: financeDoc.id,
-          type: 'expense',
-          category: category,
-          description: message.subject.substring(0, 200),
-          amount: amount,
-          transaction_date: dueDate,
-          status: 'pending',
-          payment_method: 'boleto',
-          notes: `${t('gmail.importedFromGmail')} ${new Date().toLocaleDateString('pt-BR')}\n${t('gmail.from')}: ${message.from}`,
-          tags: ['gmail-import', 'boleto']
+        toast.success(`✅ ${t('gmail.recurringCreated')} R$ ${amount.toFixed(2)}`, {
+          description: `${t('gmail.dueDay')}: ${dueDay} | ${t('gmail.category')}: ${category}`
         })
+      } else {
+        // Inserir em finance_transactions (Gasto ou Entrada)
+        const { error } = await supabase
+          .from('finance_transactions')
+          .insert({
+            finance_document_id: selectedDocId,
+            type: importType, // 'expense' ou 'income'
+            category: category,
+            description: message.subject.substring(0, 200),
+            amount: amount,
+            transaction_date: dueDate,
+            status: 'pending',
+            payment_method: 'boleto',
+            notes: `${t('gmail.importedFromGmail')} ${new Date().toLocaleDateString('pt-BR')}\n${t('gmail.from')}: ${message.from}`,
+            tags: ['gmail-import', importType === 'expense' ? 'boleto' : 'receita']
+          })
 
-      if (txError) {
-        console.error('Erro ao criar transação:', txError)
-        toast.error(t('gmail.errorCreateTransaction'))
-        return
+        if (error) {
+          console.error('Erro ao criar transação:', error)
+          toast.error(t('gmail.errorCreateTransaction'))
+          return
+        }
+
+        const typeLabel = importType === 'expense' ? t('gmail.expense') : t('gmail.income')
+        toast.success(`✅ ${typeLabel} ${t('gmail.imported')} R$ ${amount.toFixed(2)}`, {
+          description: `${t('gmail.category')}: ${category} | ${t('gmail.dueDate')}: ${new Date(dueDate).toLocaleDateString('pt-BR')}`
+        })
       }
 
-      // 6. Marcar email como processado (opcional - não falha se der erro)
+      // Marcar email como processado (opcional)
       try {
-        await GmailService.addLabel(
-          message.id,
-          'ISACAR_IMPORTED',
-          currentWorkspace?.id
-        )
+        await GmailService.addLabel(message.id, 'ISACAR_IMPORTED', currentWorkspace?.id)
       } catch (labelError) {
         console.warn('Não foi possível adicionar label:', labelError)
       }
-
-      toast.success(`✅ ${t('gmail.invoiceImported')} R$ ${amount.toFixed(2)}`, {
-        description: `${t('gmail.category')}: ${category} | ${t('gmail.dueDate')}: ${new Date(dueDate).toLocaleDateString('pt-BR')}`
-      })
       
       // Remover da lista
       setMessages(prev => prev.filter(m => m.id !== message.id))
     } catch (error: any) {
       console.error('Erro ao importar:', error)
       
-      // Mensagem específica para erros de token
       if (error.message?.includes('Token') || error.message?.includes('access')) {
         setConnectionStatus('expired')
         toast.error(t('gmail.tokenExpired'))
@@ -330,51 +320,79 @@ export function GmailInvoiceScanner() {
   return (
     <Card>
       <CardHeader className="px-3 sm:px-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
-              {t('gmail.title')}
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm mt-1">
-              {t('gmail.description')}
-            </CardDescription>
-          </div>
-          
-          <div className="flex gap-2 w-full sm:w-auto">
-            {connectionStatus === 'expired' && (
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+                {t('gmail.title')}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm mt-1">
+                {t('gmail.description')}
+              </CardDescription>
+            </div>
+            
+            <div className="flex gap-2 w-full sm:w-auto">
+              {connectionStatus === 'expired' && (
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={reconnect}
+                    variant="outline"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <span className="text-xs sm:text-sm">{t('gmail.reconnect')}</span>
+                  </Button>
+                </motion.div>
+              )}
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-none">
                 <Button
-                  onClick={reconnect}
-                  variant="outline"
+                  onClick={handleScan}
+                  disabled={scanning || connectionStatus !== 'connected'}
                   size="sm"
                   className="w-full sm:w-auto"
                 >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  <span className="text-xs sm:text-sm">{t('gmail.reconnect')}</span>
+                  {scanning ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <span className="truncate">{t('gmail.scanning')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      <span className="truncate">{t('gmail.scan')}</span>
+                    </>
+                  )}
                 </Button>
               </motion.div>
+            </div>
+          </div>
+
+          {/* Seletor de Documento Financeiro */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <Label className="text-xs sm:text-sm font-medium flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              {t('gmail.targetDocument')}:
+            </Label>
+            <Select value={selectedDocId} onValueChange={setSelectedDocId} disabled={loadingDocs}>
+              <SelectTrigger className="h-8 text-xs sm:text-sm flex-1 sm:max-w-[250px]">
+                <SelectValue placeholder={loadingDocs ? t('common.loading') : t('gmail.selectDocument')} />
+              </SelectTrigger>
+              <SelectContent>
+                {financeDocuments.map((doc) => (
+                  <SelectItem key={doc.id} value={doc.id} className="text-xs sm:text-sm">
+                    <span className="flex items-center gap-2">
+                      <span>{doc.icon || '📄'}</span>
+                      <span className="truncate">{doc.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {financeDocuments.length === 0 && !loadingDocs && (
+              <span className="text-xs text-muted-foreground">{t('gmail.noDocuments')}</span>
             )}
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-none">
-              <Button
-                onClick={handleScan}
-                disabled={scanning || connectionStatus !== 'connected'}
-                size="sm"
-                className="w-full sm:w-auto"
-              >
-                {scanning ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <span className="truncate">{t('gmail.scanning')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    <span className="truncate">{t('gmail.scan')}</span>
-                  </>
-                )}
-              </Button>
-            </motion.div>
           </div>
         </div>
 
@@ -500,12 +518,44 @@ export function GmailInvoiceScanner() {
                           {new Date(message.date).toLocaleDateString('pt-BR')}
                         </div>
                       </div>
+
+                      {/* Seletor de tipo de importação */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <Select 
+                          value={importTypes[message.id] || 'expense'} 
+                          onValueChange={(value: ImportType) => setImportTypes(prev => ({ ...prev, [message.id]: value }))}
+                        >
+                          <SelectTrigger className="h-7 text-[10px] sm:text-xs w-full sm:w-auto">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="expense" className="text-xs">
+                              <span className="flex items-center gap-1.5">
+                                <TrendingDown className="h-3 w-3 text-red-500" />
+                                {t('gmail.typeExpense')}
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="income" className="text-xs">
+                              <span className="flex items-center gap-1.5">
+                                <TrendingUp className="h-3 w-3 text-green-500" />
+                                {t('gmail.typeIncome')}
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="recurring" className="text-xs">
+                              <span className="flex items-center gap-1.5">
+                                <Repeat className="h-3 w-3 text-purple-500" />
+                                {t('gmail.typeRecurring')}
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                       <Button
                         onClick={() => handleImport(message)}
-                        disabled={importing === message.id}
+                        disabled={importing === message.id || !selectedDocId}
                         size="sm"
                         className="w-full sm:w-auto shrink-0"
                       >

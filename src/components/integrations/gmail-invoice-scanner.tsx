@@ -98,8 +98,88 @@ const detectCategory = (from: string, subject: string): string => {
   if (text.includes('cartão') || text.includes('nubank') || text.includes('itaú') || text.includes('bradesco') || text.includes('santander')) return 'Cartão de Crédito'
   if (text.includes('seguro')) return 'Seguro'
   if (text.includes('escola') || text.includes('faculdade') || text.includes('curso')) return 'Educação'
+  if (text.includes('pix') || text.includes('venda') || text.includes('recebido') || text.includes('crédito')) return 'Receita'
   
   return 'Contas'
+}
+
+// Detectar automaticamente se é RECEITA ou DESPESA
+const detectTransactionType = (from: string, subject: string, snippet: string): 'expense' | 'income' => {
+  const text = (from + ' ' + subject + ' ' + snippet).toLowerCase()
+  
+  // Termos que indicam RECEITA
+  const incomeTerms = [
+    'pix recebido', 'transferência recebida', 'transferencia recebida',
+    'você recebeu', 'voce recebeu', 'recebimento', 'crédito', 'credito',
+    'depósito', 'deposito', 'venda realizada', 'pagamento recebido',
+    'entrada de', 'valor creditado', 'ted recebida', 'doc recebido'
+  ]
+  
+  for (const term of incomeTerms) {
+    if (text.includes(term)) return 'income'
+  }
+  
+  // Por padrão, considera despesa
+  return 'expense'
+}
+
+// Verificar status de atraso
+const getPaymentStatus = (dueDate: string): { status: 'overdue' | 'due_soon' | 'pending', label: string, color: string } => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(dueDate)
+  due.setHours(0, 0, 0, 0)
+  
+  const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  
+  if (diffDays < 0) {
+    return { status: 'overdue', label: `Atrasado ${Math.abs(diffDays)}d`, color: 'text-red-600 bg-red-100' }
+  } else if (diffDays <= 3) {
+    return { status: 'due_soon', label: `Vence em ${diffDays}d`, color: 'text-orange-600 bg-orange-100' }
+  } else {
+    return { status: 'pending', label: `Em ${diffDays}d`, color: 'text-blue-600 bg-blue-100' }
+  }
+}
+
+// Atualizar totais do documento financeiro
+const updateDocumentTotals = async (docId: string) => {
+  try {
+    // Buscar todas as transações do documento
+    const { data: transactions, error } = await supabase
+      .from('finance_transactions')
+      .select('type, amount')
+      .eq('finance_document_id', docId)
+    
+    if (error) throw error
+    
+    // Calcular totais
+    let totalIncome = 0
+    let totalExpenses = 0
+    
+    transactions?.forEach(tx => {
+      if (tx.type === 'income') {
+        totalIncome += Number(tx.amount) || 0
+      } else {
+        totalExpenses += Number(tx.amount) || 0
+      }
+    })
+    
+    const balance = totalIncome - totalExpenses
+    
+    // Atualizar documento
+    await supabase
+      .from('finance_documents')
+      .update({
+        total_income: totalIncome,
+        total_expenses: totalExpenses,
+        balance: balance,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', docId)
+      
+  } catch (err) {
+    console.error('Erro ao atualizar totais:', err)
+  }
 }
 
 export function GmailInvoiceScanner() {
@@ -182,10 +262,23 @@ export function GmailInvoiceScanner() {
       
       setMessages(results)
       
+      // Detectar tipo automaticamente para cada mensagem
+      const detectedTypes: Record<string, ImportType> = {}
+      results.forEach((msg) => {
+        const autoType = detectTransactionType(msg.from, msg.subject, msg.snippet)
+        detectedTypes[msg.id] = autoType
+      })
+      setImportTypes(prev => ({ ...prev, ...detectedTypes }))
+      
       if (results.length === 0) {
         toast.info(t('gmail.noInvoices'))
       } else {
-        toast.success(`✅ ${results.length} ${t('gmail.invoicesFound')}`)
+        // Contar receitas e despesas
+        const incomeCount = Object.values(detectedTypes).filter(t => t === 'income').length
+        const expenseCount = results.length - incomeCount
+        toast.success(`✅ ${results.length} ${t('gmail.invoicesFound')}`, {
+          description: `💰 ${incomeCount} receitas | 📤 ${expenseCount} despesas`
+        })
       }
     } catch (error: any) {
       console.error('Erro ao escanear:', error)
@@ -299,6 +392,11 @@ export function GmailInvoiceScanner() {
         await GmailService.addLabel(message.id, 'ISACAR_IMPORTED', currentWorkspace?.id)
       } catch (labelError) {
         console.warn('Não foi possível adicionar label:', labelError)
+      }
+      
+      // Atualizar contadores do documento
+      if (importType !== 'recurring') {
+        await updateDocumentTotals(selectedDocId)
       }
       
       // Remover da lista
@@ -461,6 +559,32 @@ export function GmailInvoiceScanner() {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <h4 className="font-medium text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">{message.subject}</h4>
+                        
+                        {/* Badge de tipo auto-detectado */}
+                        {importTypes[message.id] === 'income' ? (
+                          <Badge className="text-[10px] sm:text-xs bg-green-100 text-green-700 border-green-200">
+                            <TrendingUp className="h-2.5 w-2.5 mr-1" />
+                            Receita
+                          </Badge>
+                        ) : (
+                          <Badge className="text-[10px] sm:text-xs bg-red-100 text-red-700 border-red-200">
+                            <TrendingDown className="h-2.5 w-2.5 mr-1" />
+                            Despesa
+                          </Badge>
+                        )}
+                        
+                        {/* Badge de status de vencimento (só para despesas) */}
+                        {importTypes[message.id] !== 'income' && (() => {
+                          const dueDate = extractDueDate(`${message.subject} ${message.snippet}`)
+                          const status = getPaymentStatus(dueDate)
+                          return (
+                            <Badge className={`text-[10px] sm:text-xs ${status.color} border-0`}>
+                              {status.status === 'overdue' && <AlertTriangle className="h-2.5 w-2.5 mr-1" />}
+                              {status.label}
+                            </Badge>
+                          )
+                        })()}
+                        
                         {message.hasAttachments && (
                           <Badge variant="outline" className="text-[10px] sm:text-xs">
                             <Download className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
@@ -481,7 +605,7 @@ export function GmailInvoiceScanner() {
                       <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-3 flex-wrap">
                         {/* Valor detectado */}
                         <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-green-600" />
+                          <DollarSign className={`h-3 w-3 ${importTypes[message.id] === 'income' ? 'text-green-600' : 'text-red-600'}`} />
                           {editingAmount === message.id ? (
                             <Input
                               type="number"
@@ -499,9 +623,9 @@ export function GmailInvoiceScanner() {
                           ) : (
                             <button 
                               onClick={() => setEditingAmount(message.id)}
-                              className="text-[10px] sm:text-xs font-medium text-green-600 hover:underline flex items-center gap-1"
+                              className={`text-[10px] sm:text-xs font-medium hover:underline flex items-center gap-1 ${importTypes[message.id] === 'income' ? 'text-green-600' : 'text-red-600'}`}
                             >
-                              R$ {(customAmounts[message.id] || extractAmount(`${message.subject} ${message.snippet}`)).toFixed(2)}
+                              {importTypes[message.id] === 'income' ? '+' : '-'} R$ {(customAmounts[message.id] || extractAmount(`${message.subject} ${message.snippet}`)).toFixed(2)}
                               <Edit2 className="h-2 w-2 sm:h-2.5 sm:w-2.5" />
                             </button>
                           )}

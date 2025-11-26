@@ -60,29 +60,47 @@ async function getGoogleTokens(workspaceId?: string) {
 }
 
 /**
- * Buscar emails com boletos/faturas
+ * Buscar emails financeiros (boletos, faturas, PIX, transferências, etc)
  */
 export async function searchGmailForBills(
   workspaceId?: string,
   options?: {
     maxResults?: number
     daysBack?: number
+    type?: 'all' | 'expense' | 'income'
   }
 ): Promise<GmailMessage[]> {
   const accessToken = await getGoogleTokens(workspaceId)
 
-  // Query para buscar boletos/faturas
   const daysBack = options?.daysBack || 30
   const afterDate = new Date()
   afterDate.setDate(afterDate.getDate() - daysBack)
   const afterDateStr = afterDate.toISOString().split('T')[0].replace(/-/g, '/')
 
-  const query = `
-    (subject:(boleto OR fatura OR cobranca OR cobrança OR "nota fiscal" OR vencimento))
-    OR (from:(cobranca OR cobrança OR fatura OR boleto))
-    has:attachment
-    after:${afterDateStr}
-  `.trim().replace(/\s+/g, ' ')
+  // Termos de DESPESAS (boletos, faturas, cobranças)
+  const expenseTerms = `
+    (subject:(boleto OR fatura OR cobranca OR cobrança OR "nota fiscal" OR vencimento OR debito OR débito OR pagamento))
+    OR (from:(cobranca OR cobrança OR fatura OR boleto OR nfe OR nfse))
+  `
+
+  // Termos de RECEITAS (PIX recebido, vendas, transferências)
+  const incomeTerms = `
+    (subject:("pix recebido" OR "transferencia recebida" OR "transferência recebida" OR "voce recebeu" OR "você recebeu" OR "deposito" OR "depósito" OR "venda realizada" OR "pagamento recebido" OR "credito" OR "crédito" OR "entrada" OR "recebimento"))
+    OR (from:(nubank OR itau OR bradesco OR santander OR inter OR c6bank OR picpay OR mercadopago OR pagseguro OR stone OR cielo OR getnet OR rede))
+  `
+
+  // Montar query baseado no tipo
+  let query = ''
+  if (options?.type === 'expense') {
+    query = `(${expenseTerms}) has:attachment after:${afterDateStr}`
+  } else if (options?.type === 'income') {
+    query = `(${incomeTerms}) after:${afterDateStr}`
+  } else {
+    // Buscar todos (padrão)
+    query = `((${expenseTerms}) OR (${incomeTerms})) after:${afterDateStr}`
+  }
+  
+  query = query.trim().replace(/\s+/g, ' ')
 
   const maxResults = options?.maxResults || 20
 

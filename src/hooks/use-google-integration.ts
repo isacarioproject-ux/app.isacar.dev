@@ -40,16 +40,17 @@ const saveGoogleIntegration = async (accessToken: string, user: any) => {
     const userInfo = await userInfoResponse.json()
     console.log('✅ Info do Google obtida:', userInfo.email)
 
-    // Testar se token é válido fazendo request simples
-    console.log('🔍 Testando token no Drive API...')
-    const testResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    })
-
-    if (!testResponse.ok) {
-      throw new Error(`Token inválido: ${testResponse.status} - ${testResponse.statusText}`)
+    // Testar escopo do Drive (opcional - não falha se não tiver permissão)
+    let hasDriveAccess = false
+    try {
+      const testResponse = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      })
+      hasDriveAccess = testResponse.ok
+      console.log(hasDriveAccess ? '✅ Acesso ao Drive confirmado' : '⚠️ Sem acesso ao Drive (escopo não autorizado)')
+    } catch (e) {
+      console.log('⚠️ Erro ao testar Drive (não crítico)')
     }
-    console.log('✅ Token válido!')
 
     // Salvar na tabela
     console.log('💾 Salvando na tabela google_integrations...')
@@ -69,16 +70,18 @@ const saveGoogleIntegration = async (accessToken: string, user: any) => {
         'https://www.googleapis.com/auth/gmail.readonly',
         'https://www.googleapis.com/auth/calendar.events',
         'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive.file',
-        'https://www.googleapis.com/auth/drive',
-        'https://www.googleapis.com/auth/documents'
+        ...(hasDriveAccess ? [
+          'https://www.googleapis.com/auth/drive.file',
+          'https://www.googleapis.com/auth/drive',
+          'https://www.googleapis.com/auth/documents'
+        ] : [])
       ],
       settings: {
         gmail: { enabled: true, auto_import: true },
         calendar: { enabled: true, sync_tasks: true },
         sheets: { enabled: true },
-        drive: { enabled: true },
-        docs: { enabled: true }
+        drive: { enabled: hasDriveAccess },
+        docs: { enabled: hasDriveAccess }
       }
     }
 

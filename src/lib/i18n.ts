@@ -1080,7 +1080,9 @@ const translations: Translations = {
   'finance.filters.pending': { 'pt-BR': 'Pendente', 'en': 'Pending', 'es': 'Pendiente' },
   'finance.filters.all': { 'pt-BR': 'Todos', 'en': 'All', 'es': 'Todos' },
   'finance.filters.period': { 'pt-BR': 'Peráodo', 'en': 'Period', 'es': 'Peráodo' },
-  'finance.filters.clear': { 'pt-BR': 'Limpar Filtros', 'en': 'Clear Filters', 'es': 'Limpiar Filtros' },
+  'finance.filters.clear': { 'pt-BR': 'Limpar', 'en': 'Clear', 'es': 'Limpiar' },
+  'finance.filters.clearAll': { 'pt-BR': 'Limpar tudo', 'en': 'Clear all', 'es': 'Limpiar todo' },
+  'finance.filters.active': { 'pt-BR': 'filtros ativos', 'en': 'active filters', 'es': 'filtros activos' },
   
   // Finance Payment Methods
   'finance.payment.cash': { 'pt-BR': 'Dinheiro', 'en': 'Cash', 'es': 'Efectivo' },
@@ -1896,6 +1898,8 @@ const translations: Translations = {
   'finance.addTransaction.paymentMethod': { 'pt-BR': 'Método de Pagamento', 'en': 'Payment Method', 'es': 'Método de Pago' },
   'finance.addTransaction.other': { 'pt-BR': 'Outro', 'en': 'Other', 'es': 'Otro' },
   'finance.addTransaction.button': { 'pt-BR': 'Adicionar Transação', 'en': 'Add Transaction', 'es': 'Agregar Transacción' },
+  'finance.addTransaction.save': { 'pt-BR': 'Salvar', 'en': 'Save', 'es': 'Guardar' },
+  'finance.addTransaction.payment': { 'pt-BR': 'Pagto', 'en': 'Payment', 'es': 'Pago' },
   'finance.addTransaction.success': { 'pt-BR': 'Transação adicionada!', 'en': 'Transaction added!', 'es': '¡Transacción agregada!' },
   
   // Finance Export (extended)
@@ -1905,6 +1909,8 @@ const translations: Translations = {
   'finance.export.summaryPDF': { 'pt-BR': 'Exportar Resumo (PDF)', 'en': 'Export Summary (PDF)', 'es': 'Exportar Resumen (PDF)' },
   'finance.export.exporting': { 'pt-BR': 'Exportando...', 'en': 'Exporting...', 'es': 'Exportando...' },
   'finance.export.successPDF': { 'pt-BR': 'PDF exportado com sucesso!', 'en': 'PDF exported successfully!', 'es': '¡PDF exportado exitosamente!' },
+  'finance.export.driveSuccess': { 'pt-BR': 'Salvo no Google Drive!', 'en': 'Saved to Google Drive!', 'es': '¡Guardado en Google Drive!' },
+  'finance.export.driveError': { 'pt-BR': 'Erro ao salvar no Drive', 'en': 'Error saving to Drive', 'es': 'Error al guardar en Drive' },
   
   // Finance Calendar
   'finance.calendar.today': { 'pt-BR': 'Hoje', 'en': 'Today', 'es': 'Hoy' },

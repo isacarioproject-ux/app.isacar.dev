@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -36,71 +36,9 @@ export const TransactionTable = ({
 }: TransactionTableProps) => {
   const { t } = useI18n()
   
-  // Estado local para transações (atualização otimista)
-  const [localTransactions, setLocalTransactions] = useState<FinanceTransaction[]>(transactions)
-  
-  // Sincronizar com props quando mudar
-  useEffect(() => {
-    setLocalTransactions(transactions)
-  }, [transactions])
-  
-  // Estados para edição inline (como no gerenciador de orçamento)
+  // Estados para edição inline
   const [editingCell, setEditingCell] = useState<{rowId: string, field: string} | null>(null)
   const [editingValue, setEditingValue] = useState('')
-  
-  // Estado para nova transação (formulário completo antes de salvar)
-  const [showNewRow, setShowNewRow] = useState(false)
-  const [newTransaction, setNewTransaction] = useState({
-    description: '',
-    type: 'expense' as 'income' | 'expense',
-    category: '',
-    amount: '',
-    payment_method: 'pix',
-    transaction_date: format(new Date(), 'yyyy-MM-dd')
-  })
-
-  // Função para salvar nova transação
-  const handleSaveNewTransaction = async () => {
-    if (!newTransaction.description.trim()) {
-      toast.error(t('finance.table.descriptionRequired'))
-      return
-    }
-    
-    const amount = parseFloat(newTransaction.amount) || 0
-    
-    try {
-      const { error } = await supabase.from('finance_transactions').insert({
-        finance_document_id: documentId,
-        type: newTransaction.type,
-        category: newTransaction.category || t('finance.categories.other'),
-        description: newTransaction.description.trim(),
-        amount: amount,
-        transaction_date: newTransaction.transaction_date,
-        payment_method: newTransaction.payment_method,
-        status: 'completed',
-        tags: [],
-      })
-
-      if (error) throw error
-      
-      // Reset form
-      setNewTransaction({
-        description: '',
-        type: 'expense',
-        category: '',
-        amount: '',
-        payment_method: 'pix',
-        transaction_date: format(new Date(), 'yyyy-MM-dd')
-      })
-      setShowNewRow(false)
-      
-      window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
-      onRefresh()
-      toast.success(t('finance.table.added'))
-    } catch (err: any) {
-      toast.error(t('finance.table.errorAdd'), { description: err.message })
-    }
-  }
 
   const handleDeleteTransaction = useCallback(async (id: string) => {
     if (!confirm(t('finance.table.deleteConfirm'))) return
@@ -112,15 +50,14 @@ export const TransactionTable = ({
         .eq('id', id)
 
       if (error) throw error
-
-      onRefresh()
       toast.success(t('finance.table.deleted'))
+      // Realtime vai atualizar automaticamente
     } catch (err: any) {
       toast.error(t('finance.table.errorDelete'), {
         description: err.message,
       })
     }
-  }, [onRefresh, t])
+  }, [t])
 
   const handleToggleStatus = useCallback(async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed'
@@ -132,14 +69,13 @@ export const TransactionTable = ({
         .eq('id', id)
 
       if (error) throw error
-
-      onRefresh()
+      // Realtime vai atualizar automaticamente
     } catch (err: any) {
       toast.error(t('finance.table.errorUpdate'), {
         description: err.message,
       })
     }
-  }, [onRefresh, t])
+  }, [t])
 
   // Handlers para edição inline
   const handleCellEdit = (e: React.MouseEvent, rowId: string, field: string, currentValue: any) => {
@@ -170,13 +106,11 @@ export const TransactionTable = ({
         })
 
       if (error) throw error
-          // Notificar que houve mudança (para cards atualizarem)
-          window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
-          // Aguardar antes de refresh para evitar loop
-          setTimeout(() => onRefresh(), 1000)
           toast.success(t('finance.table.added'))
           setEditingCell(null)
           setEditingValue('')
+          // Refresh único após criar transação
+          onRefresh()
     } catch (err: any) {
           toast.error(t('finance.table.errorAdd'), {
         description: err.message,
@@ -226,36 +160,14 @@ export const TransactionTable = ({
     }
 
     try {
-      // ATUALIZAÇÃO OTIMISTA - Atualizar UI imediatamente
-      setLocalTransactions(prev => 
-        prev.map(t => 
-          t.id === rowId 
-            ? { ...t, ...updateData }
-            : t
-        )
-      )
-      
-      console.log('💾 Salvando:', { rowId, field, updateData })
-      
       const { error } = await supabase
         .from('finance_transactions')
         .update(updateData)
         .eq('id', rowId)
 
-      if (error) {
-        console.error('❌ Erro ao salvar:', error)
-        // Reverter mudança otimista
-        setLocalTransactions(transactions)
-        throw error
-      }
-      
-      console.log('✅ Salvo com sucesso!')
-      
-      // Notificar cards
-      window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
-      // Refresh em background
-      onRefresh()
+      if (error) throw error
       toast.success(t('finance.table.updated'))
+      // Realtime vai atualizar automaticamente
     } catch (err: any) {
       console.error('❌ Erro completo:', err)
       toast.error(t('finance.table.errorUpdate'), {
@@ -282,18 +194,6 @@ export const TransactionTable = ({
     return method
   }, [t])
 
-  // Calcular totais usando localTransactions
-  const totals = useMemo(() => {
-    const income = localTransactions
-      .filter((t) => t.type === 'income' && t.status === 'completed')
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-    
-    const expense = localTransactions
-      .filter((t) => t.type === 'expense' && t.status === 'completed')
-      .reduce((sum, t) => sum + Number(t.amount), 0)
-
-    return { income, expense, balance: income - expense }
-  }, [localTransactions])
 
   return (
     <div className="space-y-4 -mx-3 px-3">
@@ -302,18 +202,18 @@ export const TransactionTable = ({
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 text-xs w-[40px]"></TableHead>
-              <TableHead className="h-8 text-xs w-[80px]">{t('finance.table.type')}</TableHead>
+              <TableHead className="h-8 text-xs w-[50px]">{t('finance.table.status')}</TableHead>
+              <TableHead className="h-8 text-xs w-[100px]">{t('finance.table.type')}</TableHead>
               <TableHead className="h-8 text-xs">{t('finance.table.description')}</TableHead>
-              <TableHead className="h-8 text-xs w-[100px]">{t('finance.table.category')}</TableHead>
-              <TableHead className="h-8 text-xs hidden sm:table-cell w-[90px]">{t('finance.table.payment')}</TableHead>
-              <TableHead className="h-8 text-xs hidden md:table-cell w-[100px]">{t('finance.table.date')}</TableHead>
-              <TableHead className="h-8 text-xs text-right w-[100px]">{t('finance.table.value')}</TableHead>
+              <TableHead className="h-8 text-xs">{t('finance.table.category')}</TableHead>
+              <TableHead className="h-8 text-xs">{t('finance.table.payment')}</TableHead>
+              <TableHead className="h-8 text-xs">{t('finance.table.date')}</TableHead>
+              <TableHead className="h-8 text-xs text-right">{t('finance.table.value')}</TableHead>
               <TableHead className="h-8 w-8"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {localTransactions.map((transaction) => (
+            {transactions.map((transaction) => (
               <TableRow 
                 key={transaction.id} 
                 className="h-8"
@@ -359,13 +259,10 @@ export const TransactionTable = ({
                             .eq('id', transaction.id)
 
       if (error) throw error
-                          // Notificar que houve mudança
-                          window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
-                          // Aguardar antes de refresh para evitar loop
-                          setTimeout(() => onRefresh(), 1000)
                           setEditingCell(null)
                           setEditingValue('')
       toast.success(t('finance.table.updated'))
+      // Realtime vai atualizar automaticamente
     } catch (err: any) {
       toast.error(t('finance.table.errorUpdate'), {
         description: err.message,
@@ -485,7 +382,7 @@ export const TransactionTable = ({
                   </TableCell>
 
                 {/* Método de pagamento - Editável inline */}
-                <TableCell className="text-xs py-0 px-2 hidden sm:table-cell">
+                <TableCell className="text-xs py-0 px-2">
                   {editingCell?.rowId === transaction.id && editingCell?.field === 'payment_method' ? (
                     <Select
                       value={editingValue || transaction.payment_method || 'cash'}
@@ -498,10 +395,10 @@ export const TransactionTable = ({
                             .eq('id', transaction.id)
                           
                           if (error) throw error
-                          await onRefresh()
                           setEditingCell(null)
                           setEditingValue('')
                           toast.success(t('finance.table.updated'))
+                          // Realtime vai atualizar automaticamente
                         } catch (err: any) {
                           toast.error(t('finance.table.errorUpdate'), {
                             description: err.message,
@@ -540,7 +437,7 @@ export const TransactionTable = ({
                   </TableCell>
 
                 {/* Data - Editável inline */}
-                <TableCell className="text-xs py-0 px-2 hidden md:table-cell">
+                <TableCell className="text-xs py-0 px-2">
                   {editingCell?.rowId === transaction.id && editingCell?.field === 'date' ? (
                     <Input
                       type="date"
@@ -632,127 +529,50 @@ export const TransactionTable = ({
                 </TableRow>
               ))}
             
-            {/* Linha para adicionar nova transação - Formulário completo */}
-            {showNewRow ? (
-              <TableRow className="h-auto bg-muted/30">
-                <TableCell className="text-xs py-1 px-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-green-600"
-                    onClick={handleSaveNewTransaction}
-                  >
-                    <Check className="h-3 w-3" />
-                  </Button>
-                </TableCell>
-                <TableCell className="text-xs py-1 px-1">
-                  <Select
-                    value={newTransaction.type}
-                    onValueChange={(value: 'income' | 'expense') => setNewTransaction(prev => ({ ...prev, type: value }))}
-                  >
-                    <SelectTrigger className="h-7 text-xs p-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="expense">
-                        <div className="flex items-center gap-1">
-                          <TrendingDown className="h-3 w-3 text-red-600" />
-                          <span className="text-xs">{t('finance.filters.expense')}</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="income">
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3 text-green-600" />
-                          <span className="text-xs">{t('finance.filters.income')}</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell className="text-xs py-1 px-1">
+            {/* Linha vazia para adicionar nova transação - Como no gerenciador */}
+            <TableRow className="h-8">
+              <TableCell className="text-xs py-0 px-2"></TableCell>
+              <TableCell className="text-xs py-0 px-2"></TableCell>
+              <TableCell className="text-xs py-0 px-2">
+                {editingCell?.rowId === 'new-transaction' && editingCell?.field === 'description' ? (
                   <Input
-                    value={newTransaction.description}
-                    onChange={(e) => setNewTransaction(prev => ({ ...prev, description: e.target.value }))}
-                    className="h-7 text-xs p-1"
-                    placeholder={t('finance.table.description')}
-                    autoFocus
-                  />
-                </TableCell>
-                <TableCell className="text-xs py-1 px-1">
-                  <Input
-                    value={newTransaction.category}
-                    onChange={(e) => setNewTransaction(prev => ({ ...prev, category: e.target.value }))}
-                    className="h-7 text-xs p-1"
-                    placeholder={t('finance.table.category')}
-                    list="transaction-categories"
-                  />
-                </TableCell>
-                <TableCell className="text-xs py-1 px-1 hidden sm:table-cell">
-                  <Select
-                    value={newTransaction.payment_method}
-                    onValueChange={(value) => setNewTransaction(prev => ({ ...prev, payment_method: value }))}
-                  >
-                    <SelectTrigger className="h-7 text-xs p-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_METHODS.map((method) => (
-                        <SelectItem key={method.value} value={method.value}>
-                          <span className="text-xs">{method.icon}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell className="text-xs py-1 px-1 hidden md:table-cell">
-                  <Input
-                    type="date"
-                    value={newTransaction.transaction_date}
-                    onChange={(e) => setNewTransaction(prev => ({ ...prev, transaction_date: e.target.value }))}
-                    className="h-7 text-xs p-1"
-                  />
-                </TableCell>
-                <TableCell className="text-xs py-1 px-1">
-                  <Input
-                    type="number"
-                    value={newTransaction.amount}
-                    onChange={(e) => setNewTransaction(prev => ({ ...prev, amount: e.target.value }))}
-                    className="h-7 text-xs p-1 text-right"
-                    placeholder="0,00"
-                    step="0.01"
-                  />
-                </TableCell>
-                <TableCell className="text-xs py-1 px-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => {
-                      setShowNewRow(false)
-                      setNewTransaction({
-                        description: '',
-                        type: 'expense',
-                        category: '',
-                        amount: '',
-                        payment_method: 'pix',
-                        transaction_date: format(new Date(), 'yyyy-MM-dd')
-                      })
+                    value={editingValue}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    onBlur={() => {
+                      // Só salva se tiver conteúdo, senão apenas fecha
+                      if (editingValue.trim()) {
+                        handleCellSave('new-transaction', 'description')
+                      } else {
+                        setEditingCell(null)
+                        setEditingValue('')
+                      }
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && editingValue.trim()) {
+                        e.preventDefault()
+                        handleCellSave('new-transaction', 'description')
+                      }
+                      if (e.key === 'Escape' || e.key === 'Tab') {
+                        e.preventDefault()
+                        setEditingCell(null)
+                        setEditingValue('')
+                      }
+                    }}
+                    className="h-7 text-xs border-none p-1 focus-visible:ring-1"
+                    autoFocus
+                    placeholder={t('finance.table.descriptionPlaceholder')}
+                  />
+                ) : (
+                  <div
+                    onClick={(e) => handleCellEdit(e, 'new-transaction', 'description', '')}
+                    className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
                   >
-                    <Trash2 className="h-3 w-3 text-muted-foreground" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ) : (
-              <TableRow className="h-8 hover:bg-muted/30 cursor-pointer" onClick={() => setShowNewRow(true)}>
-                <TableCell colSpan={8} className="text-xs py-0 px-2">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Plus className="h-3 w-3" />
-                    <span>{t('finance.table.add')}</span>
+                    + {t('finance.table.add')}...
                   </div>
-                </TableCell>
-              </TableRow>
-            )}
+                )}
+              </TableCell>
+              <TableCell colSpan={5} className="text-xs py-0 px-2"></TableCell>
+            </TableRow>
             </TableBody>
           </Table>
         <datalist id="transaction-categories">
@@ -762,10 +582,6 @@ export const TransactionTable = ({
         </datalist>
           </div>
 
-      {/* Contador de transações */}
-      <div className="text-xs text-muted-foreground text-center py-1">
-        {transactions.length} {transactions.length === 1 ? t('finance.table.transaction') : t('finance.table.transactions')}
-      </div>
     </div>
   )
 }

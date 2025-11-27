@@ -1029,8 +1029,7 @@ const translations: Translations = {
   
   // Finance Table
   'finance.table.fillRequired': { 'pt-BR': 'Preencha todos os campos obrigatórios', 'en': 'Fill all required fields', 'es': 'Complete todos los campos obligatorios' },
-  'finance.table.descriptionRequired': { 'pt-BR': 'Informe a descrição', 'en': 'Description is required', 'es': 'La descripción es obligatoria' },
-  'finance.table.added': { 'pt-BR': 'Transação adicionada!', 'en': 'Transaction added!', 'es': '¡Transacción agregada!' },
+  'finance.table.added': { 'pt-BR': 'Transação adicionada!', 'en': 'Transaction added!', 'es': '┬íTransacción agregada!' },
   'finance.table.errorAdd': { 'pt-BR': 'Erro ao adicionar transação', 'en': 'Error adding transaction', 'es': 'Error al agregar transacción' },
   'finance.table.deleteConfirm': { 'pt-BR': 'Tem certeza que deseja excluir esta transação?', 'en': 'Are you sure you want to delete this transaction?', 'es': '┬┐Estás seguro de que quieres eliminar esta transacción?' },
   'finance.table.deleted': { 'pt-BR': 'Transação excluída!', 'en': 'Transaction deleted!', 'es': '┬íTransacción eliminada!' },
@@ -1043,6 +1042,7 @@ const translations: Translations = {
   'finance.table.close': { 'pt-BR': 'Fechar', 'en': 'Close', 'es': 'Cerrar' },
   'finance.table.add': { 'pt-BR': 'Adicionar', 'en': 'Add', 'es': 'Agregar' },
   'finance.table.adding': { 'pt-BR': 'Adicionando...', 'en': 'Adding...', 'es': 'Agregando...' },
+  'finance.table.descriptionPlaceholder': { 'pt-BR': 'Descrição da transação...', 'en': 'Transaction description...', 'es': 'Descripción de la transacción...' },
   'finance.table.type': { 'pt-BR': 'Tipo', 'en': 'Type', 'es': 'Tipo' },
   'finance.table.category': { 'pt-BR': 'Categoria', 'en': 'Category', 'es': 'Categoráa' },
   'finance.table.noCategory': { 'pt-BR': 'Sem categorias', 'en': 'No categories', 'es': 'Sin categoráas' },
@@ -1117,7 +1117,6 @@ const translations: Translations = {
   'finance.categories.updated': { 'pt-BR': 'Categoria atualizada!', 'en': 'Category updated!', 'es': '¡Categoría actualizada!' },
   'finance.categories.iconUpdated': { 'pt-BR': 'Ícone atualizado!', 'en': 'Icon updated!', 'es': '¡Ícono actualizado!' },
   'finance.categories.errorUpdate': { 'pt-BR': 'Erro ao atualizar categoria', 'en': 'Error updating category', 'es': 'Error al actualizar categoría' },
-  'finance.categories.other': { 'pt-BR': 'Outros', 'en': 'Other', 'es': 'Otros' },
   
   // Finance Budget
   'finance.budget.title': { 'pt-BR': 'Gerenciar Orçamento', 'en': 'Manage Budget', 'es': 'Gestionar Presupuesto' },

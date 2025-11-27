@@ -467,16 +467,35 @@ export const FinanceViewer = ({
     }
   }, [docId])
 
-  // Listener para atualização de transações (do TransactionTable)
+  // Supabase Realtime - escuta mudanças em tempo real (perfeito para PWA)
   useEffect(() => {
-    const handleTransactionUpdate = () => {
-      console.log('🔔 [FinanceViewer] Transação atualizada, recarregando...')
-      fetchTransactions()
-      fetchDocument() // Atualizar totais do documento
-    }
+    if (!docId) return
 
-    window.addEventListener('finance-transaction-updated', handleTransactionUpdate)
-    return () => window.removeEventListener('finance-transaction-updated', handleTransactionUpdate)
+    console.log('🔔 [FinanceViewer] Configurando Realtime para documento:', docId)
+    
+    const channel = supabase
+      .channel(`finance-transactions-${docId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'finance_transactions',
+          filter: `finance_document_id=eq.${docId}`,
+        },
+        () => {
+          console.log('🔔 [Realtime] Mudança detectada, recarregando...')
+          // Recarregar dados do banco para garantir consistência
+          fetchTransactions()
+          fetchDocument()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      console.log('🔔 [FinanceViewer] Removendo channel Realtime')
+      supabase.removeChannel(channel)
+    }
   }, [docId])
 
   // Auto-save ao alterar

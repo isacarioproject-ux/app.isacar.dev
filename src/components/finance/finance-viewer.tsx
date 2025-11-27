@@ -701,15 +701,98 @@ export const FinanceViewer = ({
                     <span className="hidden sm:inline text-xs">{t('finance.dock.export')}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleExport('transactions')}>
-                    <Download className="mr-2 h-3.5 w-3.5" />
-                    <span className="text-xs">{t('finance.export.transactions')}</span>
+                <DropdownMenuContent align="end" className="w-56">
+                  {/* CSV */}
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      await exportToCSV(allTransactions, `transactions-${docId}`)
+                      toast.success(t('finance.export.success'))
+                    } catch (error) {
+                      toast.error(t('finance.export.error'))
+                    }
+                  }}>
+                    <span className="mr-2">📊</span>
+                    <span className="text-xs">{t('finance.export.transactions')} (CSV)</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport('summary')}>
-                    <Download className="mr-2 h-3.5 w-3.5" />
-                    <span className="text-xs">{t('finance.export.summary')}</span>
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      await exportSummaryToCSV(allTransactions, `finance-${docId}`)
+                      toast.success(t('finance.export.success'))
+                    } catch (error) {
+                      toast.error(t('finance.export.error'))
+                    }
+                  }}>
+                    <span className="mr-2">📈</span>
+                    <span className="text-xs">{t('finance.export.summary')} (CSV)</span>
                   </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  
+                  {/* PDF */}
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      await exportToPDF(allTransactions, `transactions-${docId}`, title)
+                      toast.success(t('finance.export.successPDF'))
+                    } catch (error) {
+                      toast.error(t('finance.export.error'))
+                    }
+                  }}>
+                    <span className="mr-2">📄</span>
+                    <span className="text-xs">{t('finance.export.transactionsPDF')}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      await exportSummaryToPDF(allTransactions, `finance-${docId}`, title)
+                      toast.success(t('finance.export.successPDF'))
+                    } catch (error) {
+                      toast.error(t('finance.export.error'))
+                    }
+                  }}>
+                    <span className="mr-2">📑</span>
+                    <span className="text-xs">{t('finance.export.summaryPDF')}</span>
+                  </DropdownMenuItem>
+
+                  {/* Google Drive */}
+                  {isGoogleConnected && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={async () => {
+                          setSavingToDrive(true)
+                          try {
+                            const csvContent = allTransactions.map(t => 
+                              `${t.transaction_date},${t.description},${t.category},${t.type === 'income' ? t.amount : -t.amount}`
+                            ).join('\n')
+                            const header = 'Data,Descrição,Categoria,Valor\n'
+                            const blob = new Blob([header + csvContent], { type: 'text/csv' })
+                            const file = new File([blob], `${title}_transacoes.csv`, { type: 'text/csv' })
+                            
+                            const result = await DriveService.uploadFile(file)
+                            
+                            toast.success('Salvo no Google Drive!', {
+                              action: {
+                                label: 'Abrir',
+                                onClick: () => window.open(result.webViewLink, '_blank')
+                              }
+                            })
+                          } catch (error: any) {
+                            toast.error('Erro ao salvar no Drive', { description: error.message })
+                          } finally {
+                            setSavingToDrive(false)
+                          }
+                        }}
+                        disabled={savingToDrive}
+                        className="text-blue-600"
+                      >
+                        {savingToDrive ? (
+                          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Cloud className="mr-2 h-3.5 w-3.5" />
+                        )}
+                        <span className="text-xs">{savingToDrive ? 'Salvando...' : 'Google Drive'}</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

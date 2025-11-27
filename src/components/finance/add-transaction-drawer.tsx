@@ -8,11 +8,23 @@ import {
   ModalHeader,
   ModalTitle,
 } from '@/components/ui/modal'
-import { Plus, TrendingUp, TrendingDown } from 'lucide-react'
+import { 
+  Plus, 
+  TrendingUp, 
+  TrendingDown, 
+  FileText, 
+  Tag, 
+  DollarSign, 
+  Calendar, 
+  CreditCard,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { useI18n } from '@/hooks/use-i18n'
+import { cn } from '@/lib/utils'
 
 interface AddTransactionDrawerProps {
   open: boolean
@@ -90,165 +102,199 @@ export const AddTransactionDrawer = ({
     }
   }
 
+  // Ícones para métodos de pagamento
+  const paymentIcons: Record<string, string> = {
+    money: '💵',
+    credit_card: '💳',
+    debit_card: '💳',
+    pix: '⚡',
+    bank_transfer: '🏦',
+    other: '📝',
+  }
+
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent
-        className="max-w-2xl p-0"
+        className="max-w-lg p-0"
         drawerProps={{
-          className: "h-[85vh]"
+          className: "h-auto max-h-[90vh]"
         }}
       >
-        <ModalHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b">
-          <ModalTitle className="text-base font-semibold flex items-center gap-2">
+        <ModalHeader className="px-4 py-3 border-b bg-muted/30">
+          <ModalTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <Plus className="h-4 w-4" />
             {t('finance.addTransaction.title')}
           </ModalTitle>
         </ModalHeader>
 
-        <div className="px-4 sm:px-6 py-4 space-y-4 overflow-y-auto max-h-[calc(85vh-120px)]">
-          {/* Tipo */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('finance.table.type')}</label>
-            <Select
-              value={newTransaction.type}
-              onValueChange={(value: 'income' | 'expense') =>
-                setNewTransaction({ ...newTransaction, type: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-3.5 w-3.5 text-green-600" />
-                    {t('finance.filters.income')}
-                  </div>
-                </SelectItem>
-                <SelectItem value="expense">
-                  <div className="flex items-center gap-2">
-                    <TrendingDown className="h-3.5 w-3.5 text-red-600" />
-                    {t('finance.filters.expense')}
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="divide-y divide-border">
+          {/* Tipo - Toggle buttons estilo Notion */}
+          <div className="px-4 py-3">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setNewTransaction({ ...newTransaction, type: 'expense' })}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all",
+                  newTransaction.type === 'expense'
+                    ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-2 border-red-200 dark:border-red-800"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent"
+                )}
+              >
+                <TrendingDown className="h-4 w-4" />
+                {t('finance.filters.expense')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewTransaction({ ...newTransaction, type: 'income' })}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all",
+                  newTransaction.type === 'income'
+                    ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border-2 border-green-200 dark:border-green-800"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent"
+                )}
+              >
+                <TrendingUp className="h-4 w-4" />
+                {t('finance.filters.income')}
+              </button>
+            </div>
           </div>
 
-          {/* Categoria */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('finance.table.category')}</label>
+          {/* Descrição - Inline estilo Notion */}
+          <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground w-24 flex-shrink-0">{t('finance.table.description')}</span>
+            <Input
+              placeholder={t('finance.addTransaction.descriptionPlaceholder')}
+              value={newTransaction.description}
+              onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+              className="flex-1 border-0 bg-transparent px-0 h-8 focus-visible:ring-0 placeholder:text-muted-foreground/50"
+            />
+          </div>
+
+          {/* Valor - Inline */}
+          <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground w-24 flex-shrink-0">{t('finance.table.value')}</span>
+            <Input
+              type="number"
+              placeholder="0,00"
+              value={newTransaction.amount}
+              onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+              step="0.01"
+              min="0"
+              className="flex-1 border-0 bg-transparent px-0 h-8 focus-visible:ring-0 placeholder:text-muted-foreground/50 font-mono"
+            />
+          </div>
+
+          {/* Categoria - Inline */}
+          <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+            <Tag className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground w-24 flex-shrink-0">{t('finance.table.category')}</span>
             <Select
               value={newTransaction.category}
-              onValueChange={(value) =>
-                setNewTransaction({ ...newTransaction, category: value })
-              }
+              onValueChange={(value) => setNewTransaction({ ...newTransaction, category: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="flex-1 border-0 bg-transparent px-0 h-8 focus:ring-0 shadow-none">
                 <SelectValue placeholder={t('finance.addTransaction.selectCategory')} />
               </SelectTrigger>
               <SelectContent>
                 {categories.length === 0 ? (
-                  <SelectItem value={t('finance.table.general')} disabled>
-                    {t('finance.table.noCategory')}
-                  </SelectItem>
+                  <SelectItem value="general">{t('finance.table.general')}</SelectItem>
                 ) : (
                   categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Descrição */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('finance.table.description')}</label>
-            <Input
-              placeholder={t('finance.addTransaction.descriptionPlaceholder')}
-              value={newTransaction.description}
-              onChange={(e) =>
-                setNewTransaction({ ...newTransaction, description: e.target.value })
-              }
-            />
-          </div>
-
-          {/* Valor */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('finance.table.value')}</label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={newTransaction.amount}
-              onChange={(e) =>
-                setNewTransaction({ ...newTransaction, amount: e.target.value })
-              }
-              step="0.01"
-              min="0"
-            />
-          </div>
-
-          {/* Data */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('finance.table.date')}</label>
+          {/* Data - Inline */}
+          <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground w-24 flex-shrink-0">{t('finance.table.date')}</span>
             <Input
               type="date"
               value={newTransaction.transaction_date}
-              onChange={(e) =>
-                setNewTransaction({ ...newTransaction, transaction_date: e.target.value })
-              }
+              onChange={(e) => setNewTransaction({ ...newTransaction, transaction_date: e.target.value })}
+              className="flex-1 border-0 bg-transparent px-0 h-8 focus-visible:ring-0"
             />
           </div>
 
-          {/* Método de Pagamento */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('finance.addTransaction.paymentMethod')}</label>
+          {/* Método de Pagamento - Inline */}
+          <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+            <CreditCard className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground w-24 flex-shrink-0">{t('finance.addTransaction.paymentMethod')}</span>
             <Select
               value={newTransaction.payment_method}
-              onValueChange={(value) =>
-                setNewTransaction({ ...newTransaction, payment_method: value })
-              }
+              onValueChange={(value) => setNewTransaction({ ...newTransaction, payment_method: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="flex-1 border-0 bg-transparent px-0 h-8 focus:ring-0 shadow-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="money">{t('finance.payment.cash')}</SelectItem>
-                <SelectItem value="credit_card">{t('finance.payment.creditCard')}</SelectItem>
-                <SelectItem value="debit_card">{t('finance.payment.debitCard')}</SelectItem>
-                <SelectItem value="pix">{t('finance.payment.pix')}</SelectItem>
-                <SelectItem value="bank_transfer">{t('finance.payment.bankTransfer')}</SelectItem>
-                <SelectItem value="other">{t('finance.addTransaction.other')}</SelectItem>
+                <SelectItem value="money">
+                  <span className="flex items-center gap-2">{paymentIcons.money} {t('finance.payment.cash')}</span>
+                </SelectItem>
+                <SelectItem value="credit_card">
+                  <span className="flex items-center gap-2">{paymentIcons.credit_card} {t('finance.payment.creditCard')}</span>
+                </SelectItem>
+                <SelectItem value="debit_card">
+                  <span className="flex items-center gap-2">{paymentIcons.debit_card} {t('finance.payment.debitCard')}</span>
+                </SelectItem>
+                <SelectItem value="pix">
+                  <span className="flex items-center gap-2">{paymentIcons.pix} {t('finance.payment.pix')}</span>
+                </SelectItem>
+                <SelectItem value="bank_transfer">
+                  <span className="flex items-center gap-2">{paymentIcons.bank_transfer} {t('finance.payment.bankTransfer')}</span>
+                </SelectItem>
+                <SelectItem value="other">
+                  <span className="flex items-center gap-2">{paymentIcons.other} {t('finance.addTransaction.other')}</span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Status */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('finance.table.status')}</label>
+          {/* Status - Inline */}
+          <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors">
+            {newTransaction.status === 'completed' ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+            ) : (
+              <Clock className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+            )}
+            <span className="text-sm text-muted-foreground w-24 flex-shrink-0">{t('finance.table.status')}</span>
             <Select
               value={newTransaction.status}
-              onValueChange={(value: 'pending' | 'completed') =>
-                setNewTransaction({ ...newTransaction, status: value })
-              }
+              onValueChange={(value: 'pending' | 'completed') => setNewTransaction({ ...newTransaction, status: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="flex-1 border-0 bg-transparent px-0 h-8 focus:ring-0 shadow-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="completed">{t('finance.filters.completed')}</SelectItem>
-                <SelectItem value="pending">{t('finance.filters.pending')}</SelectItem>
+                <SelectItem value="completed">
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    {t('finance.filters.completed')}
+                  </span>
+                </SelectItem>
+                <SelectItem value="pending">
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-yellow-500" />
+                    {t('finance.filters.pending')}
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {/* Botão Adicionar */}
+        {/* Botão Adicionar - Footer fixo */}
+        <div className="px-4 py-3 border-t bg-muted/30">
           <Button
             onClick={handleAddTransaction}
             className="w-full"
-            size="lg"
+            size="md"
           >
             <Plus className="h-4 w-4 mr-2" />
             {t('finance.addTransaction.button')}

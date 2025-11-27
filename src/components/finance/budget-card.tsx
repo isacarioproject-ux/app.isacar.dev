@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { toast } from 'sonner'
-import { BudgetManagerNotion } from './budget-manager-notion'
+import { BudgetManagerNotion } from '@/components/budget-manager'
 import { supabase } from '@/lib/supabase'
 import {
   Tooltip,

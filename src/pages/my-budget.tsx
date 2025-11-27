@@ -1,5 +1,5 @@
 import { DashboardLayout } from '@/components/dashboard-layout';
-import { BudgetManagerPage } from '@/components/finance/budget-manager-page';
+import { BudgetManagerPage } from '@/components/budget-manager';
 
 export default function MyBudgetPage() {
   return (

@@ -53,7 +53,7 @@ import { toast } from 'sonner'
 import { FinanceTemplateSelector } from './finance-template-selector'
 import { FinanceViewer } from './finance-viewer'
 import { CategoriesManager } from './categories-manager'
-import { BudgetManager } from './budget-manager'
+import { BudgetManager } from '@/components/budget-manager'
 import { supabase } from '@/lib/supabase'
 import {
   Tooltip,

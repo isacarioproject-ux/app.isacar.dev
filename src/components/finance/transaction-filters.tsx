@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,18 +9,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Filter, X, Search, TrendingUp, TrendingDown, Tag, CreditCard, Calendar, CheckCircle2, Clock } from 'lucide-react'
+import { Filter, X, Search, RotateCcw } from 'lucide-react'
 import { FinanceCategory } from '@/types/finance'
-import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useI18n } from '@/hooks/use-i18n'
-import { AnimatePresence, motion } from 'framer-motion'
 
 interface TransactionFiltersProps {
   categories: FinanceCategory[]
@@ -48,8 +46,7 @@ export const TransactionFilters = ({
   hideButton = false,
 }: TransactionFiltersProps) => {
   const { t } = useI18n()
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     type: 'all',
@@ -59,24 +56,6 @@ export const TransactionFilters = ({
     dateFrom: '',
     dateTo: '',
   })
-
-  // Focar no input quando expandir
-  useEffect(() => {
-    if (isSearchExpanded && searchInputRef.current) {
-      searchInputRef.current.focus()
-    }
-  }, [isSearchExpanded])
-
-  // Fechar busca quando clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isSearchExpanded && filters.search === '' && searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
-        setIsSearchExpanded(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isSearchExpanded, filters.search])
 
   // Debounce apenas para busca (search)
   const debouncedSearch = useDebounce(filters.search, 300)
@@ -110,63 +89,48 @@ export const TransactionFilters = ({
 
   return (
     <div className="flex gap-2 items-center">
-      {/* Busca Expansível - Estilo Notion */}
-      <AnimatePresence mode="wait">
-        {isSearchExpanded ? (
-          <motion.div
-            key="search-expanded"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 'auto', opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="relative flex-1 min-w-0"
-          >
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              ref={searchInputRef}
-              placeholder={t('finance.filters.searchPlaceholder')}
-              value={filters.search}
-              onChange={(e) => updateFilter('search', e.target.value)}
-              className="pl-9 pr-8 h-8 w-full"
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setIsSearchExpanded(false)
-                  updateFilter('search', '')
-                }
-              }}
-            />
-            {filters.search && (
-              <button
-                onClick={() => {
-                  updateFilter('search', '')
-                  searchInputRef.current?.focus()
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded"
-              >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="search-collapsed"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSearchExpanded(true)}
-              className="h-8 w-8 p-0"
+      {/* Busca - Simples */}
+      {isSearchOpen ? (
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input
+            autoFocus
+            type="text"
+            placeholder={t('finance.filters.searchPlaceholder')}
+            value={filters.search}
+            onChange={(e) => updateFilter('search', e.target.value)}
+            className="w-full h-8 pl-8 pr-8 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setIsSearchOpen(false)
+                updateFilter('search', '')
+              }
+            }}
+            onBlur={() => {
+              if (!filters.search) setIsSearchOpen(false)
+            }}
+          />
+          {filters.search && (
+            <button
+              onClick={() => updateFilter('search', '')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded"
             >
-              <Search className="h-4 w-4" />
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsSearchOpen(true)}
+          className="h-8 w-8 p-0"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+      )}
 
-      {/* Botão Filtros - Mobile */}
+      {/* Botão Filtros */}
       {!hideButton && (
         <Button 
           variant="outline" 
@@ -184,39 +148,31 @@ export const TransactionFilters = ({
         </Button>
       )}
 
-      {/* Sheet de Filtros - Estilo Notion */}
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-[300px] sm:w-[340px] p-0">
-          <SheetHeader className="px-4 py-3 border-b">
+      {/* Dialog de Filtros */}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[400px] p-0 gap-0">
+          <DialogHeader className="px-4 py-3 border-b">
             <div className="flex items-center justify-between">
-              <SheetTitle className="text-sm font-medium flex items-center gap-2">
+              <DialogTitle className="text-sm font-medium flex items-center gap-2">
                 <Filter className="h-4 w-4" />
                 {t('finance.filters')}
-              </SheetTitle>
+              </DialogTitle>
               {activeFiltersCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs text-muted-foreground">
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs gap-1">
+                  <RotateCcw className="h-3 w-3" />
                   {t('finance.filters.clear')}
                 </Button>
               )}
             </div>
-          </SheetHeader>
+          </DialogHeader>
 
-          <div className="divide-y divide-border">
-            {/* Tipo - Inline estilo Notion */}
-            <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2 w-20 flex-shrink-0">
-                {filters.type === 'income' ? (
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                ) : filters.type === 'expense' ? (
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                ) : (
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                )}
-                <span className="text-xs text-muted-foreground">{t('finance.filters.type')}</span>
-              </div>
+          <div className="p-4 space-y-4">
+            {/* Tipo */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">{t('finance.filters.type')}</label>
               <Select value={filters.type} onValueChange={(value) => updateFilter('type', value)}>
-                <SelectTrigger className="flex-1 border-0 bg-transparent h-8 focus:ring-0 shadow-none">
-                  <SelectValue />
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={t('finance.filters.all')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('finance.filters.all')}</SelectItem>
@@ -226,21 +182,18 @@ export const TransactionFilters = ({
               </Select>
             </div>
 
-            {/* Categoria - Inline */}
-            <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2 w-20 flex-shrink-0">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{t('finance.filters.category')}</span>
-              </div>
+            {/* Categoria */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">{t('finance.filters.category')}</label>
               <Select value={filters.category} onValueChange={(value) => updateFilter('category', value)}>
-                <SelectTrigger className="flex-1 border-0 bg-transparent h-8 focus:ring-0 shadow-none">
-                  <SelectValue />
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={t('finance.filters.allCategories')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('finance.filters.allCategories')}</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.name}>
-                      {cat.icon && <span className="mr-1">{cat.icon}</span>}
+                      {cat.icon && <span className="mr-1.5">{cat.icon}</span>}
                       {cat.name}
                     </SelectItem>
                   ))}
@@ -248,21 +201,12 @@ export const TransactionFilters = ({
               </Select>
             </div>
 
-            {/* Status - Inline */}
-            <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2 w-20 flex-shrink-0">
-                {filters.status === 'completed' ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                ) : filters.status === 'pending' ? (
-                  <Clock className="h-4 w-4 text-yellow-500" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                )}
-                <span className="text-xs text-muted-foreground">{t('finance.filters.status')}</span>
-              </div>
+            {/* Status */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">{t('finance.filters.status')}</label>
               <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
-                <SelectTrigger className="flex-1 border-0 bg-transparent h-8 focus:ring-0 shadow-none">
-                  <SelectValue />
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={t('finance.filters.all')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('finance.filters.all')}</SelectItem>
@@ -272,72 +216,64 @@ export const TransactionFilters = ({
               </Select>
             </div>
 
-            {/* Pagamento - Inline */}
-            <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2 w-20 flex-shrink-0">
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{t('finance.filters.payment')}</span>
-              </div>
+            {/* Método de Pagamento */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">{t('finance.filters.payment')}</label>
               <Select value={filters.paymentMethod} onValueChange={(value) => updateFilter('paymentMethod', value)}>
-                <SelectTrigger className="flex-1 border-0 bg-transparent h-8 focus:ring-0 shadow-none">
-                  <SelectValue />
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={t('finance.filters.all')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('finance.filters.all')}</SelectItem>
-                  <SelectItem value="money">{t('finance.filters.money')}</SelectItem>
-                  <SelectItem value="card">{t('finance.filters.card')}</SelectItem>
-                  <SelectItem value="pix">{t('finance.filters.pix')}</SelectItem>
-                  <SelectItem value="transfer">{t('finance.filters.transfer')}</SelectItem>
-                  <SelectItem value="other">{t('finance.filters.other')}</SelectItem>
+                  <SelectItem value="money">{t('finance.payment.cash')}</SelectItem>
+                  <SelectItem value="credit_card">{t('finance.payment.creditCard')}</SelectItem>
+                  <SelectItem value="debit_card">{t('finance.payment.debitCard')}</SelectItem>
+                  <SelectItem value="pix">{t('finance.payment.pix')}</SelectItem>
+                  <SelectItem value="bank_transfer">{t('finance.payment.bankTransfer')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Período - Inline */}
-            <div className="px-4 py-3 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{t('finance.filters.date')}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pl-6">
+            {/* Período */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">{t('finance.filters.date')}</label>
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] text-muted-foreground">{t('finance.filters.dateFrom')}</label>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">{t('finance.filters.dateFrom')}</label>
                   <Input
                     type="date"
                     value={filters.dateFrom}
                     onChange={(e) => updateFilter('dateFrom', e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-9"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-muted-foreground">{t('finance.filters.dateTo')}</label>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">{t('finance.filters.dateTo')}</label>
                   <Input
                     type="date"
                     value={filters.dateTo}
                     onChange={(e) => updateFilter('dateTo', e.target.value)}
-                    className="h-8 text-xs"
+                    className="h-9"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Filtros ativos */}
+          {/* Footer */}
           {activeFiltersCount > 0 && (
-            <div className="px-4 py-3 border-t bg-muted/30">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {activeFiltersCount} {t('finance.filters.active')}
-                </span>
-                <Button variant="outline" size="sm" onClick={clearFilters} className="h-7 text-xs">
-                  <X className="h-3 w-3 mr-1" />
-                  {t('finance.filters.clearAll')}
-                </Button>
-              </div>
+            <div className="px-4 py-3 border-t bg-muted/30 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {activeFiltersCount} {t('finance.filters.active')}
+              </span>
+              <Button variant="outline" size="sm" onClick={clearFilters} className="h-7 text-xs gap-1">
+                <X className="h-3 w-3" />
+                {t('finance.filters.clearAll')}
+              </Button>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

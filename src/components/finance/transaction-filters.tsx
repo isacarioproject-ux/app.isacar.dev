@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -19,6 +19,7 @@ import { FinanceCategory } from '@/types/finance'
 import { cn } from '@/lib/utils'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useI18n } from '@/hooks/use-i18n'
+import { AnimatePresence, motion } from 'framer-motion'
 
 interface TransactionFiltersProps {
   categories: FinanceCategory[]
@@ -46,6 +47,8 @@ export const TransactionFilters = ({
   hideButton = false,
 }: TransactionFiltersProps) => {
   const { t } = useI18n()
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     type: 'all',
@@ -55,6 +58,24 @@ export const TransactionFilters = ({
     dateFrom: '',
     dateTo: '',
   })
+
+  // Focar no input quando expandir
+  useEffect(() => {
+    if (isSearchExpanded && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [isSearchExpanded])
+
+  // Fechar busca quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isSearchExpanded && filters.search === '' && searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setIsSearchExpanded(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isSearchExpanded, filters.search])
 
   // Debounce apenas para busca (search)
   const debouncedSearch = useDebounce(filters.search, 300)
@@ -87,17 +108,62 @@ export const TransactionFilters = ({
   ).length
 
   return (
-    <div className="flex gap-2">
-      {/* Busca */}
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={t('finance.filters.searchPlaceholder')}
-          value={filters.search}
-          onChange={(e) => updateFilter('search', e.target.value)}
-          className="pl-9 h-8"
-        />
-      </div>
+    <div className="flex gap-2 items-center">
+      {/* Busca Expansível - Estilo Notion */}
+      <AnimatePresence mode="wait">
+        {isSearchExpanded ? (
+          <motion.div
+            key="search-expanded"
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 'auto', opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative flex-1 min-w-0"
+          >
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={searchInputRef}
+              placeholder={t('finance.filters.searchPlaceholder')}
+              value={filters.search}
+              onChange={(e) => updateFilter('search', e.target.value)}
+              className="pl-9 pr-8 h-8 w-full"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setIsSearchExpanded(false)
+                  updateFilter('search', '')
+                }
+              }}
+            />
+            {filters.search && (
+              <button
+                onClick={() => {
+                  updateFilter('search', '')
+                  searchInputRef.current?.focus()
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="search-collapsed"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSearchExpanded(true)}
+              className="h-8 w-8 p-0"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filtros */}
       <Popover open={open} onOpenChange={onOpenChange}>

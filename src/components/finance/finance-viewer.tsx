@@ -584,37 +584,39 @@ export const FinanceViewer = ({
             </div>
           )}
 
-          {/* Ícone emoji - menor em mobile */}
+          {/* Ícone emoji - clicável para editar */}
           {iconEmoji && (
-            <div className="text-4xl sm:text-6xl md:text-7xl mb-3 sm:mb-4 leading-none">
+            <div className="text-5xl sm:text-6xl md:text-8xl mb-4 sm:mb-5 leading-none cursor-default select-none hover:scale-105 transition-transform">
               {iconEmoji}
             </div>
           )}
 
-          {/* Título editável */}
+          {/* Título editável - estilo Notion */}
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('finance.viewer.titlePlaceholder')}
-            className="text-2xl sm:text-3xl md:text-4xl font-bold border-none px-0 mb-2 sm:mb-3 focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/30"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold border-none px-0 mb-1 sm:mb-2 h-auto py-0 focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/20 tracking-tight"
           />
 
-          {/* Período de referência */}
+          {/* Período de referência - badge moderno */}
           {(referenceMonth || referenceYear) && (
-            <div className="flex items-center gap-1.5 mb-3 sm:mb-4 text-xs sm:text-sm text-muted-foreground">
+            <div className="inline-flex items-center gap-1.5 mb-3 sm:mb-4 px-2.5 py-1 rounded-full bg-muted/50 text-xs sm:text-sm text-muted-foreground">
               <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              {referenceMonth && referenceYear && `${referenceMonth}/${referenceYear}`}
-              {!referenceMonth && referenceYear && `${referenceYear}`}
-              {referenceMonth && !referenceYear && `${t('finance.viewer.month')} ${referenceMonth}`}
+              <span className="font-medium">
+                {referenceMonth && referenceYear && `${referenceMonth}/${referenceYear}`}
+                {!referenceMonth && referenceYear && `${referenceYear}`}
+                {referenceMonth && !referenceYear && `${t('finance.viewer.month')} ${referenceMonth}`}
+              </span>
             </div>
           )}
 
-          {/* Descrição editável */}
+          {/* Descrição editável - estilo Notion */}
           <Input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t('finance.viewer.descriptionPlaceholder')}
-            className="mb-4 sm:mb-6 border-none px-0 text-sm sm:text-base focus-visible:ring-0 bg-transparent text-muted-foreground placeholder:text-muted-foreground/30"
+            className="mb-5 sm:mb-6 border-none px-0 text-base sm:text-lg h-auto py-0 focus-visible:ring-0 bg-transparent text-muted-foreground/80 placeholder:text-muted-foreground/30 font-light"
           />
 
           {/* Card de resumo financeiro - clean e compacto */}

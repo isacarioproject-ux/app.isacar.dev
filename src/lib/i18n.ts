@@ -1938,6 +1938,7 @@ const translations: Translations = {
   'finance.recurringBills.markPending': { 'pt-BR': 'Marcar como pendente', 'en': 'Mark as pending', 'es': 'Marcar como pendiente' },
   'finance.recurringBills.markPaid': { 'pt-BR': 'Marcar como pago', 'en': 'Mark as paid', 'es': 'Marcar como pagado' },
   'finance.recurringBills.paid': { 'pt-BR': 'Pagas', 'en': 'Paid', 'es': 'Pagadas' },
+  'finance.recurringBills.task': { 'pt-BR': 'Tarefa', 'en': 'Task', 'es': 'Tarea' },
   'finance.recurringBills.updated': { 'pt-BR': 'Conta atualizada!', 'en': 'Bill updated!', 'es': '¡Cuenta actualizada!' },
   'finance.recurringBills.invalidDay': { 'pt-BR': 'Dia inválido (1-31)', 'en': 'Invalid day (1-31)', 'es': 'Día inválido (1-31)' },
   'finance.recurringBills.overdue': { 'pt-BR': 'vencidas', 'en': 'overdue', 'es': 'vencidas' },

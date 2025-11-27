@@ -38,6 +38,7 @@ interface RecurringBill {
   name: string
   amount: number
   due_day: number
+  due_date: string | null // Data completa de vencimento
   category: string
   paid: boolean
   auto_create: boolean
@@ -259,6 +260,9 @@ export const RecurringBillsBlock = ({
         return
       }
 
+      const defaultDate = new Date()
+      defaultDate.setDate(defaultDate.getDate() + 7) // 7 dias no futuro como padrão
+      
       const { data, error } = await supabase
         .from('recurring_bills')
         .insert({
@@ -266,7 +270,8 @@ export const RecurringBillsBlock = ({
           finance_document_id: documentId,
           name: '',
           amount: 0.01, // Valor mínimo para não violar constraint
-          due_day: new Date().getDate(), // Dia atual como padrão
+          due_day: defaultDate.getDate(),
+          due_date: format(defaultDate, 'yyyy-MM-dd'),
           category: categories[0] || '',
           paid: false,
           auto_create: false,
@@ -368,13 +373,24 @@ export const RecurringBillsBlock = ({
     }
   }
 
-  // Calcular contas vencendo e vencidas
-  const today = new Date().getDate()
-  const overdueBills = bills.filter(b => !b.paid && b.due_day < today)
+  // Calcular contas vencendo e vencidas usando due_date
+  const today = new Date()
+  today.setHours(0, 0, 0, 0) // Normalizar para meia-noite
+  
+  const overdueBills = bills.filter(b => {
+    if (b.paid) return false
+    if (!b.due_date) return false
+    const dueDate = new Date(b.due_date + 'T00:00:00')
+    return dueDate < today
+  })
+  
   const upcomingBills = bills.filter(b => {
     if (b.paid) return false
-    const daysUntilDue = b.due_day - today
-    return daysUntilDue >= 0 && daysUntilDue <= 7
+    if (!b.due_date) return false
+    const dueDate = new Date(b.due_date + 'T00:00:00')
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays >= 0 && diffDays <= 7
   })
 
   // Skeleton
@@ -400,7 +416,7 @@ export const RecurringBillsBlock = ({
               <TableHead className="h-8 text-xs">
                 <Skeleton className="h-3 w-16" />
               </TableHead>
-              <TableHead className="h-8 text-xs hidden lg:table-cell">
+              <TableHead className="h-8 text-xs">
                 <Skeleton className="h-3 w-20" />
               </TableHead>
               <TableHead className="h-8 w-8"></TableHead>
@@ -418,10 +434,10 @@ export const RecurringBillsBlock = ({
                 <TableCell className="text-xs py-0 px-2 text-right">
                   <Skeleton className="h-4 w-20 ml-auto" />
                 </TableCell>
-                <TableCell className="text-xs py-0 px-2 hidden md:table-cell">
+                <TableCell className="text-xs py-0 px-2">
                   <Skeleton className="h-4 w-12" />
                 </TableCell>
-                <TableCell className="text-xs py-0 px-2 hidden lg:table-cell">
+                <TableCell className="text-xs py-0 px-2">
                   <Skeleton className="h-4 w-16" />
                 </TableCell>
                 <TableCell className="text-xs py-0 px-1">
@@ -535,9 +551,9 @@ export const RecurringBillsBlock = ({
               <TableHead className="h-8 text-xs">{t('finance.table.description')}</TableHead>
               <TableHead className="h-8 text-xs text-right">{t('finance.budget.value')}</TableHead>
               <TableHead className="h-8 text-xs">{t('finance.recurringBills.dueDay')}</TableHead>
-              <TableHead className="h-8 text-xs hidden lg:table-cell">{t('finance.table.category')}</TableHead>
+              <TableHead className="h-8 text-xs">{t('finance.table.category')}</TableHead>
               {isTaskIntegrationEnabled && (
-                <TableHead className="h-8 text-xs hidden xl:table-cell">Task</TableHead>
+                <TableHead className="h-8 text-xs">{t('finance.recurringBills.task')}</TableHead>
               )}
               <TableHead className="h-8 w-8"></TableHead>
             </TableRow>
@@ -817,7 +833,10 @@ export const RecurringBillsBlock = ({
                       >
                         <CalendarIcon className="h-3 w-3 text-muted-foreground" />
                         <Badge variant="secondary" className="text-xs">
-                          {bill.due_day}
+                          {bill.due_date 
+                            ? format(new Date(bill.due_date + 'T00:00:00'), 'dd/MM', { locale: dateFnsLocale })
+                            : bill.due_day
+                          }
                         </Badge>
                       </motion.button>
                     </PopoverTrigger>
@@ -834,23 +853,18 @@ export const RecurringBillsBlock = ({
                       >
                         <Calendar
                           mode="single"
-                          selected={(() => {
-                            const currentDate = new Date()
-                            const year = currentDate.getFullYear()
-                            const month = currentDate.getMonth()
-                            const day = parseInt(editingValue || String(bill.due_day)) || 1
-                            // Garantir que o dia está dentro do range válido do mês
-                            const daysInMonth = new Date(year, month + 1, 0).getDate()
-                            const validDay = Math.min(Math.max(day, 1), daysInMonth)
-                            return new Date(year, month, validDay)
-                          })()}
+                          selected={bill.due_date ? new Date(bill.due_date + 'T00:00:00') : new Date()}
                           onSelect={async (date) => {
                             if (date) {
+                              const formattedDate = format(date, 'yyyy-MM-dd')
                               const day = date.getDate()
                               setSaving({ rowId: bill.id, field: 'due_day' })
                               
-                              // Salvar diretamente
-                              const updateData = { due_day: day }
+                              // Salvar data completa
+                              const updateData = { 
+                                due_day: day,
+                                due_date: formattedDate 
+                              }
                               try {
                                 const { error } = await supabase
                                   .from('recurring_bills')
@@ -861,12 +875,12 @@ export const RecurringBillsBlock = ({
                                 
                                 // Atualizar estado local
                                 setBills(prevBills => prevBills.map(b => 
-                                  b.id === bill.id ? { ...b, due_day: day } : b
+                                  b.id === bill.id ? { ...b, due_day: day, due_date: formattedDate } : b
                                 ))
                                 
                                 toast.success(t('finance.recurringBills.updated'))
                               } catch (err: any) {
-                                console.error('Error updating due day:', err)
+                                console.error('Error updating due date:', err)
                                 toast.error(t('finance.recurringBills.errorUpdate'), {
                                   description: err.message || t('finance.recurringBills.errorUpdate'),
                                 })
@@ -912,7 +926,7 @@ export const RecurringBillsBlock = ({
                 </TableCell>
 
                 {/* Categoria - Editável inline */}
-                <TableCell className="text-xs py-0 px-2 hidden lg:table-cell">
+                <TableCell className="text-xs py-0 px-2">
                   <AnimatePresence mode="wait">
                     {editingCell?.rowId === bill.id && editingCell?.field === 'category' ? (
                       <motion.div
@@ -1013,7 +1027,7 @@ export const RecurringBillsBlock = ({
 
                 {/* Task - Editável inline (somente se integração ativa) */}
                 {isTaskIntegrationEnabled && (
-                <TableCell className="text-xs py-0 px-2 hidden xl:table-cell">
+                <TableCell className="text-xs py-0 px-2">
                   <AnimatePresence mode="wait">
                     {editingCell?.rowId === bill.id && editingCell?.field === 'task' ? (
                       <motion.div

@@ -47,6 +47,60 @@ export const TransactionTable = ({
   // Estados para edição inline (como no gerenciador de orçamento)
   const [editingCell, setEditingCell] = useState<{rowId: string, field: string} | null>(null)
   const [editingValue, setEditingValue] = useState('')
+  
+  // Estado para nova transação (formulário completo antes de salvar)
+  const [showNewRow, setShowNewRow] = useState(false)
+  const [newTransaction, setNewTransaction] = useState({
+    description: '',
+    type: 'expense' as 'income' | 'expense',
+    category: '',
+    amount: '',
+    payment_method: 'pix',
+    transaction_date: format(new Date(), 'yyyy-MM-dd')
+  })
+
+  // Função para salvar nova transação
+  const handleSaveNewTransaction = async () => {
+    if (!newTransaction.description.trim()) {
+      toast.error(t('finance.table.descriptionRequired'))
+      return
+    }
+    
+    const amount = parseFloat(newTransaction.amount) || 0
+    
+    try {
+      const { error } = await supabase.from('finance_transactions').insert({
+        finance_document_id: documentId,
+        type: newTransaction.type,
+        category: newTransaction.category || t('finance.categories.other'),
+        description: newTransaction.description.trim(),
+        amount: amount,
+        transaction_date: newTransaction.transaction_date,
+        payment_method: newTransaction.payment_method,
+        status: 'completed',
+        tags: [],
+      })
+
+      if (error) throw error
+      
+      // Reset form
+      setNewTransaction({
+        description: '',
+        type: 'expense',
+        category: '',
+        amount: '',
+        payment_method: 'pix',
+        transaction_date: format(new Date(), 'yyyy-MM-dd')
+      })
+      setShowNewRow(false)
+      
+      window.dispatchEvent(new CustomEvent('finance-transaction-updated'))
+      onRefresh()
+      toast.success(t('finance.table.added'))
+    } catch (err: any) {
+      toast.error(t('finance.table.errorAdd'), { description: err.message })
+    }
+  }
 
   const handleDeleteTransaction = useCallback(async (id: string) => {
     if (!confirm(t('finance.table.deleteConfirm'))) return
@@ -248,13 +302,13 @@ export const TransactionTable = ({
         <Table>
           <TableHeader>
             <TableRow className="h-8">
-              <TableHead className="h-8 text-xs w-[50px]">{t('finance.table.status')}</TableHead>
-              <TableHead className="h-8 text-xs w-[100px]">{t('finance.table.type')}</TableHead>
+              <TableHead className="h-8 text-xs w-[40px]"></TableHead>
+              <TableHead className="h-8 text-xs w-[80px]">{t('finance.table.type')}</TableHead>
               <TableHead className="h-8 text-xs">{t('finance.table.description')}</TableHead>
-              <TableHead className="h-8 text-xs hidden md:table-cell">{t('finance.table.category')}</TableHead>
-              <TableHead className="h-8 text-xs hidden lg:table-cell">{t('finance.table.payment')}</TableHead>
-              <TableHead className="h-8 text-xs hidden xl:table-cell">{t('finance.table.date')}</TableHead>
-              <TableHead className="h-8 text-xs text-right">{t('finance.table.value')}</TableHead>
+              <TableHead className="h-8 text-xs w-[100px]">{t('finance.table.category')}</TableHead>
+              <TableHead className="h-8 text-xs hidden sm:table-cell w-[90px]">{t('finance.table.payment')}</TableHead>
+              <TableHead className="h-8 text-xs hidden md:table-cell w-[100px]">{t('finance.table.date')}</TableHead>
+              <TableHead className="h-8 text-xs text-right w-[100px]">{t('finance.table.value')}</TableHead>
               <TableHead className="h-8 w-8"></TableHead>
             </TableRow>
           </TableHeader>
@@ -398,7 +452,7 @@ export const TransactionTable = ({
                   </TableCell>
 
                 {/* Categoria - Editável inline */}
-                <TableCell className="text-xs py-0 px-2 hidden md:table-cell">
+                <TableCell className="text-xs py-0 px-2">
                   {editingCell?.rowId === transaction.id && editingCell?.field === 'category' ? (
                     <Input
                       value={editingValue}
@@ -431,7 +485,7 @@ export const TransactionTable = ({
                   </TableCell>
 
                 {/* Método de pagamento - Editável inline */}
-                <TableCell className="text-xs py-0 px-2 hidden lg:table-cell">
+                <TableCell className="text-xs py-0 px-2 hidden sm:table-cell">
                   {editingCell?.rowId === transaction.id && editingCell?.field === 'payment_method' ? (
                     <Select
                       value={editingValue || transaction.payment_method || 'cash'}
@@ -486,7 +540,7 @@ export const TransactionTable = ({
                   </TableCell>
 
                 {/* Data - Editável inline */}
-                <TableCell className="text-xs py-0 px-2 hidden xl:table-cell">
+                <TableCell className="text-xs py-0 px-2 hidden md:table-cell">
                   {editingCell?.rowId === transaction.id && editingCell?.field === 'date' ? (
                     <Input
                       type="date"
@@ -578,41 +632,127 @@ export const TransactionTable = ({
                 </TableRow>
               ))}
             
-            {/* Linha vazia para adicionar nova transação - Como no gerenciador */}
-            <TableRow className="h-8">
-              <TableCell className="text-xs py-0 px-2"></TableCell>
-              <TableCell className="text-xs py-0 px-2"></TableCell>
-              <TableCell className="text-xs py-0 px-2">
-                {editingCell?.rowId === 'new-transaction' && editingCell?.field === 'description' ? (
-                  <Input
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    onBlur={() => handleCellSave('new-transaction', 'description')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        handleCellSave('new-transaction', 'description')
-                      }
-                      if (e.key === 'Escape') {
-                        e.preventDefault()
-                        setEditingCell(null)
-                      }
-                    }}
-                    className="h-7 text-xs border-none p-1 focus-visible:ring-1"
-                    autoFocus
-                    placeholder="Descrição..."
-                  />
-                ) : (
-                  <div
-                    onClick={(e) => handleCellEdit(e, 'new-transaction', 'description', '')}
-                    className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center text-muted-foreground italic"
+            {/* Linha para adicionar nova transação - Formulário completo */}
+            {showNewRow ? (
+              <TableRow className="h-auto bg-muted/30">
+                <TableCell className="text-xs py-1 px-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-green-600"
+                    onClick={handleSaveNewTransaction}
                   >
-                    + {t('finance.table.add')}...
+                    <Check className="h-3 w-3" />
+                  </Button>
+                </TableCell>
+                <TableCell className="text-xs py-1 px-1">
+                  <Select
+                    value={newTransaction.type}
+                    onValueChange={(value: 'income' | 'expense') => setNewTransaction(prev => ({ ...prev, type: value }))}
+                  >
+                    <SelectTrigger className="h-7 text-xs p-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="expense">
+                        <div className="flex items-center gap-1">
+                          <TrendingDown className="h-3 w-3 text-red-600" />
+                          <span className="text-xs">{t('finance.filters.expense')}</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="income">
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3 text-green-600" />
+                          <span className="text-xs">{t('finance.filters.income')}</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell className="text-xs py-1 px-1">
+                  <Input
+                    value={newTransaction.description}
+                    onChange={(e) => setNewTransaction(prev => ({ ...prev, description: e.target.value }))}
+                    className="h-7 text-xs p-1"
+                    placeholder={t('finance.table.description')}
+                    autoFocus
+                  />
+                </TableCell>
+                <TableCell className="text-xs py-1 px-1">
+                  <Input
+                    value={newTransaction.category}
+                    onChange={(e) => setNewTransaction(prev => ({ ...prev, category: e.target.value }))}
+                    className="h-7 text-xs p-1"
+                    placeholder={t('finance.table.category')}
+                    list="transaction-categories"
+                  />
+                </TableCell>
+                <TableCell className="text-xs py-1 px-1 hidden sm:table-cell">
+                  <Select
+                    value={newTransaction.payment_method}
+                    onValueChange={(value) => setNewTransaction(prev => ({ ...prev, payment_method: value }))}
+                  >
+                    <SelectTrigger className="h-7 text-xs p-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((method) => (
+                        <SelectItem key={method.value} value={method.value}>
+                          <span className="text-xs">{method.icon}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell className="text-xs py-1 px-1 hidden md:table-cell">
+                  <Input
+                    type="date"
+                    value={newTransaction.transaction_date}
+                    onChange={(e) => setNewTransaction(prev => ({ ...prev, transaction_date: e.target.value }))}
+                    className="h-7 text-xs p-1"
+                  />
+                </TableCell>
+                <TableCell className="text-xs py-1 px-1">
+                  <Input
+                    type="number"
+                    value={newTransaction.amount}
+                    onChange={(e) => setNewTransaction(prev => ({ ...prev, amount: e.target.value }))}
+                    className="h-7 text-xs p-1 text-right"
+                    placeholder="0,00"
+                    step="0.01"
+                  />
+                </TableCell>
+                <TableCell className="text-xs py-1 px-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      setShowNewRow(false)
+                      setNewTransaction({
+                        description: '',
+                        type: 'expense',
+                        category: '',
+                        amount: '',
+                        payment_method: 'pix',
+                        transaction_date: format(new Date(), 'yyyy-MM-dd')
+                      })
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ) : (
+              <TableRow className="h-8 hover:bg-muted/30 cursor-pointer" onClick={() => setShowNewRow(true)}>
+                <TableCell colSpan={8} className="text-xs py-0 px-2">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Plus className="h-3 w-3" />
+                    <span>{t('finance.table.add')}</span>
                   </div>
-                )}
-              </TableCell>
-              <TableCell colSpan={5} className="text-xs py-0 px-2"></TableCell>
-            </TableRow>
+                </TableCell>
+              </TableRow>
+            )}
             </TableBody>
           </Table>
         <datalist id="transaction-categories">
@@ -622,36 +762,10 @@ export const TransactionTable = ({
         </datalist>
           </div>
 
-      {/* Resumo - Único resumo compacto como no gerenciador */}
-      {transactions.length > 0 && (
-        <div className="p-2 bg-muted/30 rounded-lg border">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground text-xs">
-              {transactions.length} {transactions.length === 1 ? t('finance.table.transaction') : t('finance.table.transactions')}
-          </span>
-            <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-green-600" />
-                <span className="font-mono text-green-600 text-xs">
-                  {formatCurrency(totals.income)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <TrendingDown className="h-3 w-3 text-red-600" />
-                <span className="font-mono text-red-600 text-xs">
-                  {formatCurrency(totals.expense)}
-              </span>
-              </div>
-              <div className={cn(
-                "flex items-center gap-1 font-mono font-semibold text-xs",
-                totals.balance >= 0 ? "text-green-600" : "text-red-600"
-              )}>
-                <span>{totals.balance >= 0 ? '+' : ''}{formatCurrency(totals.balance)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Contador de transações */}
+      <div className="text-xs text-muted-foreground text-center py-1">
+        {transactions.length} {transactions.length === 1 ? t('finance.table.transaction') : t('finance.table.transactions')}
+      </div>
     </div>
   )
 }

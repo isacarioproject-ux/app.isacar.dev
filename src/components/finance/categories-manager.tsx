@@ -19,8 +19,16 @@ import {
   Trash2,
   TrendingUp,
   TrendingDown,
-  Smile,
+  Pencil,
+  GripVertical,
+  MoreHorizontal,
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { FinanceCategory } from '@/types/finance'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -424,27 +432,35 @@ export const CategoriesManager = ({
                             </p>
                           )}
                     </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              setEditingCategory(cat.id)
-                              setEditForm({ name: cat.name, description: cat.description || '' })
-                            }}
-                          >
-                            <Smile className="h-3.5 w-3.5" />
-                          </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                            className="h-7 w-7"
-                      onClick={() => handleDeleteCategory(cat.id)}
-                    >
-                            <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingCategory(cat.id)
+                                setEditForm({ name: cat.name, description: cat.description || '' })
+                              }}
+                            >
+                              <Pencil className="mr-2 h-3.5 w-3.5" />
+                              {t('common.edit')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteCategory(cat.id)}
+                            >
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />
+                              {t('common.delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </>
                     )}
                   </div>
@@ -587,27 +603,35 @@ export const CategoriesManager = ({
                             </p>
                           )}
                     </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7"
-                            onClick={() => {
-                              setEditingCategory(cat.id)
-                              setEditForm({ name: cat.name, description: cat.description || '' })
-                            }}
-                          >
-                            <Smile className="h-3.5 w-3.5" />
-                          </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                            className="h-7 w-7"
-                      onClick={() => handleDeleteCategory(cat.id)}
-                    >
-                            <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingCategory(cat.id)
+                                setEditForm({ name: cat.name, description: cat.description || '' })
+                              }}
+                            >
+                              <Pencil className="mr-2 h-3.5 w-3.5" />
+                              {t('common.edit')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteCategory(cat.id)}
+                            >
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />
+                              {t('common.delete')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </>
                     )}
                   </div>

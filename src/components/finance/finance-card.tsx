@@ -52,7 +52,6 @@ import { useFinanceCard } from '@/hooks/use-finance-card'
 import { toast } from 'sonner'
 import { FinanceViewer } from './finance-viewer'
 import { CategoriesManager } from './categories-manager'
-import { BudgetManager } from '@/components/budget-manager'
 import { supabase } from '@/lib/supabase'
 import {
   Tooltip,
@@ -99,7 +98,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
   const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showCategoriesManager, setShowCategoriesManager] = useState(false)
-  const [showBudgetManager, setShowBudgetManager] = useState(false)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [showSidebar, setShowSidebar] = useState(false)
   const [memberCount, setMemberCount] = useState(0)
@@ -520,8 +518,10 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
             "data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-            "sm:rounded-lg flex flex-col",
-            isFullscreen ? "max-w-[100vw] h-[100vh] rounded-none" : "max-w-[60vw] h-[75vh]"
+            "sm:rounded-lg flex flex-col !max-w-none",
+            isFullscreen 
+              ? "!w-[100vw] !h-[100vh] rounded-none" 
+              : "w-[95vw] md:!w-[85vw] lg:!w-[75vw] xl:!w-[60vw] h-[90vh] md:!h-[85vh] lg:!h-[80vh]"
           )}
         >
           {/* Header igual ao menubar do card - v2 */}
@@ -619,25 +619,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{t('finance.card.elements')}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Botão Orçamentos - aparece quando há documento selecionado */}
-              {selectedDocId && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => setShowBudgetManager(true)}
-                    >
-                      <Target className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t('finance.card.manageBudgets')}</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -968,14 +949,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
       }}
     />
 
-    {/* Budget Manager */}
-    {selectedDocId && (
-      <BudgetManager
-        open={showBudgetManager}
-        onOpenChange={setShowBudgetManager}
-        documentId={selectedDocId}
-      />
-    )}
   </>
   )
 }

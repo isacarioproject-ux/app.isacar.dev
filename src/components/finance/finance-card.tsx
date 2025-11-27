@@ -50,7 +50,6 @@ import {
 import { useWorkspace } from '@/contexts/workspace-context'
 import { useFinanceCard } from '@/hooks/use-finance-card'
 import { toast } from 'sonner'
-import { FinanceTemplateSelector } from './finance-template-selector'
 import { FinanceViewer } from './finance-viewer'
 import { CategoriesManager } from './categories-manager'
 import { BudgetManager } from '@/components/budget-manager'
@@ -96,30 +95,16 @@ const getDocumentIcon = (type: string) => {
 export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) {
   const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
-  const cardName = t('sidebar.finance')
+  const cardName = t('finance.card.title')
   const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [showCategoriesManager, setShowCategoriesManager] = useState(false)
   const [showBudgetManager, setShowBudgetManager] = useState(false)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [showSidebar, setShowSidebar] = useState(false)
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('')
-  const [projects, setProjects] = useState<any[]>([])
   const [memberCount, setMemberCount] = useState(0)
   const { documents, loading, refetch } = useFinanceCard(workspaceId)
 
-  // Carregar projetos
-  useEffect(() => {
-    const loadProjects = async () => {
-      const { data } = await supabase
-        .from('projects')
-        .select('id, name')
-        .order('name')
-      if (data) setProjects(data)
-    }
-    loadProjects()
-  }, [])
 
   // Buscar contagem de membros do workspace
   useEffect(() => {
@@ -239,47 +224,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
     }
   }
 
-  const handleSelectTemplate = async (template: any) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Definir mês/ano atual
-      const now = new Date()
-      const month = now.getMonth() + 1
-      const year = now.getFullYear()
-
-      const { data: newDoc, error } = await supabase
-        .from('finance_documents')
-        .insert({
-          user_id: user.id,
-          workspace_id: currentWorkspace?.id || null,
-          name: template.name,
-          template_type: template.template_type,
-          icon: template.icon,
-          reference_month: template.config.default_period === 'monthly' ? month : null,
-          reference_year: year,
-          template_config: template.config,
-          project_id: selectedProjectId || null,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      if (newDoc) {
-        setSelectedDocId(newDoc.id)
-        setIsExpanded(true)
-        refetch()
-        toast.success(`${template.name} ${t('finance.card.created')}`)
-      }
-    } catch (err: any) {
-      toast.error(t('finance.card.errorCreate'), {
-        description: err.message,
-      })
-    }
-  }
-
   return (
     <>
     <Card className="border border-border bg-card rounded-lg overflow-hidden h-full flex flex-col group">
@@ -358,65 +302,53 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
               </TooltipContent>
             </Tooltip>
 
-            {/* Botão Adicionar com Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            {/* Botão Adicionar - Cria documento direto */}
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                   <Button 
                     size="icon" 
                     variant="ghost" 
                     className="h-7 w-7"
+                    onClick={async () => {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (!user) return
+
+                      const { data: newDoc, error } = await supabase
+                        .from('finance_documents')
+                        .insert({
+                          user_id: user.id,
+                          workspace_id: currentWorkspace?.id || null,
+                          name: t('finance.card.untitled'),
+                          template_type: 'expenses',
+                          total_income: 0,
+                          total_expenses: 0,
+                          balance: 0,
+                        })
+                        .select()
+                        .single()
+
+                      if (error) {
+                        toast.error(t('finance.card.errorCreate'), { description: error.message })
+                        return
+                      }
+
+                      if (newDoc) {
+                        setSelectedDocId(newDoc.id)
+                        setIsExpanded(true)
+                        refetch()
+                        toast.success(t('finance.card.documentCreated'))
+                      }
+                    }}
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </motion.div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* Criar de Template */}
-                <DropdownMenuItem
-                  onClick={() => setShowTemplateSelector(true)}
-                >
-                  <Sparkles className="mr-2 h-4 w-4 text-yellow-500" />
-                  {t('finance.card.createTemplate')}
-                </DropdownMenuItem>
-
-                {/* Criar Documento em Branco */}
-                <DropdownMenuItem
-                  onClick={async () => {
-                    const { data: { user } } = await supabase.auth.getUser()
-                    if (!user) return
-
-                    const { data: newDoc, error } = await supabase
-                      .from('finance_documents')
-                      .insert({
-                        user_id: user.id,
-                        workspace_id: currentWorkspace?.id || null,
-                        name: t('finance.card.untitled'),
-                        template_type: 'expenses',
-                        total_income: 0,
-                        total_expenses: 0,
-                        balance: 0,
-                      })
-                      .select()
-                      .single()
-
-                    if (error) {
-                      toast.error(t('finance.card.errorCreate'), { description: error.message })
-                      return
-                    }
-
-                    if (newDoc) {
-                      setSelectedDocId(newDoc.id)
-                      refetch()
-                      toast.success(t('finance.card.documentCreated'))
-                    }
-                  }}
-                >
-                  <FileSpreadsheet className="mr-2 h-4 w-4" />
-                  {t('finance.card.blankDocument')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('finance.card.newDocument')}</p>
+              </TooltipContent>
+            </Tooltip>
 
           </div>
           </TooltipProvider>
@@ -577,16 +509,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
       </CardContent>
     </Card>
 
-    {/* Template Selector */}
-    <FinanceTemplateSelector
-      open={showTemplateSelector}
-      onOpenChange={setShowTemplateSelector}
-      onSelectTemplate={handleSelectTemplate}
-      projects={projects}
-      selectedProjectId={selectedProjectId}
-      onProjectChange={setSelectedProjectId}
-    />
-
     {/* Dialog Fullscreen */}
     <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
       <DialogPrimitive.Portal>
@@ -741,43 +663,50 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                 </TooltipContent>
               </Tooltip>
 
-              {/* Botão Adicionar com Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-7 w-7">
+              {/* Botão Adicionar - Cria documento direto */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-7 w-7"
+                    onClick={async () => {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (!user) return
+
+                      const { data: newDoc, error } = await supabase
+                        .from('finance_documents')
+                        .insert({
+                          user_id: user.id,
+                          workspace_id: currentWorkspace?.id || null,
+                          name: t('finance.card.untitled'),
+                          template_type: 'expenses',
+                          total_income: 0,
+                          total_expenses: 0,
+                          balance: 0,
+                        })
+                        .select()
+                        .single()
+
+                      if (error) {
+                        toast.error(t('finance.card.errorCreate'), { description: error.message })
+                        return
+                      }
+
+                      if (newDoc) {
+                        setSelectedDocId(newDoc.id)
+                        refetch()
+                        toast.success(t('finance.card.documentCreated'))
+                      }
+                    }}
+                  >
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowTemplateSelector(true)}>
-                    <Sparkles className="mr-2 h-4 w-4 text-yellow-500" />
-                    {t('finance.card.createTemplate')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toast.info(t('finance.card.comingSoon'))}>
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    {t('finance.card.blankDocument')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Mais Opções */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-7 w-7">
-                    <MoreVertical className="h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Copy className="mr-2 h-4 w-4" />
-                    {t('finance.card.duplicate')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive focus:text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t('finance.table.delete')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('finance.card.newDocument')}</p>
+                </TooltipContent>
+              </Tooltip>
 
               {/* Fechar */}
               <Tooltip>

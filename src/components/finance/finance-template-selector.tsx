@@ -85,7 +85,7 @@ export const FinanceTemplateSelector = ({
                   <SelectValue placeholder={t('finance.templates.noProject')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t('finance.templates.noProject')}</SelectItem>
+                  <SelectItem value="none">{t('finance.templates.noProject')}</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}

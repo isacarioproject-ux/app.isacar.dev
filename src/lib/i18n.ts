@@ -1261,6 +1261,8 @@ const translations: Translations = {
   'finance.templates.blankDesc': { 'pt-BR': 'Comece do zero', 'en': 'Start from scratch', 'es': 'Comienza desde cero' },
   
   // Finance Card
+  'finance.card.title': { 'pt-BR': 'Finanças', 'en': 'Finance', 'es': 'Finanzas' },
+  'finance.card.newDocument': { 'pt-BR': 'Novo documento', 'en': 'New document', 'es': 'Nuevo documento' },
   'finance.card.finances': { 'pt-BR': 'Finanças', 'en': 'Finance', 'es': 'Finanzas' },
   'finance.card.expand': { 'pt-BR': 'Expandir', 'en': 'Expand', 'es': 'Expandir' },
   'finance.card.fullscreen': { 'pt-BR': 'Tela cheia', 'en': 'Fullscreen', 'es': 'Pantalla completa' },

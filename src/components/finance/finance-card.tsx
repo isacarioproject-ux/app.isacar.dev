@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { useI18n } from '@/hooks/use-i18n'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import {
@@ -32,8 +31,8 @@ import {
   Maximize2, 
   Minimize2,
   Plus, 
-  MoreVertical, 
-  Copy, 
+  MoreVertical,
+  Copy,
   Trash2,
   Wallet,
   TrendingUp,
@@ -97,11 +96,7 @@ const getDocumentIcon = (type: string) => {
 export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) {
   const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
-  const [cardName, setCardName] = useState(() => {
-    const saved = localStorage.getItem('finance-card-name')
-    return saved || t('finance.card.finances')
-  })
-  const [isEditingName, setIsEditingName] = useState(false)
+  const cardName = t('sidebar.finance')
   const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
@@ -156,18 +151,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
   const totalIncome = documents.reduce((sum, doc) => sum + Number(doc.total_income || 0), 0)
   const totalExpenses = documents.reduce((sum, doc) => sum + Number(doc.total_expenses || 0), 0)
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value
-    setCardName(newName)
-    localStorage.setItem('finance-card-name', newName)
-  }
-
-  const handleDelete = () => {
-    const confirmed = window.confirm(t('finance.card.deleteConfirm'))
-    if (confirmed) {
-      toast.info(t('finance.card.inDevelopment'))
-    }
-  }
 
   const handleDeleteDocument = async (id: string, name: string) => {
     const confirmed = window.confirm(`${t('finance.card.deleteDocConfirm')} "${name}"?`)
@@ -305,36 +288,19 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
         <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
           {/* Drag Handle + Input na MESMA LINHA */}
           <div className="flex items-center gap-1 flex-1 min-w-0">
-            {/* Drag Handle - 6 pontinhos - visível no hover */}
+            {/* Drag Handle - sempre visível no mobile, hover no desktop */}
             <div 
               {...dragHandleProps}
-              className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100 relative z-10"
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 relative z-10 touch-none"
             >
               <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
             </div>
             
-            {/* Nome Editável */}
+            {/* Nome Fixo */}
             <div className="flex items-center gap-2 flex-1 min-w-0">
-            {isEditingName ? (
-              <Input
-                value={cardName}
-                onChange={handleNameChange}
-                onBlur={() => setIsEditingName(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') setIsEditingName(false)
-                }}
-                placeholder={t('finance.card.finances')}
-                className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
-                autoFocus
-              />
-            ) : (
-              <h3
-                className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
-                onClick={() => setIsEditingName(true)}
-              >
+              <h3 className="font-semibold text-sm truncate">
                 {cardName}
               </h3>
-            )}
             {/* Badge do Workspace */}
             {currentWorkspace && (
               <Badge variant="secondary" className="text-xs h-5 hidden sm:inline-flex truncate max-w-[120px]">
@@ -370,9 +336,9 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
             </div>
           </div>
 
-          {/* Botões de Ação - Visível no hover (desktop) ou sempre (mobile) */}
+          {/* Botões de Ação - Sempre visíveis */}
           <TooltipProvider>
-          <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1">
             {/* Botão Expandir */}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -452,40 +418,6 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Dropdown Menu */}
-            <DropdownMenu>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenuTrigger asChild>
-                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
-                      >
-                        <MoreVertical className="h-3.5 w-3.5" />
-                      </Button>
-                    </motion.div>
-                  </DropdownMenuTrigger>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{t('finance.card.moreOptions')}</p>
-                </TooltipContent>
-              </Tooltip>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => toast.info(t('finance.card.comingSoon'))}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  {t('finance.card.duplicate')}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleDelete}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('finance.card.deleteCard')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
           </TooltipProvider>
         </div>
@@ -688,13 +620,10 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                 </Button>
               )}
 
-              {/* Nome do Card - editável */}
-              <Input
-                value={cardName}
-                onChange={(e) => setCardName(e.target.value)}
-                placeholder={t('finance.card.finances')}
-                className="text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring h-7 px-2 w-16 sm:w-32 md:w-40"
-              />
+              {/* Nome do Card - fixo */}
+              <h3 className="text-sm font-semibold px-2">
+                {cardName}
+              </h3>
             </div>
 
             {/* Botões de Ação */}

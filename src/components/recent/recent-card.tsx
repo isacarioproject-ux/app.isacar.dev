@@ -2,18 +2,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { RecentExpandedView } from '@/components/recent/recent-expanded-view';
 import { 
-  MoreVertical, 
   Clock, 
-  Settings, 
   Maximize2, 
   GripVertical,
   CheckSquare,
@@ -21,7 +12,6 @@ import {
   DollarSign,
   FolderKanban,
   Users,
-  // Presentation, // Removido - whiteboard deletado
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,20 +26,10 @@ interface RecentCardProps {
 
 export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
   const { t } = useI18n();
-  const [cardName, setCardName] = useState(() => {
-    const saved = localStorage.getItem('recent-card-name')
-    return saved || t('recent.title')
-  });
-  const [isEditingName, setIsEditingName] = useState(false);
+  const cardName = t('sidebar.recent');
   const [isExpandedViewOpen, setIsExpandedViewOpen] = useState(false);
   const { activities, loading } = useRecentActivities(50);
 
-  // Handler para mudança de nome
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value;
-    setCardName(newName);
-    localStorage.setItem('recent-card-name', newName);
-  };
 
   // Pegar apenas as 10 atividades mais recentes para o card
   const recentActivities = activities.slice(0, 10);
@@ -114,16 +94,19 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
           <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
             {/* Drag Handle + Input Editável */}
             <div className="flex items-center gap-1 flex-1 min-w-0">
-              {/* Drag Handle - 6 pontinhos - visível no hover */}
+              {/* Drag Handle - sempre visível no mobile, hover no desktop */}
               <div 
                 {...dragHandleProps}
-                className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100 relative z-10"
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 relative z-10 touch-none"
               >
                 <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
               </div>
               
-              {/* Badge + Input */}
+              {/* Nome Fixo + Badge */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
+                <h3 className="font-semibold text-sm truncate">
+                  {cardName}
+                </h3>
                 {recentActivities.length > 0 && (
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -135,31 +118,11 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
                     </Badge>
                   </motion.div>
                 )}
-                {isEditingName ? (
-                  <Input
-                    value={cardName}
-                    onChange={handleNameChange}
-                    onBlur={() => setIsEditingName(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') setIsEditingName(false)
-                    }}
-                    placeholder={t('recent.title')}
-                    className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
-                    autoFocus
-                  />
-                ) : (
-                  <h3
-                    className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
-                    onClick={() => setIsEditingName(true)}
-                  >
-                    {cardName}
-                  </h3>
-                )}
               </div>
             </div>
 
-            {/* Botões Animados - Visível no hover */}
-            <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+            {/* Botões Animados - Sempre visíveis */}
+            <div className="flex items-center gap-0.5">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
                   variant="ghost" 
@@ -171,20 +134,6 @@ export function RecentCard({ className, dragHandleProps }: RecentCardProps) {
                   <Maximize2 className="size-3.5" />
                 </Button>
               </motion.div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                      <MoreVertical className="size-3.5" />
-                    </Button>
-                  </motion.div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Configurações</DropdownMenuItem>
-                  <DropdownMenuItem>Filtros</DropdownMenuItem>
-                  <DropdownMenuItem>Limpar histórico</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </CardHeader>

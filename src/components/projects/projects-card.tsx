@@ -2,15 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -18,16 +10,21 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   FolderKanban,
   Plus,
-  MoreVertical,
-  Copy,
-  Trash2,
   GripVertical,
   Maximize2,
   Minimize2,
+  MoreVertical,
+  Trash2,
   Users,
   FileText,
   CheckSquare,
@@ -66,10 +63,7 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
   const { t } = useI18n()
   const finalWorkspaceId = workspaceId || currentWorkspace?.id
 
-  const [cardName, setCardName] = useState(() => {
-    return localStorage.getItem('projects-card-name') || 'Projetos'
-  })
-  const [isEditingName, setIsEditingName] = useState(false)
+  const cardName = t('sidebar.projects')
   const [isExpanded, setIsExpanded] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -131,10 +125,6 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
     }
   }, [finalWorkspaceId])
 
-  // Salvar nome no localStorage
-  useEffect(() => {
-    localStorage.setItem('projects-card-name', cardName)
-  }, [cardName])
 
   // Realtime para atualizar lista quando houver mudanças
   useRealtimeProjects(finalWorkspaceId || null, {
@@ -148,17 +138,6 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
     loadProjects()
   }, [loadProjects])
 
-  const handleDeleteCard = () => {
-    if (confirm('Tem certeza que deseja remover este card?')) {
-      const event = new CustomEvent('delete-card', { detail: 'projects-card' })
-      window.dispatchEvent(event)
-      toast.success(t('projects.cardRemoved'))
-    }
-  }
-
-  const handleDuplicateCard = () => {
-    toast.info(t('projects.featureInDevelopment'))
-  }
 
   const statusColors = {
     active: 'bg-green-500',
@@ -178,35 +157,22 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
           <CardHeader className="p-0">
             <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
             <div className="flex items-center gap-1 flex-1 min-w-0">
-              {/* Drag Handle */}
-              <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
-                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              {/* Drag Handle - sempre visível no mobile, hover no desktop */}
+              <div 
+                {...dragHandleProps} 
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 relative z-10 touch-none"
+              >
+                <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
               </div>
 
-              {/* Nome Editável */}
-              {isEditingName ? (
-                <Input
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  onBlur={() => setIsEditingName(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') setIsEditingName(false)
-                  }}
-                  className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[160px] sm:max-w-[200px] truncate"
-                  autoFocus
-                />
-              ) : (
-                <h3
-                  className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
-                  onClick={() => setIsEditingName(true)}
-                >
-                  {cardName}
-                </h3>
-              )}
+              {/* Nome Fixo */}
+              <h3 className="font-semibold text-sm truncate">
+                {cardName}
+              </h3>
             </div>
 
-            {/* Botões de Ação */}
-            <div className="flex items-center gap-1 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+            {/* Botões de Ação - Sempre visíveis */}
+            <div className="flex items-center gap-1 shrink-0">
               {/* Expandir */}
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                 <Button
@@ -235,27 +201,6 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                 </Button>
               </motion.div>
 
-              {/* Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60">
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </Button>
-                  </motion.div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleDuplicateCard}>
-                    <Copy className="mr-2 h-3.5 w-3.5" />
-                    Duplicar
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleDeleteCard} className="text-destructive">
-                    <Trash2 className="mr-2 h-3.5 w-3.5" />
-                    Remover
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
             </div>
           </CardHeader>
@@ -419,37 +364,6 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="icon" variant="ghost" className="h-7 w-7">
-                      <MoreVertical className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleDuplicateCard}>
-                      <Copy className="mr-2 h-3.5 w-3.5" />
-                      Duplicar
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleDeleteCard} className="text-destructive">
-                      <Trash2 className="mr-2 h-3.5 w-3.5" />
-                      Remover card
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-7 w-7"
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="h-3.5 w-3.5" />
-                  ) : (
-                    <Maximize2 className="h-3.5 w-3.5" />
-                  )}
-                </Button>
                 
                 <Button 
                   size="icon" 

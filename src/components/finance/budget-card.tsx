@@ -3,22 +3,11 @@ import { motion } from 'framer-motion'
 import { useI18n } from '@/hooks/use-i18n'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
 import { 
   Maximize2,
-  MoreVertical, 
-  Copy,
-  Trash2,
   Target,
   GripVertical,
   TrendingUp,
@@ -65,11 +54,7 @@ const COLORS = [
 export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
   const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
-  const [cardName, setCardName] = useState(() => {
-    const saved = localStorage.getItem('budget-card-name')
-    return saved || t('budget.title')
-  })
-  const [isEditingName, setIsEditingName] = useState(false)
+  const cardName = t('sidebar.budget')
   const [isExpanded, setIsExpanded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
@@ -264,18 +249,6 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
     ].filter(item => item.value > 0)
   }, [budgetData])
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value
-    setCardName(newName)
-    localStorage.setItem('budget-card-name', newName)
-  }
-
-  const handleDelete = () => {
-    const confirmed = window.confirm(t('budget.deleteConfirm'))
-    if (confirmed) {
-      toast.info(t('budget.comingSoon'))
-    }
-  }
 
   return (
     <>
@@ -285,36 +258,19 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
             <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
               {/* Drag Handle + Input */}
               <div className="flex items-center gap-1 flex-1 min-w-0">
-                {/* Drag Handle */}
+                {/* Drag Handle - sempre visível no mobile, hover no desktop */}
                 <div 
                   {...dragHandleProps}
-                  className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100 relative z-10"
+                  className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 relative z-10 touch-none"
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                 </div>
                 
-                {/* Nome Editável */}
+                {/* Nome Fixo */}
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {isEditingName ? (
-                    <Input
-                      value={cardName}
-                      onChange={handleNameChange}
-                      onBlur={() => setIsEditingName(false)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') setIsEditingName(false)
-                      }}
-                      placeholder={t('budget.title')}
-                      className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[200px] sm:max-w-[250px] truncate"
-                      autoFocus
-                    />
-                  ) : (
-                    <h3
-                      className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
-                      onClick={() => setIsEditingName(true)}
-                    >
-                      {cardName}
-                    </h3>
-                  )}
+                  <h3 className="font-semibold text-sm truncate">
+                    {cardName}
+                  </h3>
                   {/* Badge do Workspace */}
                   {currentWorkspace && (
                     <Badge variant="secondary" className="text-xs h-5 hidden sm:inline-flex truncate max-w-[120px]">
@@ -324,9 +280,9 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                 </div>
               </div>
 
-              {/* Botões de Ação */}
+              {/* Botões de Ação - Sempre visíveis */}
               <TooltipProvider>
-                <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1">
                   {/* Botão Expandir */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -345,42 +301,6 @@ export function BudgetCard({ workspaceId, dragHandleProps }: BudgetCardProps) {
                       <p>{t('budget.expand')}</p>
                     </TooltipContent>
                   </Tooltip>
-
-                  {/* Dropdown Menu */}
-                  <DropdownMenu>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                            >
-                              <MoreVertical className="h-3.5 w-3.5" />
-                            </Button>
-                          </motion.div>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{t('budget.moreOptions')}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => toast.info(t('budget.comingSoon'))}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        {t('budget.duplicate')}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        onClick={handleDelete}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {t('budget.delete')}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </TooltipProvider>
             </div>

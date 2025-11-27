@@ -2,28 +2,21 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useTasksCard } from '@/hooks/tasks/use-tasks-card';
-import { TasksGroupView } from '@/components/tasks/tasks-group-view';
-import { TasksListView } from '@/components/tasks/tasks-list-view';
-import { TasksDelegatedView } from '@/components/tasks/tasks-delegated-view';
+import {
+  TasksGroupView
+} from '@/components/tasks/tasks-group-view';
 import { TaskModal } from '@/components/tasks/task-modal';
 import { TaskTemplateSelector } from '@/components/tasks/task-template-selector';
 import { QuickAddTaskDialog } from '@/components/tasks/quick-add-task-dialog';
 import { TasksExpandedView } from '@/components/tasks/tasks-expanded-view';
 import { MinimalCardSkeleton } from '@/components/minimal-card-skeleton';
-import { MoreVertical, Plus, X, CheckSquare, Settings, Maximize2, GripVertical, Sparkles, Bell } from 'lucide-react';
+import { Plus, CheckSquare, Maximize2, GripVertical, Sparkles, Bell } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -43,11 +36,7 @@ interface TasksCardProps {
 export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
   const { t } = useI18n();
   const { currentWorkspace } = useWorkspace();
-  const [cardName, setCardName] = useState(() => {
-    const saved = localStorage.getItem('tasks-card-name');
-    return saved || t('tasks.page.title');
-  });
-  const [isEditingName, setIsEditingName] = useState(false);
+  const cardName = t('sidebar.tasks');
   const {
     tasks,
     activeTab,
@@ -57,13 +46,6 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
     toggleGroup,
     isGroupExpanded,
   } = useTasksCard();
-
-  // Handler para mudança de nome
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value;
-    setCardName(newName);
-    localStorage.setItem('tasks-card-name', newName);
-  };
 
   // ✨ Recarregar tasks quando mudar de workspace
   useEffect(() => {
@@ -267,36 +249,19 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
           <div className="flex items-center justify-between gap-2 px-0.5 py-0.5">
             {/* Drag Handle + Input Editável */}
             <div className="flex items-center gap-1 flex-1 min-w-0">
-              {/* Drag Handle - 6 pontinhos - visível no hover */}
+              {/* Drag Handle - sempre visível no mobile, hover no desktop */}
               <div 
                 {...dragHandleProps}
-                className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100 relative z-10"
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted/70 rounded transition-colors flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 relative z-10 touch-none"
               >
                 <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
               </div>
               
-              {/* Input + Badge Contador */}
+              {/* Nome Fixo + Badge Contador */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                {isEditingName ? (
-                  <Input
-                    value={cardName}
-                    onChange={handleNameChange}
-                    onBlur={() => setIsEditingName(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') setIsEditingName(false)
-                    }}
-                    placeholder="Meu trabalho"
-                    className="h-7 text-sm font-semibold bg-transparent border-none focus:border-border focus:ring-1 focus:ring-ring px-2 w-full max-w-[120px] sm:max-w-[140px] truncate"
-                    autoFocus
-                  />
-                ) : (
-                  <h3
-                    className="font-semibold text-sm cursor-pointer hover:text-primary truncate"
-                    onClick={() => setIsEditingName(true)}
-                  >
-                    {cardName}
-                  </h3>
-                )}
+                <h3 className="font-semibold text-sm truncate">
+                  {cardName}
+                </h3>
                 
                 {/* Badge contador animado */}
                 {totalTasks > 0 && (
@@ -335,9 +300,9 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
               </div>
             </div>
 
-            {/* Botões com Micro-interações - Sempre visíveis em mobile */}
+            {/* Botões com Micro-interações - Sempre visíveis */}
             <TooltipProvider>
-            <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5">
               {/* Botão Adicionar com Popover */}
               <Popover open={isAddPopoverOpen} onOpenChange={setIsAddPopoverOpen}>
                 <Tooltip>
@@ -426,28 +391,6 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
                   <p>{t('tasks.card.expand')}</p>
                 </TooltipContent>
               </Tooltip>
-              
-              {/* Menu */}
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreVertical className="size-3.5" />
-                        </Button>
-                      </motion.div>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t('tasks.card.moreOptions')}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>{t('tasks.card.settings')}</DropdownMenuItem>
-                                    <DropdownMenuItem>{t('common.export')}</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
             </TooltipProvider>
           </div>

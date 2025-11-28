@@ -1957,9 +1957,12 @@ const translations: Translations = {
   
   // Finance Quick Expense
   'finance.quickExpense.fillValueCategory': { 'pt-BR': 'Preencha valor e categoria', 'en': 'Fill value and category', 'es': 'Complete valor y categoría' },
+  'finance.quickExpense.fillFields': { 'pt-BR': 'Preencha descrição e valor', 'en': 'Fill description and value', 'es': 'Complete descripción y valor' },
   'finance.quickExpense.quickExpense': { 'pt-BR': 'Despesa rápida', 'en': 'Quick expense', 'es': 'Gasto rápido' },
   'finance.quickExpense.added': { 'pt-BR': 'adicionado', 'en': 'added', 'es': 'añadido' },
   'finance.quickExpense.description': { 'pt-BR': 'Adicione despesas rapidamente sem preencher todos os campos', 'en': 'Add expenses quickly without filling all fields', 'es': 'Añada gastos rápidamente sin completar todos los campos' },
+  'finance.quickExpense.other': { 'pt-BR': 'Outros', 'en': 'Other', 'es': 'Otros' },
+  'finance.quickExpense.noTask': { 'pt-BR': 'Nenhuma', 'en': 'None', 'es': 'Ninguna' },
   'finance.quickExpense.pressEnter': { 'pt-BR': 'Pressione', 'en': 'Press', 'es': 'Presione' },
   'finance.quickExpense.toAddQuickly': { 'pt-BR': 'para adicionar rapidamente', 'en': 'to add quickly', 'es': 'para añadir rápidamente' },
   'finance.quickExpense.currencyPlaceholder': { 'pt-BR': 'R$ 0,00', 'en': '$ 0.00', 'es': '$ 0,00' },

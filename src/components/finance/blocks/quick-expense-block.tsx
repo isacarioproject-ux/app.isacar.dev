@@ -9,12 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Loader2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Loader2, Calendar as CalendarIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { ptBR, enUS, es } from 'date-fns/locale'
 import { FinanceBlockProps } from '@/types/finance-blocks'
 import { useI18n } from '@/hooks/use-i18n'
 import { useIntegration } from '@/hooks/use-integration'
@@ -39,12 +43,17 @@ export const QuickExpenseBlock = ({
   categories,
   onRefresh,
 }: QuickExpenseBlockProps) => {
-  const { t } = useI18n()
-  const isTaskIntegrationEnabled = useIntegration('TASKS_TO_FINANCE') // ✨ Verificar se integração está ativa
+  const { t, locale } = useI18n()
+  const isTaskIntegrationEnabled = useIntegration('TASKS_TO_FINANCE')
+  
+  // Estados do formulário
+  const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
+  const [transactionDate, setTransactionDate] = useState<Date>(new Date())
+  const [paymentMethod, setPaymentMethod] = useState('cash')
   const [amount, setAmount] = useState('')
-  const [taskId, setTaskId] = useState<string>('') // ✨ Vinculação com task
-  const [tasks, setTasks] = useState<any[]>([]) // ✨ Lista de tasks disponíveis
+  const [taskId, setTaskId] = useState<string>('')
+  const [tasks, setTasks] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [isInitializing, setIsInitializing] = useState(true)
   
@@ -52,6 +61,10 @@ export const QuickExpenseBlock = ({
   const [editingCell, setEditingCell] = useState<{field: string} | null>(null)
   const [editingValue, setEditingValue] = useState('')
   const [selectOpen, setSelectOpen] = useState(false)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  
+  // Locale para o calendário
+  const dateFnsLocale = locale === 'pt-BR' ? ptBR : locale === 'es' ? es : enUS
 
   useEffect(() => {
     // Simular inicialização rápida
@@ -83,8 +96,8 @@ export const QuickExpenseBlock = ({
 
   const handleQuickAdd = async () => {
     // Validações
-    if (!amount || !category) {
-      toast.error(t('finance.quickExpense.fillValueCategory'))
+    if (!amount || !description.trim()) {
+      toast.error(t('finance.quickExpense.fillFields'))
       return
     }
 
@@ -98,23 +111,26 @@ export const QuickExpenseBlock = ({
     try {
       const { error } = await supabase.from('finance_transactions').insert({
         finance_document_id: documentId,
-        task_id: (taskId && taskId !== 'none') ? taskId : null, // ✨ Vinculação com task
+        task_id: (taskId && taskId !== 'none') ? taskId : null,
         type: 'expense',
-        category: category,
-        description: `${t('finance.quickExpense.quickExpense')} - ${category}`,
+        category: category || t('finance.quickExpense.other'),
+        description: description.trim(),
         amount: parsedAmount,
-        transaction_date: format(new Date(), 'yyyy-MM-dd'),
-        payment_method: 'cash',
+        transaction_date: format(transactionDate, 'yyyy-MM-dd'),
+        payment_method: paymentMethod,
         status: 'completed',
         tags: [],
       })
 
       if (error) throw error
 
-      // Reset
+      // Reset todos os campos
+      setDescription('')
       setAmount('')
       setCategory('')
-      setTaskId('') // ✨ Reset task vinculada
+      setPaymentMethod('cash')
+      setTransactionDate(new Date())
+      setTaskId('')
       setEditingCell(null)
       setEditingValue('')
       
@@ -127,6 +143,18 @@ export const QuickExpenseBlock = ({
     } finally {
       setLoading(false)
     }
+  }
+  
+  // Labels de pagamento
+  const getPaymentLabel = (method: string) => {
+    const labels: Record<string, string> = {
+      cash: t('finance.payment.cash'),
+      credit_card: t('finance.payment.creditCard'),
+      debit_card: t('finance.payment.debitCard'),
+      pix: t('finance.payment.pix'),
+      bank_transfer: t('finance.payment.bankTransfer'),
+    }
+    return labels[method] || method
   }
 
   const handleCellEdit = (e: React.MouseEvent, field: string, currentValue: string) => {
@@ -208,9 +236,12 @@ export const QuickExpenseBlock = ({
       <Table>
         <TableHeader>
           <TableRow className="h-8">
+            <TableHead className="h-8 text-xs">{t('finance.table.description')}</TableHead>
             <TableHead className="h-8 text-xs">{t('finance.table.category')}</TableHead>
+            <TableHead className="h-8 text-xs">{t('finance.table.date')}</TableHead>
+            <TableHead className="h-8 text-xs">{t('finance.table.payment')}</TableHead>
             {isTaskIntegrationEnabled && (
-              <TableHead className="h-8 text-xs">Task</TableHead>
+              <TableHead className="h-8 text-xs">{t('finance.recurringBills.task')}</TableHead>
             )}
             <TableHead className="h-8 text-xs text-right">{t('finance.budget.value')}</TableHead>
             <TableHead className="h-8 w-12"></TableHead>
@@ -220,7 +251,6 @@ export const QuickExpenseBlock = ({
           <TableRow 
             className="h-8"
             onMouseDown={(e) => {
-              // Permitir cliques nas células editáveis
               const target = e.target as HTMLElement
               if (target.closest('.cursor-text') || target.closest('input') || target.closest('[role="combobox"]')) {
                 return
@@ -228,6 +258,65 @@ export const QuickExpenseBlock = ({
               e.stopPropagation()
             }}
           >
+            {/* Descrição - Editável inline */}
+            <TableCell className="text-xs py-0 px-2">
+              <AnimatePresence mode="wait">
+                {editingCell?.field === 'description' ? (
+                  <motion.div
+                    key="edit-description"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Input
+                      type="text"
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onBlur={() => {
+                        if (editingValue.trim()) {
+                          setDescription(editingValue.trim())
+                        }
+                        setEditingCell(null)
+                        setEditingValue('')
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          if (editingValue.trim()) {
+                            setDescription(editingValue.trim())
+                          }
+                          setEditingCell(null)
+                          setEditingValue('')
+                        }
+                        if (e.key === 'Escape') {
+                          setEditingCell(null)
+                          setEditingValue('')
+                        }
+                      }}
+                      className="h-7 text-xs border-none p-1 focus-visible:ring-1 w-full"
+                      autoFocus
+                      placeholder={t('finance.table.description')}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="display-description"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={(e) => handleCellEdit(e, 'description', description)}
+                    className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center transition-colors"
+                  >
+                    {description || (
+                      <span className="text-muted-foreground italic">
+                        {t('finance.table.description')}...
+                      </span>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </TableCell>
+
             {/* Categoria - Editável inline */}
             <TableCell className="text-xs py-0 px-2">
               <AnimatePresence mode="wait">
@@ -293,6 +382,97 @@ export const QuickExpenseBlock = ({
               </AnimatePresence>
             </TableCell>
 
+            {/* Data - Calendário popup */}
+            <TableCell className="text-xs py-0 px-2">
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <motion.button
+                    key="display-date"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center gap-1.5 transition-colors w-full text-left"
+                  >
+                    <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+                    <Badge variant="secondary" className="text-xs">
+                      {format(transactionDate, 'dd/MM', { locale: dateFnsLocale })}
+                    </Badge>
+                  </motion.button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-3 border-2 shadow-xl bg-background rounded-xl" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={transactionDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setTransactionDate(date)
+                        setCalendarOpen(false)
+                      }
+                    }}
+                    locale={dateFnsLocale}
+                    className="rounded-lg"
+                  />
+                </PopoverContent>
+              </Popover>
+            </TableCell>
+
+            {/* Método de Pagamento - Select */}
+            <TableCell className="text-xs py-0 px-2">
+              <AnimatePresence mode="wait">
+                {editingCell?.field === 'payment' ? (
+                  <motion.div
+                    key="edit-payment"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Select
+                      value={paymentMethod}
+                      open={selectOpen}
+                      onOpenChange={(open) => {
+                        setSelectOpen(open)
+                        if (!open) {
+                          setEditingCell(null)
+                        }
+                      }}
+                      onValueChange={(value) => {
+                        setPaymentMethod(value)
+                        setSelectOpen(false)
+                        setEditingCell(null)
+                      }}
+                    >
+                      <SelectTrigger className="h-7 text-xs border-none p-1 focus-visible:ring-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">💵 {t('finance.payment.cash')}</SelectItem>
+                        <SelectItem value="credit_card">💳 {t('finance.payment.creditCard')}</SelectItem>
+                        <SelectItem value="debit_card">💳 {t('finance.payment.debitCard')}</SelectItem>
+                        <SelectItem value="pix">📱 {t('finance.payment.pix')}</SelectItem>
+                        <SelectItem value="bank_transfer">🏦 {t('finance.payment.bankTransfer')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="display-payment"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setEditingCell({ field: 'payment' })
+                      setSelectOpen(true)
+                    }}
+                    className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center transition-colors text-muted-foreground"
+                  >
+                    {getPaymentLabel(paymentMethod)}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </TableCell>
+
             {/* Task - Editável inline (somente se integração ativa) */}
             {isTaskIntegrationEnabled && (
             <TableCell className="text-xs py-0 px-2">
@@ -326,7 +506,7 @@ export const QuickExpenseBlock = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Nenhuma</SelectItem>
+                        <SelectItem value="none">{t('finance.quickExpense.noTask')}</SelectItem>
                         {tasks.map((task) => (
                           <SelectItem key={task.id} value={task.id}>
                             <div className="flex items-center gap-2">
@@ -359,7 +539,7 @@ export const QuickExpenseBlock = ({
                         </span>
                       </>
                     ) : (
-                      <span className="text-muted-foreground italic text-xs">Task...</span>
+                      <span className="text-muted-foreground italic text-xs">{t('finance.recurringBills.task')}...</span>
                     )}
                   </motion.div>
                 )}
@@ -387,10 +567,7 @@ export const QuickExpenseBlock = ({
                         const value = e.target.value.replace(/[^0-9,.-]/g, '')
                         setEditingValue(value)
                       }}
-                      onBlur={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        // Salvar o valor quando sair do campo
+                      onBlur={() => {
                         const cleanedValue = editingValue.trim().replace(/[^0-9,.-]/g, '')
                         if (cleanedValue) {
                           setAmount(cleanedValue)
@@ -400,9 +577,6 @@ export const QuickExpenseBlock = ({
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          // Salvar o valor quando pressionar Enter
                           const cleanedValue = editingValue.trim().replace(/[^0-9,.-]/g, '')
                           if (cleanedValue) {
                             setAmount(cleanedValue)
@@ -411,15 +585,9 @@ export const QuickExpenseBlock = ({
                           setEditingValue('')
                         }
                         if (e.key === 'Escape') {
-                          e.preventDefault()
-                          e.stopPropagation()
                           setEditingCell(null)
-                          setEditingValue(amount) // Restaurar valor original
+                          setEditingValue(amount)
                         }
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
                       }}
                       className="h-7 text-xs border-none p-1 focus-visible:ring-1 text-right w-full max-w-[120px]"
                       autoFocus
@@ -431,15 +599,7 @@ export const QuickExpenseBlock = ({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      handleCellEdit(e, 'amount', amount)
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                    }}
+                    onClick={(e) => handleCellEdit(e, 'amount', amount)}
                     className="cursor-text hover:bg-muted/50 px-1 py-0.5 rounded min-h-[28px] flex items-center justify-end font-semibold transition-colors w-full"
                   >
                     {amount ? (
@@ -458,16 +618,13 @@ export const QuickExpenseBlock = ({
 
             {/* Botão adicionar */}
             <TableCell className="text-xs py-0 px-1">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="h-6 w-6"
                   type="button"
-                  disabled={loading || !amount || !category}
+                  disabled={loading || !amount || !description.trim()}
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()

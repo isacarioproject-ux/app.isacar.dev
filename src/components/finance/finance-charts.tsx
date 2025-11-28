@@ -1,15 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   Modal,
   ModalContent,
-  ModalHeader,
   ModalTitle,
 } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FinanceTransaction, FinanceCategory } from '@/types/finance'
-import { TrendingUp, TrendingDown, PieChart, BarChart3, Maximize2, Minimize2, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { TrendingUp, TrendingDown, PieChart, BarChart3, X } from 'lucide-react'
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import { useI18n } from '@/hooks/use-i18n'
 
@@ -57,7 +54,6 @@ export const FinanceCharts = ({
   categories,
 }: FinanceChartsProps) => {
   const { t } = useI18n()
-  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Calcular totais
   const totals = useMemo(() => {
@@ -145,10 +141,7 @@ export const FinanceCharts = ({
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent
-        className={cn(
-          "p-0 [&>button]:hidden",
-          isFullscreen ? "max-w-[100vw] h-[100vh] rounded-none" : "max-w-4xl max-h-[90vh]"
-        )}
+        className="p-0 [&>button]:hidden max-w-4xl max-h-[90vh]"
         drawerProps={{
           className: 'h-[96vh]',
         }}
@@ -160,45 +153,19 @@ export const FinanceCharts = ({
           </ModalTitle>
           
           <div className="flex items-center gap-1">
-            {/* Botão Expandir - escondido em mobile */}
-            <TooltipProvider>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="h-7 w-7 hidden sm:flex"
-                  >
-                    {isFullscreen ? (
-                      <Minimize2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <Maximize2 className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isFullscreen ? t('finance.charts.minimize') : t('finance.charts.expand')}</p>
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-
-            {/* Botão Fechar - escondido em mobile */}
+            {/* Botão Fechar */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-7 w-7 hidden sm:flex"
+              className="h-7 w-7"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className={cn(
-          "px-3 sm:px-4 md:px-6 py-4",
-          isFullscreen ? "overflow-y-auto h-[calc(100vh-60px)]" : "overflow-y-auto sm:overflow-y-visible max-h-[calc(90vh-80px)]"
-        )}>
+        <div className="px-3 sm:px-4 md:px-6 py-4 overflow-y-auto max-h-[calc(90vh-80px)]">
           {/* Grid de Gráficos - Vertical em mobile, Horizontal em desktop */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {/* Gráfico de Despesas */}
@@ -213,18 +180,18 @@ export const FinanceCharts = ({
                 <p className="text-xs text-muted-foreground mb-1">
                   {t('finance.charts.expensesDistribution')}
                 </p>
-                <div className="h-[180px] sm:h-[200px] md:h-[220px]">
+                <div className="h-[280px] sm:h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPie>
                       <Pie
                         data={expenseChartData}
                         cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percentage }) => `${name} (${percentage}%)`}
-                        outerRadius={60}
+                        cy="40%"
+                        innerRadius={40}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
+                        paddingAngle={2}
                       >
                         {expenseChartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -233,11 +200,16 @@ export const FinanceCharts = ({
                       <Tooltip content={<CustomTooltip />} />
                       <Legend 
                         verticalAlign="bottom" 
-                        height={32}
-                        formatter={(value, entry: any) => (
-                          <span className="text-[10px]">{value}</span>
+                        layout="horizontal"
+                        align="center"
+                        wrapperStyle={{ 
+                          paddingTop: '10px',
+                          fontSize: '11px',
+                          lineHeight: '1.4'
+                        }}
+                        formatter={(value: string) => (
+                          <span className="text-[11px] text-foreground">{value}</span>
                         )}
-                        wrapperStyle={{ fontSize: '10px' }}
                       />
                     </RechartsPie>
                   </ResponsiveContainer>
@@ -257,18 +229,18 @@ export const FinanceCharts = ({
                 <p className="text-xs text-muted-foreground mb-1">
                   {t('finance.charts.incomeDistribution')}
                 </p>
-                <div className="h-[180px] sm:h-[200px] md:h-[220px]">
+                <div className="h-[280px] sm:h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPie>
                       <Pie
                         data={incomeChartData}
                         cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percentage }) => `${name} (${percentage}%)`}
-                        outerRadius={60}
+                        cy="40%"
+                        innerRadius={40}
+                        outerRadius={70}
                         fill="#8884d8"
                         dataKey="value"
+                        paddingAngle={2}
                       >
                         {incomeChartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -277,11 +249,16 @@ export const FinanceCharts = ({
                       <Tooltip content={<CustomTooltip />} />
                       <Legend 
                         verticalAlign="bottom" 
-                        height={32}
-                        formatter={(value, entry: any) => (
-                          <span className="text-[10px]">{value}</span>
+                        layout="horizontal"
+                        align="center"
+                        wrapperStyle={{ 
+                          paddingTop: '10px',
+                          fontSize: '11px',
+                          lineHeight: '1.4'
+                        }}
+                        formatter={(value: string) => (
+                          <span className="text-[11px] text-foreground">{value}</span>
                         )}
-                        wrapperStyle={{ fontSize: '10px' }}
                       />
                     </RechartsPie>
                   </ResponsiveContainer>

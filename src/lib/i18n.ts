@@ -1878,6 +1878,18 @@ const translations: Translations = {
   'finance.receipts.totalFiles': { 'pt-BR': 'Total de arquivos', 'en': 'Total files', 'es': 'Total de archivos' },
   'finance.receipts.uploadError': { 'pt-BR': 'Erro ao fazer upload de', 'en': 'Error uploading', 'es': 'Error al subir' },
   'finance.receipts.saveError': { 'pt-BR': 'Erro ao salvar', 'en': 'Error saving', 'es': 'Error al guardar' },
+  'finance.receipts.importFromGmail': { 'pt-BR': 'Importar do Gmail', 'en': 'Import from Gmail', 'es': 'Importar de Gmail' },
+  'finance.receipts.searchingGmail': { 'pt-BR': 'Buscando no Gmail...', 'en': 'Searching Gmail...', 'es': 'Buscando en Gmail...' },
+  'finance.receipts.invoicesAndReceipts': { 'pt-BR': 'Notas fiscais e recibos', 'en': 'Invoices and receipts', 'es': 'Facturas y recibos' },
+  'finance.receipts.selectAttachments': { 'pt-BR': 'Selecionar Anexos do Gmail', 'en': 'Select Gmail Attachments', 'es': 'Seleccionar Archivos de Gmail' },
+  'finance.receipts.noAttachmentsFound': { 'pt-BR': 'Nenhum anexo encontrado', 'en': 'No attachments found', 'es': 'No se encontraron archivos' },
+  'finance.receipts.selectAll': { 'pt-BR': 'Selecionar todos', 'en': 'Select all', 'es': 'Seleccionar todo' },
+  'finance.receipts.selectAtLeastOne': { 'pt-BR': 'Selecione pelo menos um anexo', 'en': 'Select at least one attachment', 'es': 'Seleccione al menos un archivo' },
+  'finance.receipts.importSelected': { 'pt-BR': 'Importar selecionados', 'en': 'Import selected', 'es': 'Importar seleccionados' },
+  'finance.receipts.importing': { 'pt-BR': 'Importando...', 'en': 'Importing...', 'es': 'Importando...' },
+  'finance.receipts.importedFromGmail': { 'pt-BR': 'comprovante(s) importado(s) do Gmail', 'en': 'receipt(s) imported from Gmail', 'es': 'comprobante(s) importado(s) de Gmail' },
+  'finance.receipts.gmailError': { 'pt-BR': 'Erro ao acessar Gmail', 'en': 'Error accessing Gmail', 'es': 'Error al acceder a Gmail' },
+  'finance.receipts.importError': { 'pt-BR': 'Erro ao importar', 'en': 'Error importing', 'es': 'Error al importar' },
   
   // Finance Viewer
   'finance.viewer.coverAlt': { 'pt-BR': 'Capa', 'en': 'Cover', 'es': 'Portada' },

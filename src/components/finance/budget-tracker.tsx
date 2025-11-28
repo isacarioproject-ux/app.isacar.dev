@@ -531,18 +531,19 @@ export const BudgetTracker = ({
     setEditingValue(String(currentValue || ''))
   }
 
-  const handleMetaCellSave = async (rowId: string, field: string) => {
-    if (!editingCell || editingCell.rowId !== rowId || editingCell.field !== field) return
+  const handleMetaCellSave = async (rowId: string, field: string, directValue?: string) => {
+    // Usar valor direto se fornecido (para Select), senão usar editingValue
+    const valueToUse = directValue !== undefined ? directValue : editingValue
 
     const entryIndex = metaEntries.findIndex(e => e.id === rowId)
     let updated: MetaEntry[]
     
     if (entryIndex === -1) {
       // Nova meta/investimento
-      if (field === 'name' && editingValue.trim()) {
+      if (field === 'name' && valueToUse.trim()) {
         const newEntry: MetaEntry = {
           id: Date.now().toString() + Math.random(),
-          name: editingValue.trim(),
+          name: valueToUse.trim(),
           type: 'meta',
           value: 0,
           date: new Date(year, month - 1, 1).toISOString().split('T')[0],

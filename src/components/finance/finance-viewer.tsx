@@ -467,36 +467,9 @@ export const FinanceViewer = ({
     }
   }, [docId])
 
-  // Supabase Realtime - escuta mudanças em tempo real (perfeito para PWA)
-  useEffect(() => {
-    if (!docId) return
-
-    console.log('🔔 [FinanceViewer] Configurando Realtime para documento:', docId)
-    
-    const channel = supabase
-      .channel(`finance-transactions-${docId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'finance_transactions',
-          filter: `finance_document_id=eq.${docId}`,
-        },
-        () => {
-          console.log('🔔 [Realtime] Mudança detectada, recarregando...')
-          // Recarregar dados do banco para garantir consistência
-          fetchTransactions()
-          fetchDocument()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      console.log('🔔 [FinanceViewer] Removendo channel Realtime')
-      supabase.removeChannel(channel)
-    }
-  }, [docId])
+  // Supabase Realtime DESABILITADO - usando atualização otimista local
+  // O TransactionTable agora gerencia seu próprio estado local
+  // para evitar recarregamentos desnecessários
 
   // Auto-save ao alterar
   useEffect(() => {

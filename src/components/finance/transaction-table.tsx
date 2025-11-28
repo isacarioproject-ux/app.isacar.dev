@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -36,14 +36,27 @@ export const TransactionTable = ({
 }: TransactionTableProps) => {
   const { t } = useI18n()
   
+  // Estado local para atualização otimista INSTANTÂNEA
+  const [localTransactions, setLocalTransactions] = useState<FinanceTransaction[]>(transactions)
+  
+  // Sincronizar quando props mudarem (mas não causar reload)
+  useEffect(() => {
+    setLocalTransactions(transactions)
+  }, [transactions])
+  
   // Estados para edição inline
   const [editingCell, setEditingCell] = useState<{rowId: string, field: string} | null>(null)
   const [editingValue, setEditingValue] = useState('')
 
+  // DELETAR - Atualização otimista instantânea
   const handleDeleteTransaction = useCallback(async (id: string) => {
     if (!confirm(t('finance.table.deleteConfirm'))) return
 
+    // 1. Remover da UI IMEDIATAMENTE
+    setLocalTransactions(prev => prev.filter(t => t.id !== id))
+
     try {
+      // 2. Salvar no banco em background
       const { error } = await supabase
         .from('finance_transactions')
         .delete()
@@ -51,31 +64,47 @@ export const TransactionTable = ({
 
       if (error) throw error
       toast.success(t('finance.table.deleted'))
-      // Realtime vai atualizar automaticamente
     } catch (err: any) {
+      // 3. Se falhar, restaurar
+      setLocalTransactions(transactions)
       toast.error(t('finance.table.errorDelete'), {
         description: err.message,
       })
     }
-  }, [t])
+  }, [t, transactions])
 
+  // TOGGLE STATUS - Atualização otimista instantânea
   const handleToggleStatus = useCallback(async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed'
 
+    // 1. Atualizar UI IMEDIATAMENTE
+    setLocalTransactions(prev => 
+      prev.map(t => t.id === id ? { ...t, status: newStatus as any } : t)
+    )
+
     try {
+      // 2. Salvar no banco em background
       const { error } = await supabase
         .from('finance_transactions')
         .update({ status: newStatus })
         .eq('id', id)
 
       if (error) throw error
-      // Realtime vai atualizar automaticamente
     } catch (err: any) {
+      // 3. Se falhar, restaurar
+      setLocalTransactions(transactions)
       toast.error(t('finance.table.errorUpdate'), {
         description: err.message,
       })
     }
-  }, [t])
+  }, [t, transactions])
+  
+  // Função helper para atualizar transação localmente
+  const updateLocalTransaction = useCallback((id: string, updates: Partial<FinanceTransaction>) => {
+    setLocalTransactions(prev => 
+      prev.map(t => t.id === id ? { ...t, ...updates } : t)
+    )
+  }, [])
 
   // Handlers para edição inline
   const handleCellEdit = (e: React.MouseEvent, rowId: string, field: string, currentValue: any) => {
@@ -88,12 +117,12 @@ export const TransactionTable = ({
   const handleCellSave = async (rowId: string, field: string) => {
     if (!editingCell || editingCell.rowId !== rowId || editingCell.field !== field) return
 
-    const transaction = transactions.find(t => t.id === rowId)
+    const transaction = localTransactions.find(t => t.id === rowId)
     if (!transaction && rowId === 'new-transaction') {
       // Nova transação - criar
       if (field === 'description' && editingValue.trim()) {
-    try {
-          const { error } = await supabase.from('finance_transactions').insert({
+        try {
+          const { data, error } = await supabase.from('finance_transactions').insert({
             finance_document_id: documentId,
             type: 'expense',
             category: '',
@@ -103,19 +132,23 @@ export const TransactionTable = ({
             payment_method: 'cash',
             status: 'completed',
             tags: [],
-        })
+          }).select().single()
 
-      if (error) throw error
+          if (error) throw error
+          
+          // Adicionar à lista local IMEDIATAMENTE
+          if (data) {
+            setLocalTransactions(prev => [data, ...prev])
+          }
+          
           toast.success(t('finance.table.added'))
           setEditingCell(null)
           setEditingValue('')
-          // Refresh único após criar transação
-          onRefresh()
-    } catch (err: any) {
+        } catch (err: any) {
           toast.error(t('finance.table.errorAdd'), {
-        description: err.message,
-      })
-    }
+            description: err.message,
+          })
+        }
       }
       return
     }
@@ -159,7 +192,13 @@ export const TransactionTable = ({
       return
     }
 
+    // 1. Atualizar UI IMEDIATAMENTE
+    updateLocalTransaction(rowId, updateData)
+    setEditingCell(null)
+    setEditingValue('')
+
     try {
+      // 2. Salvar no banco em background
       const { error } = await supabase
         .from('finance_transactions')
         .update(updateData)
@@ -167,16 +206,13 @@ export const TransactionTable = ({
 
       if (error) throw error
       toast.success(t('finance.table.updated'))
-      // Realtime vai atualizar automaticamente
     } catch (err: any) {
-      console.error('❌ Erro completo:', err)
+      // 3. Se falhar, restaurar
+      setLocalTransactions(transactions)
       toast.error(t('finance.table.errorUpdate'), {
         description: err.message,
       })
     }
-    
-    setEditingCell(null)
-    setEditingValue('')
   }
 
   const getPaymentMethodLabel = useCallback((method: string) => {
@@ -213,7 +249,7 @@ export const TransactionTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction) => (
+            {localTransactions.map((transaction) => (
               <TableRow 
                 key={transaction.id} 
                 className="h-8"
@@ -251,23 +287,27 @@ export const TransactionTable = ({
                     <Select
                       value={editingValue || transaction.type}
                       onValueChange={async (value) => {
-                        setEditingValue(value)
-    try {
-      const { error } = await supabase
-        .from('finance_transactions')
+                        // 1. Atualizar UI IMEDIATAMENTE
+                        updateLocalTransaction(transaction.id, { type: value as 'income' | 'expense' })
+                        setEditingCell(null)
+                        setEditingValue('')
+                        
+                        try {
+                          // 2. Salvar no banco em background
+                          const { error } = await supabase
+                            .from('finance_transactions')
                             .update({ type: value as 'income' | 'expense' })
                             .eq('id', transaction.id)
 
-      if (error) throw error
-                          setEditingCell(null)
-                          setEditingValue('')
-      toast.success(t('finance.table.updated'))
-      // Realtime vai atualizar automaticamente
-    } catch (err: any) {
-      toast.error(t('finance.table.errorUpdate'), {
-        description: err.message,
-      })
-    }
+                          if (error) throw error
+                          toast.success(t('finance.table.updated'))
+                        } catch (err: any) {
+                          // 3. Se falhar, restaurar
+                          setLocalTransactions(transactions)
+                          toast.error(t('finance.table.errorUpdate'), {
+                            description: err.message,
+                          })
+                        }
                       }}
                     >
                       <SelectTrigger className="h-7 text-xs border-none p-1">
@@ -387,19 +427,23 @@ export const TransactionTable = ({
                     <Select
                       value={editingValue || transaction.payment_method || 'cash'}
                       onValueChange={async (value) => {
-                        setEditingValue(value)
+                        // 1. Atualizar UI IMEDIATAMENTE
+                        updateLocalTransaction(transaction.id, { payment_method: value })
+                        setEditingCell(null)
+                        setEditingValue('')
+                        
                         try {
+                          // 2. Salvar no banco em background
                           const { error } = await supabase
                             .from('finance_transactions')
                             .update({ payment_method: value })
                             .eq('id', transaction.id)
                           
                           if (error) throw error
-                          setEditingCell(null)
-                          setEditingValue('')
                           toast.success(t('finance.table.updated'))
-                          // Realtime vai atualizar automaticamente
                         } catch (err: any) {
+                          // 3. Se falhar, restaurar
+                          setLocalTransactions(transactions)
                           toast.error(t('finance.table.errorUpdate'), {
                             description: err.message,
                           })

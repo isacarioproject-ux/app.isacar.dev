@@ -257,6 +257,12 @@ export const BudgetTracker = ({
   const handleDeleteBudget = useCallback(async (id: string) => {
     if (!confirm(t('finance.budget.confirmDelete'))) return
 
+    // Guardar para reverter em caso de erro
+    const previousBudgets = budgets
+    
+    // Remover otimisticamente
+    setBudgets(prev => prev.filter(b => b.id !== id))
+
     try {
       const { error } = await supabase
         .from('finance_budgets')
@@ -264,16 +270,15 @@ export const BudgetTracker = ({
         .eq('id', id)
 
       if (error) throw error
-
-      await fetchAllData()
-      onRefresh()
       toast.success(t('finance.budget.deleted'))
     } catch (err: any) {
+      // Reverter em caso de erro
+      setBudgets(previousBudgets)
       toast.error(t('finance.budget.errorDelete'), {
         description: err.message,
       })
     }
-  }, [t, onRefresh])
+  }, [t, budgets])
 
   // Handlers para edição inline
   const handleCellEdit = (e: React.MouseEvent, rowId: string, field: string, currentValue: any) => {
@@ -301,6 +306,14 @@ export const BudgetTracker = ({
       updateData.planned_amount = parseFloat(editingValue) || 0
     }
 
+    // Atualização otimista - atualizar estado local primeiro
+    setBudgets(prev => prev.map(b => 
+      b.id === rowId ? { ...b, ...updateData } : b
+    ))
+    
+    setEditingCell(null)
+    setEditingValue('')
+
     try {
       const { error } = await supabase
         .from('finance_budgets')
@@ -308,17 +321,14 @@ export const BudgetTracker = ({
         .eq('id', rowId)
 
       if (error) throw error
-      await fetchAllData()
-      onRefresh()
-      toast.success(t('finance.budget.updated'))
+      // Atualização otimista - não recarregar
     } catch (err: any) {
+      // Reverter em caso de erro
+      fetchAllData()
       toast.error(t('finance.budget.errorUpdate'), {
         description: err.message,
       })
     }
-    
-    setEditingCell(null)
-    setEditingValue('')
   }
 
   // Handlers para edição inline de entradas
@@ -405,8 +415,15 @@ export const BudgetTracker = ({
       })
 
       if (error) throw error
-          await fetchAllData()
-          onRefresh()
+          // Adicionar otimistamente à lista local
+          const newExpense: ExpenseEntry = {
+            id: Date.now().toString(),
+            category: editingValue.trim(),
+            paymentMethod: 'cash',
+            value: 0,
+            date: new Date(year, month - 1, 1).toISOString().split('T')[0]
+          }
+          setExpenseEntries(prev => [...prev, newExpense])
           toast.success(t('finance.budget.expenseAdded'))
         } catch (err: any) {
           toast.error(t('finance.budget.errorAddExpense'), {
@@ -445,10 +462,10 @@ export const BudgetTracker = ({
           .eq('id', rowId)
 
         if (error) throw error
-        await fetchAllData()
-        onRefresh()
-        toast.success(t('finance.budget.updated'))
+        // Atualização otimista - não recarregar
     } catch (err: any) {
+        // Reverter em caso de erro
+        fetchAllData()
         toast.error(t('finance.budget.errorUpdate'), {
         description: err.message,
       })
@@ -581,9 +598,10 @@ export const BudgetTracker = ({
         .eq('id', documentId)
 
       if (error) throw error
-      await fetchAllData()
-      onRefresh()
+      // Atualização otimista - não recarregar
     } catch (err: any) {
+      // Reverter em caso de erro
+      fetchAllData()
       toast.error(t('finance.budget.errorSaveIncome'), {
         description: err.message,
       })
@@ -618,9 +636,10 @@ export const BudgetTracker = ({
         .eq('id', documentId)
 
       if (error) throw error
-      await fetchAllData()
-      onRefresh()
+      // Atualização otimista - não recarregar
     } catch (err: any) {
+      // Reverter em caso de erro
+      fetchAllData()
       toast.error(t('finance.budget.errorSaveReserve'), {
         description: err.message,
       })
@@ -670,9 +689,10 @@ export const BudgetTracker = ({
         .eq('id', documentId)
 
       if (error) throw error
-      await fetchAllData()
-      onRefresh()
+      // Atualização otimista - não recarregar
     } catch (err: any) {
+      // Reverter em caso de erro
+      fetchAllData()
       toast.error(t('finance.budget.errorSaveMeta'), {
         description: err.message,
       })
@@ -683,23 +703,48 @@ export const BudgetTracker = ({
   const handleAddNewBudget = async (categoryName: string) => {
     if (!categoryName.trim()) return
 
+    // Criar budget otimisticamente
+    const tempId = Date.now().toString()
+    const category = categories.find(c => c.name === categoryName)
+    const newBudget: FinanceBudget = {
+      id: tempId,
+      finance_document_id: documentId,
+      category_id: category?.id || null,
+      category_name: categoryName.trim(),
+      planned_amount: 0,
+      spent_amount: 0,
+      month: month,
+      year: year,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Adicionar à lista local imediatamente
+    setBudgets(prev => [...prev, newBudget])
+
     try {
-      const category = categories.find(c => c.name === categoryName)
-      const { error } = await supabase.from('finance_budgets').insert({
+      const { data, error } = await supabase.from('finance_budgets').insert({
         finance_document_id: documentId,
         category_id: category?.id || null,
         category_name: categoryName.trim(),
         planned_amount: 0,
         spent_amount: 0,
-        month: month, // Usar mês/ano atual
+        month: month,
         year: year,
-      })
+      }).select().single()
 
       if (error) throw error
-      await fetchAllData()
-      onRefresh()
+      
+      // Atualizar com ID real do banco
+      if (data) {
+        setBudgets(prev => prev.map(b => 
+          b.id === tempId ? { ...data, spent_amount: 0 } : b
+        ))
+      }
       toast.success(t('finance.budget.added'))
     } catch (err: any) {
+      // Reverter em caso de erro
+      setBudgets(prev => prev.filter(b => b.id !== tempId))
       toast.error(t('finance.budget.errorAdd'), {
         description: err.message,
       })

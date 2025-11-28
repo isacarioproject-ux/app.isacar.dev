@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,13 +13,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Plus, Trash2, Target, TrendingUp, AlertTriangle, Loader2, Check } from 'lucide-react'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Plus, Trash2, Target, TrendingUp, AlertTriangle, Loader2, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { FinanceBlockProps } from '@/types/finance-blocks'
@@ -53,13 +51,16 @@ export const GoalsBlock = ({
   const [adding, setAdding] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   
-  // Inline form state
-  const [showAddRow, setShowAddRow] = useState(false)
-  const [newGoal, setNewGoal] = useState({
-    category: '',
-    targetAmount: '',
-    period: 'monthly' as 'monthly' | 'yearly'
-  })
+  // Estados para edição inline
+  const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null)
+  const [editingValue, setEditingValue] = useState('')
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const [periodOpen, setPeriodOpen] = useState(false)
+  
+  // Estado para nova linha
+  const [newCategory, setNewCategory] = useState('')
+  const [newPeriod, setNewPeriod] = useState<'monthly' | 'yearly'>('monthly')
+  const [newAmount, setNewAmount] = useState('')
 
   useEffect(() => {
     loadGoals()
@@ -86,18 +87,19 @@ export const GoalsBlock = ({
     }
   }
 
-  const handleAdd = async () => {
-    if (!newGoal.category) {
+  // Adicionar nova meta
+  const handleAddGoal = useCallback(async () => {
+    if (!newCategory) {
       toast.error(t('finance.goals.selectCategory'))
       return
     }
     
-    if (!newGoal.targetAmount) {
+    if (!newAmount) {
       toast.error(t('finance.goals.enterValue'))
       return
     }
 
-    const value = parseFloat(newGoal.targetAmount)
+    const value = parseFloat(newAmount.replace(',', '.'))
     if (isNaN(value) || value <= 0) {
       toast.error(t('finance.goals.valueMustBePositive'))
       return
@@ -111,26 +113,30 @@ export const GoalsBlock = ({
         return
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('finance_goals')
         .insert({
           user_id: user.id,
           finance_document_id: documentId,
-          category: newGoal.category,
+          category: newCategory,
           target_amount: value,
-          period: newGoal.period,
+          period: newPeriod,
         })
+        .select()
+        .single()
 
       if (error) throw error
 
-      setNewGoal({
-        category: '',
-        targetAmount: '',
-        period: 'monthly'
-      })
-      setShowAddRow(false)
+      // Atualização otimista
+      if (data) {
+        setGoals(prev => [data, ...prev])
+      }
+
+      // Reset
+      setNewCategory('')
+      setNewPeriod('monthly')
+      setNewAmount('')
       
-      await loadGoals()
       toast.success(t('finance.goals.added'))
     } catch (err: any) {
       toast.error(t('finance.goals.errorAdd'), {
@@ -139,16 +145,35 @@ export const GoalsBlock = ({
     } finally {
       setAdding(false)
     }
-  }
+  }, [newCategory, newAmount, newPeriod, documentId, t])
 
-  const cancelAdd = () => {
-    setNewGoal({
-      category: '',
-      targetAmount: '',
-      period: 'monthly'
-    })
-    setShowAddRow(false)
-  }
+  // Atualizar meta existente
+  const updateGoal = useCallback(async (goalId: string, field: string, value: any) => {
+    const goal = goals.find(g => g.id === goalId)
+    if (!goal) return
+
+    // Atualização otimista
+    setGoals(prev => prev.map(g => 
+      g.id === goalId ? { ...g, [field]: value } : g
+    ))
+
+    try {
+      const { error } = await supabase
+        .from('finance_goals')
+        .update({ [field]: value })
+        .eq('id', goalId)
+
+      if (error) throw error
+    } catch (err: any) {
+      // Reverter
+      setGoals(prev => prev.map(g => 
+        g.id === goalId ? goal : g
+      ))
+      toast.error(t('finance.goals.errorUpdate'), {
+        description: err.message,
+      })
+    }
+  }, [goals, t])
 
   const deleteGoal = async (id: string) => {
     if (deleting === id) return
@@ -259,158 +284,265 @@ export const GoalsBlock = ({
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="h-10 hover:bg-muted/50">
-              <TableHead className="h-10 text-xs font-semibold">Categoria</TableHead>
-              <TableHead className="h-10 text-xs font-semibold">Período</TableHead>
-              <TableHead className="h-10 text-xs font-semibold text-right">Meta</TableHead>
-              <TableHead className="h-10 text-xs font-semibold text-right hidden md:table-cell">Gasto</TableHead>
-              <TableHead className="h-10 text-xs font-semibold text-center">Progresso</TableHead>
-              <TableHead className="h-10 w-10"></TableHead>
+            <TableRow className="h-8">
+              <TableHead className="h-8 text-xs">{t('finance.table.category')}</TableHead>
+              <TableHead className="h-8 text-xs">{t('finance.goals.period')}</TableHead>
+              <TableHead className="h-8 text-xs text-right">{t('finance.goals.target')}</TableHead>
+              <TableHead className="h-8 text-xs text-right">{t('finance.goals.spent')}</TableHead>
+              <TableHead className="h-8 text-xs text-center">{t('finance.goals.progress')}</TableHead>
+              <TableHead className="h-8 w-8"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Linha de adicionar nova meta */}
-            <AnimatePresence>
-              {showAddRow && (
-                <motion.tr
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="border-b bg-muted/20"
-                >
-                  <TableCell className="py-2 px-3">
-                    <Select 
-                      value={newGoal.category} 
-                      onValueChange={(value) => setNewGoal({...newGoal, category: value})}
-                    >
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue placeholder="Categoria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  
-                  <TableCell className="py-2 px-3">
-                    <Select 
-                      value={newGoal.period} 
-                      onValueChange={(value: 'monthly' | 'yearly') => setNewGoal({...newGoal, period: value})}
-                    >
-                      <SelectTrigger className="h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">Mensal</SelectItem>
-                        <SelectItem value="yearly">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  
-                  <TableCell className="py-2 px-3">
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      value={newGoal.targetAmount}
-                      onChange={(e) => setNewGoal({...newGoal, targetAmount: e.target.value})}
-                      className="h-8 text-sm text-right"
-                      step="0.01"
-                      min="0"
-                    />
-                  </TableCell>
-                  
-                  <TableCell className="py-2 px-3 hidden md:table-cell">
-                    <span className="text-xs text-muted-foreground">-</span>
-                  </TableCell>
-                  
-                  <TableCell className="py-2 px-3">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm" 
-                        onClick={handleAdd}
-                        disabled={adding}
-                        className="h-7 w-7 p-0"
-                      >
-                        {adding ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Check className="h-3 w-3" />
-                        )}
-                      </Button>
-                      <Button
-                        size="sm" 
-                        variant="ghost"
-                        onClick={cancelAdd}
-                        className="h-7 w-7 p-0"
-                      >
-                        ×
-                      </Button>
+            {/* Linha para adicionar nova meta - sempre visível no topo */}
+            <TableRow className="h-8 bg-muted/20">
+              {/* Categoria */}
+              <TableCell className="text-xs py-0 px-2">
+                <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-1 text-xs h-7 px-2 hover:bg-muted rounded min-w-[100px]">
+                      <span className={newCategory ? 'text-foreground' : 'text-muted-foreground'}>
+                        {newCategory || t('finance.table.category')}
+                      </span>
+                      <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-1" align="start">
+                    <div className="max-h-48 overflow-y-auto">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat}
+                          onClick={() => {
+                            setNewCategory(cat)
+                            setCategoryOpen(false)
+                          }}
+                          className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded"
+                        >
+                          {cat}
+                        </button>
+                      ))}
                     </div>
-                  </TableCell>
-                  
-                  <TableCell></TableCell>
-                </motion.tr>
-              )}
-            </AnimatePresence>
+                  </PopoverContent>
+                </Popover>
+              </TableCell>
+
+              {/* Período */}
+              <TableCell className="text-xs py-0 px-2">
+                <Popover open={periodOpen} onOpenChange={setPeriodOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-1 text-xs h-7 px-2 hover:bg-muted rounded">
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                        {newPeriod === 'monthly' ? t('finance.goals.monthly') : t('finance.goals.yearly')}
+                      </Badge>
+                      <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-32 p-1" align="start">
+                    <button
+                      onClick={() => { setNewPeriod('monthly'); setPeriodOpen(false) }}
+                      className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded"
+                    >
+                      {t('finance.goals.monthly')}
+                    </button>
+                    <button
+                      onClick={() => { setNewPeriod('yearly'); setPeriodOpen(false) }}
+                      className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded"
+                    >
+                      {t('finance.goals.yearly')}
+                    </button>
+                  </PopoverContent>
+                </Popover>
+              </TableCell>
+
+              {/* Valor Meta */}
+              <TableCell className="text-xs py-0 px-2 text-right">
+                <Input
+                  type="text"
+                  placeholder="0,00"
+                  value={newAmount}
+                  onChange={(e) => setNewAmount(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddGoal()
+                  }}
+                  className="h-6 text-xs text-right w-24 border-0 bg-transparent focus-visible:ring-1 px-1"
+                />
+              </TableCell>
+
+              {/* Gasto - vazio para nova linha */}
+              <TableCell className="text-xs py-0 px-2 text-right text-muted-foreground">
+                -
+              </TableCell>
+
+              {/* Progresso - vazio para nova linha */}
+              <TableCell className="text-xs py-0 px-2 text-center text-muted-foreground">
+                -
+              </TableCell>
+
+              {/* Botão Adicionar */}
+              <TableCell className="text-xs py-0 px-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAddGoal}
+                  disabled={adding || !newCategory || !newAmount}
+                  className="h-6 w-6 p-0"
+                >
+                  {adding ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Plus className="h-3 w-3" />
+                  )}
+                </Button>
+              </TableCell>
+            </TableRow>
 
             {/* Metas existentes */}
-            {goals.map((goal, index) => {
+            {goals.map((goal) => {
               const spent = spendingByCategory[goal.category] || 0
-              const percentage = (spent / goal.target_amount) * 100
+              const percentage = goal.target_amount > 0 ? (spent / goal.target_amount) * 100 : 0
               const isOverBudget = percentage >= 100
               const isWarning = percentage >= 80 && percentage < 100
 
               return (
-                <motion.tr
-                  key={goal.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="border-b hover:bg-muted/30 group transition-colors"
-                >
-                  <TableCell className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{goal.category}</span>
-                      {isOverBudget && (
-                        <AlertTriangle className="h-3 w-3 text-red-500" />
-                      )}
-                      {isWarning && !isOverBudget && (
-                        <TrendingUp className="h-3 w-3 text-yellow-500" />
-                      )}
-                    </div>
+                <TableRow key={goal.id} className="h-8 hover:bg-muted/30 group">
+                  {/* Categoria - Edição inline */}
+                  <TableCell className="text-xs py-0 px-2">
+                    {editingCell?.rowId === goal.id && editingCell?.field === 'category' ? (
+                      <Popover open onOpenChange={(open) => !open && setEditingCell(null)}>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 text-xs h-7 px-2 bg-muted rounded">
+                            <span>{goal.category}</span>
+                            <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-1" align="start">
+                          <div className="max-h-48 overflow-y-auto">
+                            {categories.map((cat) => (
+                              <button
+                                key={cat}
+                                onClick={() => {
+                                  updateGoal(goal.id, 'category', cat)
+                                  setEditingCell(null)
+                                }}
+                                className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded"
+                              >
+                                {cat}
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <button
+                        onClick={() => setEditingCell({ rowId: goal.id, field: 'category' })}
+                        className="flex items-center gap-1.5 text-xs h-7 px-2 hover:bg-muted rounded w-full text-left"
+                      >
+                        <span className="font-medium">{goal.category}</span>
+                        {isOverBudget && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                        {isWarning && !isOverBudget && <TrendingUp className="h-3 w-3 text-yellow-500" />}
+                      </button>
+                    )}
                   </TableCell>
-                  
-                  <TableCell className="py-3 px-3">
-                    <Badge variant="secondary" className="text-xs">
-                      {goal.period === 'monthly' ? 'Mensal' : 'Anual'}
-                    </Badge>
+
+                  {/* Período - Edição inline */}
+                  <TableCell className="text-xs py-0 px-2">
+                    {editingCell?.rowId === goal.id && editingCell?.field === 'period' ? (
+                      <Popover open onOpenChange={(open) => !open && setEditingCell(null)}>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 text-xs h-7 px-2 bg-muted rounded">
+                            <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                              {goal.period === 'monthly' ? t('finance.goals.monthly') : t('finance.goals.yearly')}
+                            </Badge>
+                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-32 p-1" align="start">
+                          <button
+                            onClick={() => { updateGoal(goal.id, 'period', 'monthly'); setEditingCell(null) }}
+                            className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded"
+                          >
+                            {t('finance.goals.monthly')}
+                          </button>
+                          <button
+                            onClick={() => { updateGoal(goal.id, 'period', 'yearly'); setEditingCell(null) }}
+                            className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted rounded"
+                          >
+                            {t('finance.goals.yearly')}
+                          </button>
+                        </PopoverContent>
+                      </Popover>
+                    ) : (
+                      <button
+                        onClick={() => setEditingCell({ rowId: goal.id, field: 'period' })}
+                        className="h-7 px-2 hover:bg-muted rounded"
+                      >
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                          {goal.period === 'monthly' ? t('finance.goals.monthly') : t('finance.goals.yearly')}
+                        </Badge>
+                      </button>
+                    )}
                   </TableCell>
-                  
-                  <TableCell className="py-3 px-3 text-right">
-                    <span className="text-sm font-semibold text-foreground">
-                      {formatCurrency(goal.target_amount)}
-                    </span>
+
+                  {/* Valor Meta - Edição inline */}
+                  <TableCell className="text-xs py-0 px-2 text-right">
+                    {editingCell?.rowId === goal.id && editingCell?.field === 'target_amount' ? (
+                      <Input
+                        type="text"
+                        autoFocus
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onBlur={() => {
+                          const value = parseFloat(editingValue.replace(',', '.'))
+                          if (!isNaN(value) && value > 0) {
+                            updateGoal(goal.id, 'target_amount', value)
+                          }
+                          setEditingCell(null)
+                          setEditingValue('')
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const value = parseFloat(editingValue.replace(',', '.'))
+                            if (!isNaN(value) && value > 0) {
+                              updateGoal(goal.id, 'target_amount', value)
+                            }
+                            setEditingCell(null)
+                            setEditingValue('')
+                          }
+                          if (e.key === 'Escape') {
+                            setEditingCell(null)
+                            setEditingValue('')
+                          }
+                        }}
+                        className="h-6 text-xs text-right w-24 border-0 bg-muted focus-visible:ring-1 px-1"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditingCell({ rowId: goal.id, field: 'target_amount' })
+                          setEditingValue(goal.target_amount.toString())
+                        }}
+                        className="h-7 px-2 hover:bg-muted rounded font-mono"
+                      >
+                        {formatCurrency(goal.target_amount)}
+                      </button>
+                    )}
                   </TableCell>
-                  
-                  <TableCell className="py-3 px-3 text-right hidden md:table-cell">
-                    <span className={`text-sm font-medium ${
-                      isOverBudget ? 'text-red-600' : 'text-muted-foreground'
-                    }`}>
+
+                  {/* Valor Gasto */}
+                  <TableCell className="text-xs py-0 px-2 text-right font-mono">
+                    <span className={isOverBudget ? 'text-red-600' : 'text-muted-foreground'}>
                       {formatCurrency(spent)}
                     </span>
                   </TableCell>
-                  
-                  <TableCell className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-muted rounded-full overflow-hidden h-2">
+
+                  {/* Progresso */}
+                  <TableCell className="text-xs py-0 px-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1 bg-muted rounded-full overflow-hidden h-1.5 min-w-[40px]">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${Math.min(percentage, 100)}%` }}
-                          transition={{ duration: 0.8, ease: "easeOut" }}
+                          transition={{ duration: 0.5 }}
                           className={`h-full ${
                             isOverBudget ? 'bg-red-500' : 
                             isWarning ? 'bg-yellow-500' : 
@@ -418,7 +550,7 @@ export const GoalsBlock = ({
                           }`}
                         />
                       </div>
-                      <span className={`text-xs font-medium min-w-[2.5rem] text-right ${
+                      <span className={`text-xs min-w-[2rem] text-right ${
                         isOverBudget ? 'text-red-600' : 
                         isWarning ? 'text-yellow-600' : 
                         'text-green-600'
@@ -427,14 +559,15 @@ export const GoalsBlock = ({
                       </span>
                     </div>
                   </TableCell>
-                  
-                  <TableCell className="py-3 px-3">
+
+                  {/* Botão Deletar */}
+                  <TableCell className="text-xs py-0 px-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteGoal(goal.id)}
                       disabled={deleting === goal.id}
-                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
                     >
                       {deleting === goal.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -443,26 +576,9 @@ export const GoalsBlock = ({
                       )}
                     </Button>
                   </TableCell>
-                </motion.tr>
+                </TableRow>
               )
             })}
-
-            {/* Linha vazia para adicionar meta */}
-            {!showAddRow && (
-              <TableRow className="border-b hover:bg-muted/30">
-                <TableCell colSpan={6} className="py-4 px-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAddRow(true)}
-                    className="w-full justify-start text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar meta financeira
-                  </Button>
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
@@ -470,24 +586,20 @@ export const GoalsBlock = ({
       {/* Rodapé com estatísticas */}
       {goals.length > 0 && (
         <div className="flex justify-between items-center text-xs text-muted-foreground px-2">
-          <span>{goals.length} meta{goals.length !== 1 ? 's' : ''}</span>
+          <span>{goals.length} {goals.length === 1 ? t('finance.goals.goal') : t('finance.goals.goals')}</span>
           <span>
-            {goals.filter(g => (spendingByCategory[g.category] || 0) / g.target_amount >= 1).length} excedidas
+            {goals.filter(g => (spendingByCategory[g.category] || 0) / g.target_amount >= 1).length} {t('finance.goals.exceeded')}
           </span>
         </div>
       )}
 
       {/* Estado vazio */}
-      {goals.length === 0 && !showAddRow && (
-        <div className="text-center py-8">
-          <div className="flex flex-col items-center gap-3">
-            <Target className="h-12 w-12 text-muted-foreground/30" />
-            <div>
-              <p className="text-sm text-muted-foreground">Nenhuma meta financeira</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Clique no botão acima para adicionar sua primeira meta
-              </p>
-            </div>
+      {goals.length === 0 && (
+        <div className="text-center py-6">
+          <div className="flex flex-col items-center gap-2">
+            <Target className="h-8 w-8 text-muted-foreground/30" />
+            <p className="text-xs text-muted-foreground">{t('finance.goals.noGoals')}</p>
+            <p className="text-xs text-muted-foreground">{t('finance.goals.addFirst')}</p>
           </div>
         </div>
       )}

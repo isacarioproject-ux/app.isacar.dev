@@ -483,18 +483,19 @@ export const BudgetTracker = ({
     setEditingValue(String(currentValue || ''))
   }
 
-  const handleReserveCellSave = async (rowId: string, field: string) => {
-    if (!editingCell || editingCell.rowId !== rowId || editingCell.field !== field) return
-
+  const handleReserveCellSave = async (rowId: string, field: string, directValue?: string) => {
+    // Usar valor direto se fornecido (para Select), senão usar editingValue
+    const valueToUse = directValue !== undefined ? directValue : editingValue
+    
     const entryIndex = reserveEntries.findIndex(e => e.id === rowId)
     let updated: ReserveEntry[]
     
     if (entryIndex === -1) {
       // Nova reserva
-      if (field === 'name' && editingValue.trim()) {
+      if (field === 'name' && valueToUse.trim()) {
         const newEntry: ReserveEntry = {
           id: Date.now().toString(),
-          name: editingValue.trim(),
+          name: valueToUse.trim(),
           type: 'reserve',
           value: 0,
           date: new Date().toISOString().split('T')[0]
@@ -507,13 +508,13 @@ export const BudgetTracker = ({
       // Editar reserva existente
       updated = [...reserveEntries]
       if (field === 'name') {
-        updated[entryIndex] = { ...updated[entryIndex], name: editingValue.trim() }
+        updated[entryIndex] = { ...updated[entryIndex], name: valueToUse.trim() }
       } else if (field === 'value') {
-        updated[entryIndex] = { ...updated[entryIndex], value: parseFloat(editingValue) || 0 }
+        updated[entryIndex] = { ...updated[entryIndex], value: parseFloat(valueToUse) || 0 }
       } else if (field === 'type') {
-        updated[entryIndex] = { ...updated[entryIndex], type: editingValue as 'reserve' | 'investment' }
+        updated[entryIndex] = { ...updated[entryIndex], type: valueToUse as 'reserve' | 'investment' }
       } else if (field === 'date') {
-        updated[entryIndex] = { ...updated[entryIndex], date: editingValue }
+        updated[entryIndex] = { ...updated[entryIndex], date: valueToUse }
       }
       setReserveEntries(updated)
       await saveReserveEntries(updated)
@@ -556,13 +557,13 @@ export const BudgetTracker = ({
       // Editar meta existente
       updated = [...metaEntries]
       if (field === 'name') {
-        updated[entryIndex] = { ...updated[entryIndex], name: editingValue.trim() }
+        updated[entryIndex] = { ...updated[entryIndex], name: valueToUse.trim() }
       } else if (field === 'value') {
-        updated[entryIndex] = { ...updated[entryIndex], value: parseFloat(editingValue) || 0 }
+        updated[entryIndex] = { ...updated[entryIndex], value: parseFloat(valueToUse) || 0 }
       } else if (field === 'type') {
-        updated[entryIndex] = { ...updated[entryIndex], type: editingValue as 'meta' | 'investment' }
+        updated[entryIndex] = { ...updated[entryIndex], type: valueToUse as 'meta' | 'investment' }
       } else if (field === 'date') {
-        updated[entryIndex] = { ...updated[entryIndex], date: editingValue }
+        updated[entryIndex] = { ...updated[entryIndex], date: valueToUse }
       }
       setMetaEntries(updated)
       await saveMetaEntries(updated)
@@ -1319,10 +1320,9 @@ export const BudgetTracker = ({
                   <TableCell className="text-xs py-0 px-2">
                     {editingCell?.rowId === entry.id && editingCell?.field === 'type' ? (
                       <Select
-                        value={editingValue}
+                        value={editingValue || entry.type}
                         onValueChange={async (value) => {
-                          setEditingValue(value)
-                          await handleReserveCellSave(entry.id, 'type')
+                          await handleReserveCellSave(entry.id, 'type', value)
                         }}
                       >
                         <SelectTrigger className="h-7 text-xs border-none p-1">
@@ -1516,10 +1516,9 @@ export const BudgetTracker = ({
                   <TableCell className="text-xs py-0 px-2">
                     {editingCell?.rowId === entry.id && editingCell?.field === 'type' ? (
                       <Select
-                        value={editingValue}
+                        value={editingValue || entry.type}
                         onValueChange={async (value) => {
-                          setEditingValue(value)
-                          await handleMetaCellSave(entry.id, 'type')
+                          await handleMetaCellSave(entry.id, 'type', value)
                         }}
                       >
                         <SelectTrigger className="h-7 text-xs border-none p-1">

@@ -99,7 +99,10 @@ export function TasksSettingsDialog({ open, onOpenChange }: TasksSettingsDialogP
     // Verificar se já foi negado
     const currentPermission = getNotificationPermission();
     if (currentPermission === 'denied') {
-      toast.error(t('tasks.notifications.denied'));
+      toast.error(t('tasks.notifications.denied'), {
+        duration: 8000,
+        description: t('tasks.notifications.howToEnable'),
+      });
       return;
     }
 
@@ -134,13 +137,35 @@ export function TasksSettingsDialog({ open, onOpenChange }: TasksSettingsDialogP
 
     // Verificar suporte
     if (!isGeolocationSupported()) {
-      toast.error(t('tasks.location.unsupported'));
+      toast.error(t('tasks.location.unsupported'), {
+        duration: 6000,
+      });
       return;
     }
 
-    // Por enquanto só ativar o toggle (feature futura)
-    updateSetting('locationReminders', true);
-    toast.success(t('tasks.location.enabled'));
+    // Testar se temos permissão tentando obter localização
+    try {
+      const { getCurrentPosition } = await import('@/lib/geolocation');
+      const result = await getCurrentPosition();
+      
+      if (!result.success) {
+        if (result.error === 'denied') {
+          toast.error(t('tasks.location.denied'), {
+            duration: 8000,
+            description: t('tasks.location.howToEnable'),
+          });
+        } else {
+          toast.error(t('tasks.location.error'));
+        }
+        return;
+      }
+
+      // Sucesso - ativar toggle
+      updateSetting('locationReminders', true);
+      toast.success(t('tasks.location.enabled'));
+    } catch {
+      toast.error(t('tasks.location.error'));
+    }
   };
 
   return (

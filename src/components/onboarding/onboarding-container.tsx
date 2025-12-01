@@ -178,17 +178,14 @@ export function OnboardingContainer() {
         />
       )}
 
-      {/* Botão Pular - visível em todos os passos exceto o primeiro e o último */}
+      {/* Link "Fazer depois" - visível em todos os passos exceto o primeiro e o último */}
       {currentStep > 1 && currentStep < totalSteps && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground gap-1"
-          onClick={skip}
+        <button
+          className="absolute top-4 right-4 z-10 text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
+          onClick={() => nextStep()}
         >
-          {t('onboarding.skip')}
-          <X className="h-3.5 w-3.5" />
-        </Button>
+          {t('onboarding.doLater') || 'Fazer depois'}
+        </button>
       )}
 
       {/* Progress - esconder nos passos 1-12 */}

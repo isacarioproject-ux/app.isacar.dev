@@ -64,6 +64,7 @@ const translations: Translations = {
   // ===== ONBOARDING =====
   'onboarding.skip': { 'pt-BR': 'Pular', 'en': 'Skip', 'es': 'Omitir' },
   'onboarding.skipForNow': { 'pt-BR': 'Pular por enquanto', 'en': 'Skip for now', 'es': 'Omitir por ahora' },
+  'onboarding.doLater': { 'pt-BR': 'Fazer depois', 'en': 'Do later', 'es': 'Hacer después' },
   'onboarding.task.title': { 'pt-BR': '🚀 Crie sua primeira tarefa!', 'en': '🚀 Create your first task!', 'es': '🚀 ¡Crea tu primera tarea!' },
   'onboarding.task.subtitle': { 'pt-BR': 'Comece organizando seu trabalho', 'en': 'Start organizing your work', 'es': 'Comienza a organizar tu trabajo' },
   'onboarding.task.whatToDo': { 'pt-BR': 'O que você precisa fazer?', 'en': 'What do you need to do?', 'es': '¿Qué necesitas hacer?' },

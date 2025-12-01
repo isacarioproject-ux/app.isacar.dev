@@ -3,8 +3,17 @@ import { DashboardLayout } from '@/components/dashboard-layout'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Smartphone, LogOut, Trash2, Save, Loader2, Settings, HelpCircle } from 'lucide-react'
+import { Smartphone, LogOut, Trash2, Save, Loader2, Settings, HelpCircle, ShieldCheck, Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/hooks/use-i18n'
@@ -45,6 +54,16 @@ export default function PreferencesPage() {
   })
 
   const [currentLanguage, setCurrentLanguage] = useState<'pt-BR' | 'en' | 'es'>(locale)
+
+  // 2FA State
+  const [show2FADialog, setShow2FADialog] = useState(false)
+  const [twoFactorStep, setTwoFactorStep] = useState<'setup' | 'verify' | 'disable'>('setup')
+  const [qrCode, setQrCode] = useState<string>('')
+  const [totpSecret, setTotpSecret] = useState<string>('')
+  const [verificationCode, setVerificationCode] = useState('')
+  const [factorId, setFactorId] = useState<string>('')
+  const [verifying2FA, setVerifying2FA] = useState(false)
+  const [copiedSecret, setCopiedSecret] = useState(false)
 
   useEffect(() => {
     setCurrentLanguage(locale)
@@ -92,6 +111,132 @@ export default function PreferencesPage() {
     const lang = newLanguage as 'pt-BR' | 'en' | 'es'
     setCurrentLanguage(lang)
     changeLocale(lang)
+  }
+
+  // ===== 2FA Functions =====
+  const checkExisting2FA = async () => {
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors()
+      if (error) throw error
+      
+      const totpFactor = data?.totp?.[0]
+      if (totpFactor) {
+        setFactorId(totpFactor.id)
+        setSecurity(prev => ({ ...prev, twoFactor: true }))
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Error checking 2FA:', error)
+      return false
+    }
+  }
+
+  // Verificar 2FA existente ao carregar
+  useEffect(() => {
+    checkExisting2FA()
+  }, [])
+
+  const handleSetup2FA = async () => {
+    try {
+      setVerifying2FA(true)
+      setTwoFactorStep('setup')
+      
+      // Enroll novo fator TOTP
+      const { data, error } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        friendlyName: 'ISACAR Authenticator'
+      })
+
+      if (error) throw error
+
+      if (data) {
+        setQrCode(data.totp.qr_code)
+        setTotpSecret(data.totp.secret)
+        setFactorId(data.id)
+        setShow2FADialog(true)
+      }
+    } catch (error: any) {
+      toast.error('Erro ao configurar 2FA', {
+        description: error.message
+      })
+    } finally {
+      setVerifying2FA(false)
+    }
+  }
+
+  const handleVerify2FA = async () => {
+    if (verificationCode.length !== 6) {
+      toast.error('Código inválido', {
+        description: 'Digite um código de 6 dígitos'
+      })
+      return
+    }
+
+    try {
+      setVerifying2FA(true)
+
+      // Primeiro criar challenge
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: factorId
+      })
+
+      if (challengeError) throw challengeError
+
+      // Depois verificar
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: factorId,
+        challengeId: challengeData.id,
+        code: verificationCode
+      })
+
+      if (verifyError) throw verifyError
+
+      setSecurity(prev => ({ ...prev, twoFactor: true }))
+      setShow2FADialog(false)
+      setVerificationCode('')
+      toast.success('2FA ativado com sucesso!', {
+        description: 'Sua conta agora está protegida com autenticação em dois fatores'
+      })
+    } catch (error: any) {
+      toast.error('Erro ao verificar código', {
+        description: error.message || 'Código inválido ou expirado'
+      })
+    } finally {
+      setVerifying2FA(false)
+    }
+  }
+
+  const handleDisable2FA = async () => {
+    try {
+      setVerifying2FA(true)
+
+      const { error } = await supabase.auth.mfa.unenroll({
+        factorId: factorId
+      })
+
+      if (error) throw error
+
+      setSecurity(prev => ({ ...prev, twoFactor: false }))
+      setFactorId('')
+      setShow2FADialog(false)
+      toast.success('2FA desativado', {
+        description: 'Autenticação em dois fatores foi removida da sua conta'
+      })
+    } catch (error: any) {
+      toast.error('Erro ao desativar 2FA', {
+        description: error.message
+      })
+    } finally {
+      setVerifying2FA(false)
+    }
+  }
+
+  const copySecret = () => {
+    navigator.clipboard.writeText(totpSecret)
+    setCopiedSecret(true)
+    setTimeout(() => setCopiedSecret(false), 2000)
+    toast.success('Código copiado!')
   }
 
   const handleSave = async () => {
@@ -261,7 +406,15 @@ export default function PreferencesPage() {
               >
                 <Switch
                   checked={security.twoFactor}
-                  onCheckedChange={(checked) => setSecurity({ ...security, twoFactor: checked })}
+                  onCheckedChange={(checked) => {
+                    if (checked && !security.twoFactor) {
+                      handleSetup2FA()
+                    } else if (!checked && security.twoFactor) {
+                      setTwoFactorStep('disable')
+                      setShow2FADialog(true)
+                    }
+                  }}
+                  disabled={verifying2FA}
                   className="scale-90"
                 />
               </PreferenceItem>
@@ -269,15 +422,25 @@ export default function PreferencesPage() {
               {security.twoFactor && (
                 <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-3 ml-0">
                   <div className="flex items-start gap-2">
-                    <Smartphone className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
+                    <ShieldCheck className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-sm text-green-400">{t('settings.twoFactorActive')}</p>
                       <p className="mt-0.5 text-xs text-green-400/80">
                         {t('settings.twoFactorActiveDesc')}
                       </p>
-                      <Button variant="outline" size="sm" className="mt-2 h-7 text-xs">
-                        {t('settings.configureApp')}
-                      </Button>
+                      <div className="flex gap-2 mt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            setTwoFactorStep('disable')
+                            setShow2FADialog(true)
+                          }}
+                        >
+                          Desativar 2FA
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -505,6 +668,132 @@ export default function PreferencesPage() {
           )}
         </div>
       </div>
+
+      {/* 2FA Dialog */}
+      <Dialog open={show2FADialog} onOpenChange={setShow2FADialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              {twoFactorStep === 'disable' ? 'Desativar 2FA' : 'Configurar 2FA'}
+            </DialogTitle>
+            <DialogDescription>
+              {twoFactorStep === 'disable' 
+                ? 'Tem certeza que deseja desativar a autenticação em dois fatores?' 
+                : 'Escaneie o QR code com seu aplicativo autenticador'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {twoFactorStep === 'disable' ? (
+            <div className="space-y-4">
+              <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
+                <p className="font-medium">⚠️ Atenção</p>
+                <p className="text-xs mt-1">
+                  Ao desativar o 2FA, sua conta ficará menos protegida. Qualquer pessoa com sua senha poderá acessar sua conta.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShow2FADialog(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={handleDisable2FA}
+                  disabled={verifying2FA}
+                >
+                  {verifying2FA ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Desativando...
+                    </>
+                  ) : (
+                    'Desativar 2FA'
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* QR Code */}
+              {qrCode && (
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="bg-white p-3 rounded-lg">
+                    <img src={qrCode} alt="QR Code 2FA" className="w-48 h-48" />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Use o Google Authenticator, Authy ou outro app compatível
+                  </p>
+                </div>
+              )}
+
+              {/* Secret Key */}
+              {totpSecret && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Não consegue escanear? Use este código:
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted px-3 py-2 rounded text-xs font-mono break-all">
+                      {totpSecret}
+                    </code>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-9 w-9 shrink-0"
+                      onClick={copySecret}
+                    >
+                      {copiedSecret ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Verification Code Input */}
+              <div className="space-y-2">
+                <Label htmlFor="verification-code">Código de verificação</Label>
+                <Input
+                  id="verification-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                  className="text-center text-2xl tracking-[0.5em] font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Digite o código de 6 dígitos do seu app autenticador
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShow2FADialog(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleVerify2FA}
+                  disabled={verifying2FA || verificationCode.length !== 6}
+                >
+                  {verifying2FA ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verificando...
+                    </>
+                  ) : (
+                    'Verificar e Ativar'
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

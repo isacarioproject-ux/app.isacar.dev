@@ -155,15 +155,22 @@ export default function ProjectManagerPage() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center h-full text-center"
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col items-center justify-center h-full text-center py-16 px-6"
                 >
-                  <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mb-4">
-                    <FolderKanban className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Nenhum projeto ainda</h3>
-                  <p className="text-muted-foreground max-w-md">
+                  <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-sm font-medium mb-2">Nenhum projeto ainda</p>
+                  <p className="text-xs text-muted-foreground mb-4 max-w-[280px]">
                     Projetos organizam tarefas, documentos e progresso em um só lugar
                   </p>
+                  <Button 
+                    size="sm"
+                    onClick={() => setPageMode('create')}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Criar Projeto
+                  </Button>
                 </motion.div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-16 pb-4 pt-2">

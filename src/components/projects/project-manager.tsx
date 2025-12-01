@@ -81,6 +81,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ShareMembersSelector } from './share-members-selector'
 import { KanbanCard } from './kanban-card'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface ProjectManagerProps {
   projectId: string
@@ -378,12 +379,16 @@ export function ProjectManager({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             {/* Título do documento */}
             <div className="px-4 md:px-16 pt-2 md:pt-3 pb-1 md:pb-2">
-              <input 
-                type="text"
-                defaultValue="Todos os Projetos"
-                placeholder="Sem título"
-                className="w-full text-xl md:text-2xl font-bold bg-transparent border-none outline-none focus:outline-none placeholder:text-muted-foreground/50"
-              />
+              {loadingProjects ? (
+                <Skeleton className="h-7 md:h-8 w-48" />
+              ) : (
+                <input 
+                  type="text"
+                  defaultValue="Todos os Projetos"
+                  placeholder="Sem título"
+                  className="w-full text-xl md:text-2xl font-bold bg-transparent border-none outline-none focus:outline-none placeholder:text-muted-foreground/50"
+                />
+              )}
             </div>
 
             <div className="flex items-center justify-between px-4 md:px-16 shrink-0 py-1 md:py-0">

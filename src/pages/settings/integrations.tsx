@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Switch } from '@/components/ui/switch'
@@ -8,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Save, Loader2, CheckSquare, Wallet, ArrowRight, FolderKanban, BarChart3, Plug, Mail, Calendar, FileSpreadsheet, HardDrive, Settings2, HelpCircle } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Save, Loader2, CheckSquare, Wallet, ArrowRight, FolderKanban, Plug, Mail, Calendar, FileSpreadsheet, Settings2, HelpCircle, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { GoogleIntegrationCard } from '@/components/integrations/google-integration-card'
 import { GmailInvoiceScanner } from '@/components/integrations/gmail-invoice-scanner'
@@ -21,7 +20,6 @@ import { useGoogleIntegration } from '@/hooks/use-google-integration'
 import { useI18n } from '@/hooks/use-i18n'
 
 export default function IntegrationsPage() {
-  const navigate = useNavigate()
   const { t } = useI18n()
   const { currentWorkspace } = useWorkspace()
   const { isConnected: isGoogleConnected } = useGoogleIntegration()
@@ -39,7 +37,8 @@ export default function IntegrationsPage() {
   const [hasChanges, setHasChanges] = useState(false)
   const [saving, setSaving] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
-  const [activeGoogleTab, setActiveGoogleTab] = useState('gmail')
+  const [activeGoogleTab, setActiveGoogleTab] = useState('connection')
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
 
   useEffect(() => {
     loadConfig()
@@ -323,39 +322,195 @@ export default function IntegrationsPage() {
               </div>
             </div>
           ) : (
-          <div className={`w-full mx-auto py-6 space-y-4 ${isGoogleConnected ? 'px-4 md:px-16 max-w-none' : 'max-w-4xl px-4'}`}>
+          <div className="w-full h-full px-4 md:px-16 py-4 md:py-6">
+            <TooltipProvider delayDuration={300}>
+              {/* Título principal com fonte maior */}
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold">{t('integrations.apiRest')}</h1>
+                  <p className="text-sm md:text-base text-muted-foreground mt-1">
+                    Conecte e gerencie suas integrações externas
+                  </p>
+                </div>
+                
+                {/* Botão de configurações no header - abre Dialog */}
+                <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-2"
+                        >
+                          <Settings2 className="h-4 w-4" />
+                          <span className="hidden sm:inline">Configurações</span>
+                        </Button>
+                      </DialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Configurações do sistema de integrações internas</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  {/* Dialog de Configurações Internas */}
+                  <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Settings2 className="h-5 w-5 text-purple-600" />
+                        Sistema de Integrações Internas
+                      </DialogTitle>
+                      <DialogDescription>
+                        Configure como os módulos internos se comunicam entre si
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6 py-4">
+                      {/* Sistema Principal */}
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          {t('integrations.internalSystem')}
+                        </h3>
+                        <IntegrationItem
+                          title={t('integrations.enableSystem')}
+                          description={t('integrations.enableSystemDesc')}
+                          settingKey="ENABLED"
+                          tooltip="Ativa ou desativa todas as integrações internas do sistema."
+                        />
+                      </div>
 
-          {/* Integrações API REST */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-3"
-          >
-            <h2 className="text-base font-medium">{t('integrations.apiRest')}</h2>
-            <GoogleIntegrationCard />
-            
-            {/* Google Features - Layout com Tabs quando conectado */}
-            {isGoogleConnected && (
-              <TooltipProvider delayDuration={300}>
-                <Tabs value={activeGoogleTab} onValueChange={setActiveGoogleTab} className="mt-6">
-                  {/* Título do documento - estilo project-manager */}
-                  <div className="pt-2 md:pt-3 pb-1 md:pb-2">
-                    <h2 className="text-xl md:text-2xl font-bold">{t('integrations.googleWorkspace')}</h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t('integrations.googleWorkspaceDesc')}
-                    </p>
+                      {/* Integrações Disponíveis */}
+                      <div className="space-y-3 border-t pt-4">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          {t('integrations.available')}
+                        </h3>
+                        <IntegrationItem
+                          icon={
+                            <div className="flex items-center gap-1.5">
+                              <CheckSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                              <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            </div>
+                          }
+                          title={t('integrations.tasksToFinance')}
+                          description={t('integrations.tasksToFinanceDesc')}
+                          settingKey="TASKS_TO_FINANCE"
+                          disabled={!config.ENABLED}
+                          tooltip="Tarefas com valores financeiros serão refletidas no módulo financeiro."
+                        />
+                        <IntegrationItem
+                          icon={
+                            <div className="flex items-center gap-1.5">
+                              <FolderKanban className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                              <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            </div>
+                          }
+                          title={t('integrations.projectsToFinance')}
+                          description={t('integrations.projectsToFinanceDesc')}
+                          settingKey="PROJECTS_TO_FINANCE"
+                          disabled={!config.ENABLED}
+                          tooltip="Orçamentos de projetos sincronizam com o módulo financeiro."
+                        />
+                      </div>
+
+                      {/* Opções de Comportamento */}
+                      <div className="space-y-3 border-t pt-4">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          {t('integrations.behaviorOptions')}
+                        </h3>
+                        <IntegrationItem
+                          title={t('integrations.autoCreate')}
+                          description={t('integrations.autoCreateDesc')}
+                          settingKey="AUTO_CREATE"
+                          disabled={!config.ENABLED}
+                          tooltip="Cria automaticamente novos registros quando dados são sincronizados."
+                        />
+                        <IntegrationItem
+                          title={t('integrations.notifications')}
+                          description={t('integrations.notificationsDesc')}
+                          settingKey="SHOW_NOTIFICATIONS"
+                          disabled={!config.ENABLED}
+                          tooltip="Exibe notificações em cada sincronização automática."
+                        />
+                        <IntegrationItem
+                          title={t('integrations.debugMode')}
+                          description={t('integrations.debugModeDesc')}
+                          settingKey="DEBUG_MODE"
+                          disabled={!config.ENABLED}
+                          tooltip="Modo desenvolvedor - registra logs detalhados no console."
+                        />
+                      </div>
+
+                      {/* Status e botão salvar */}
+                      <div className="border-t pt-4 space-y-3">
+                        {config.ENABLED && (
+                          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-sm font-medium">{t('integrations.systemActive')}</span>
+                          </div>
+                        )}
+                        <Button 
+                          onClick={saveConfig} 
+                          disabled={saving || !hasChanges}
+                          className="w-full"
+                          variant={hasChanges ? "primary" : "secondary"}
+                        >
+                          {saving ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                          )}
+                          {hasChanges ? 'Salvar Alterações' : 'Configurações Salvas'}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Layout quando DESCONECTADO - só botão centralizado */}
+              {!isGoogleConnected && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center py-12 md:py-20"
+                >
+                  <div className="max-w-md w-full">
+                    <GoogleIntegrationCard />
                   </div>
+                </motion.div>
+              )}
 
-                  {/* Tabs e ações na mesma linha - estilo project-manager */}
-                  <div className="flex items-center justify-between shrink-0 py-1 md:py-0">
-                    <TabsList variant="transparent" className="border-0 p-0 gap-0.5 md:gap-0">
+              {/* Layout quando CONECTADO - Tabs estilo project-manager */}
+              {isGoogleConnected && (
+                <Tabs value={activeGoogleTab} onValueChange={setActiveGoogleTab} className="flex flex-col h-full">
+                  {/* Tabs e ações - estilo project-manager */}
+                  <div className="flex items-center justify-between shrink-0 py-2 border-b">
+                    <TabsList variant="transparent" className="border-0 p-0 gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <TabsTrigger 
+                            value="connection" 
+                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
+                          >
+                            <Link2 className="h-4 w-4" />
+                            <span>Conexão</span>
+                          </TabsTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="font-medium">Status da Conexão</p>
+                          <p className="text-muted-foreground text-xs">Gerenciar conexão com Google</p>
+                        </TooltipContent>
+                      </Tooltip>
+
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <TabsTrigger 
                             value="gmail" 
-                            className="text-xs gap-1 md:gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-1.5 md:px-2 py-1"
+                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
                           >
-                            <Mail className="h-3.5 w-3.5" />
+                            <Mail className="h-4 w-4" />
                             <span className="hidden sm:inline">Gmail</span>
                           </TabsTrigger>
                         </TooltipTrigger>
@@ -369,9 +524,9 @@ export default function IntegrationsPage() {
                         <TooltipTrigger asChild>
                           <TabsTrigger 
                             value="calendar" 
-                            className="text-xs gap-1 md:gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-1.5 md:px-2 py-1"
+                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
                           >
-                            <Calendar className="h-3.5 w-3.5" />
+                            <Calendar className="h-4 w-4" />
                             <span className="hidden sm:inline">Agenda</span>
                           </TabsTrigger>
                         </TooltipTrigger>
@@ -385,9 +540,9 @@ export default function IntegrationsPage() {
                         <TooltipTrigger asChild>
                           <TabsTrigger 
                             value="sheets" 
-                            className="text-xs gap-1 md:gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-1.5 md:px-2 py-1"
+                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
                           >
-                            <FileSpreadsheet className="h-3.5 w-3.5" />
+                            <FileSpreadsheet className="h-4 w-4" />
                             <span className="hidden sm:inline">Planilhas</span>
                           </TabsTrigger>
                         </TooltipTrigger>
@@ -396,202 +551,32 @@ export default function IntegrationsPage() {
                           <p className="text-muted-foreground text-xs">Exportar dados financeiros</p>
                         </TooltipContent>
                       </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <TabsTrigger 
-                            value="analytics" 
-                            className="text-xs gap-1 md:gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-1.5 md:px-2 py-1"
-                          >
-                            <BarChart3 className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Analytics</span>
-                          </TabsTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="font-medium">Analytics</p>
-                          <p className="text-muted-foreground text-xs">Ver estatísticas detalhadas</p>
-                        </TooltipContent>
-                      </Tooltip>
                     </TabsList>
-
-                    {/* Botões de ação à direita */}
-                    <div className="flex items-center gap-0.5 md:gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                          >
-                            <Settings2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>Configurações das integrações</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
                   </div>
 
                   {/* Conteúdo das Tabs */}
-                  <TabsContent value="gmail" className="m-0 py-4">
-                    <GmailInvoiceScanner />
-                  </TabsContent>
+                  <div className="flex-1 overflow-auto py-4 md:py-6">
+                    <TabsContent value="connection" className="m-0">
+                      <div className="max-w-md">
+                        <GoogleIntegrationCard />
+                      </div>
+                    </TabsContent>
 
-                  <TabsContent value="calendar" className="m-0 py-4">
-                    <CalendarSyncPanel />
-                  </TabsContent>
+                    <TabsContent value="gmail" className="m-0">
+                      <GmailInvoiceScanner />
+                    </TabsContent>
 
-                  <TabsContent value="sheets" className="m-0 py-4">
-                    <SheetsExportDialog />
-                  </TabsContent>
+                    <TabsContent value="calendar" className="m-0">
+                      <CalendarSyncPanel />
+                    </TabsContent>
 
-                  <TabsContent value="analytics" className="m-0 py-4">
-                    <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-950/20">
-                      <CardHeader>
-                        <div className="flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                          <CardTitle className="text-base">{t('integrations.analytics')}</CardTitle>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-[250px]">
-                              <p>Visualize estatísticas e métricas detalhadas sobre suas integrações com Google</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <CardDescription>
-                          {t('integrations.analyticsDesc')}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button 
-                          onClick={() => navigate('/analytics/google')}
-                          className="w-full"
-                          variant="primary"
-                        >
-                          <BarChart3 className="mr-2 h-4 w-4" />
-                          {t('integrations.viewAnalytics')}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                    <TabsContent value="sheets" className="m-0">
+                      <SheetsExportDialog />
+                    </TabsContent>
+                  </div>
                 </Tabs>
-              </TooltipProvider>
-            )}
-          </motion.div>
-
-          {/* Sistema Principal */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-3"
-          >
-            <h2 className="text-base font-medium">{t('integrations.internalSystem')}</h2>
-            <div className="space-y-1">
-              <IntegrationItem
-                title={t('integrations.enableSystem')}
-                description={t('integrations.enableSystemDesc')}
-                settingKey="ENABLED"
-                tooltip="Ativa ou desativa todas as integrações internas do sistema. Quando desativado, nenhuma sincronização automática será realizada."
-              />
-            </div>
-          </motion.div>
-
-          {/* Integrações Disponíveis */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-3"
-          >
-            <h2 className="text-base font-medium">{t('integrations.available')}</h2>
-            <div className="space-y-1">
-              <IntegrationItem
-                icon={
-                  <div className="flex items-center gap-1.5">
-                    <CheckSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                }
-                title={t('integrations.tasksToFinance')}
-                description={t('integrations.tasksToFinanceDesc')}
-                settingKey="TASKS_TO_FINANCE"
-                disabled={!config.ENABLED}
-                tooltip="Quando ativado, tarefas com valores financeiros serão automaticamente refletidas no módulo financeiro."
-              />
-              <IntegrationItem
-                icon={
-                  <div className="flex items-center gap-1.5">
-                    <FolderKanban className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                    <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                }
-                title={t('integrations.projectsToFinance')}
-                description={t('integrations.projectsToFinanceDesc')}
-                settingKey="PROJECTS_TO_FINANCE"
-                disabled={!config.ENABLED}
-                tooltip="Quando ativado, orçamentos e custos de projetos serão sincronizados automaticamente com o módulo financeiro."
-              />
-            </div>
-          </motion.div>
-
-          {/* Opções de Comportamento */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-3"
-          >
-            <h2 className="text-base font-medium">{t('integrations.behaviorOptions')}</h2>
-            <div className="space-y-1">
-              <IntegrationItem
-                title={t('integrations.autoCreate')}
-                description={t('integrations.autoCreateDesc')}
-                settingKey="AUTO_CREATE"
-                disabled={!config.ENABLED}
-                tooltip="Cria automaticamente novos registros quando dados são sincronizados. Desative se preferir aprovar manualmente cada criação."
-              />
-              <IntegrationItem
-                title={t('integrations.notifications')}
-                description={t('integrations.notificationsDesc')}
-                settingKey="SHOW_NOTIFICATIONS"
-                disabled={!config.ENABLED}
-                tooltip="Exibe notificações sempre que uma sincronização automática for realizada. Útil para acompanhar atividades em tempo real."
-              />
-              <IntegrationItem
-                title={t('integrations.debugMode')}
-                description={t('integrations.debugModeDesc')}
-                settingKey="DEBUG_MODE"
-                disabled={!config.ENABLED}
-                tooltip="Modo para desenvolvedores. Registra informações detalhadas no console do navegador para diagnóstico de problemas."
-              />
-            </div>
-          </motion.div>
-
-          {/* Status */}
-          {config.ENABLED && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex items-center justify-between pt-2 border-t"
-            >
-              <div>
-                <p className="font-medium text-sm text-green-600 dark:text-green-400">
-                  ✅ {t('integrations.systemActive')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('integrations.systemActiveDesc')}
-                </p>
-              </div>
-            </motion.div>
-          )}
+              )}
+            </TooltipProvider>
           </div>
           )}
         </div>

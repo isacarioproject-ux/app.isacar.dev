@@ -324,48 +324,29 @@ export default function IntegrationsPage() {
           ) : (
           <div className="w-full h-full px-4 md:px-16 py-4 md:py-6">
             <TooltipProvider delayDuration={300}>
-              {/* Título principal com fonte maior */}
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold">{t('integrations.apiRest')}</h1>
-                  <p className="text-sm md:text-base text-muted-foreground mt-1">
-                    Conecte e gerencie suas integrações externas
-                  </p>
-                </div>
-                
-                {/* Botão de configurações no header - abre Dialog */}
-                <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-2"
-                        >
-                          <Settings2 className="h-4 w-4" />
-                          <span className="hidden sm:inline">Configurações</span>
-                        </Button>
-                      </DialogTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>Configurações do sistema de integrações internas</p>
-                    </TooltipContent>
-                  </Tooltip>
+              {/* Título principal */}
+              <div className="mb-4 md:mb-5">
+                <h1 className="text-lg md:text-xl font-bold">{t('integrations.apiRest')}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Conecte e gerencie suas integrações externas
+                </p>
+              </div>
+
+              {/* Dialog de Configurações (aberto pelo botão nas tabs) */}
+              <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+                {/* Dialog de Configurações Internas */}
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Settings2 className="h-5 w-5 text-purple-600" />
+                      Sistema de Integrações Internas
+                    </DialogTitle>
+                    <DialogDescription>
+                      Configure como os módulos internos se comunicam entre si
+                    </DialogDescription>
+                  </DialogHeader>
                   
-                  {/* Dialog de Configurações Internas */}
-                  <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Settings2 className="h-5 w-5 text-purple-600" />
-                        Sistema de Integrações Internas
-                      </DialogTitle>
-                      <DialogDescription>
-                        Configure como os módulos internos se comunicam entre si
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="space-y-6 py-4">
+                  <div className="space-y-6 py-4">
                       {/* Sistema Principal */}
                       <div className="space-y-3">
                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -466,8 +447,7 @@ export default function IntegrationsPage() {
                       </div>
                     </div>
                   </DialogContent>
-                </Dialog>
-              </div>
+              </Dialog>
 
               {/* Layout quando DESCONECTADO - só botão centralizado */}
               {!isGoogleConnected && (
@@ -485,8 +465,8 @@ export default function IntegrationsPage() {
               {/* Layout quando CONECTADO - Tabs estilo project-manager */}
               {isGoogleConnected && (
                 <Tabs value={activeGoogleTab} onValueChange={setActiveGoogleTab} className="flex flex-col h-full">
-                  {/* Tabs e ações - estilo project-manager */}
-                  <div className="flex items-center justify-between shrink-0 py-2 border-b">
+                  {/* Tabs e botão de configurações na mesma linha */}
+                  <div className="flex items-center justify-between shrink-0 py-2">
                     <TabsList variant="transparent" className="border-0 p-0 gap-1">
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -552,12 +532,31 @@ export default function IntegrationsPage() {
                         </TooltipContent>
                       </Tooltip>
                     </TabsList>
+
+                    {/* Botão de configurações */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-2"
+                          >
+                            <Settings2 className="h-4 w-4" />
+                            <span className="hidden sm:inline">Configurações</span>
+                          </Button>
+                        </DialogTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Configurações do sistema de integrações internas</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
 
                   {/* Conteúdo das Tabs */}
                   <div className="flex-1 overflow-auto py-4 md:py-6">
                     <TabsContent value="connection" className="m-0">
-                      <div className="max-w-md">
+                      <div className="max-w-xl">
                         <GoogleIntegrationCard />
                       </div>
                     </TabsContent>

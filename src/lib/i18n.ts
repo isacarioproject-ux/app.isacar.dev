@@ -20,7 +20,7 @@ const translations: Translations = {
   'nav.projects': { 'pt-BR': 'Projetos', 'en': 'Projects', 'es': 'Proyectos' },
   'nav.documents': { 'pt-BR': 'Documentos', 'en': 'Documents', 'es': 'Documentos' },
   'nav.team': { 'pt-BR': 'Equipe', 'en': 'Team', 'es': 'Equipo' },
-  'nav.analytics': { 'pt-BR': 'Analytics', 'en': 'Analytics', 'es': 'Análisis' },
+  'nav.analytics': { 'pt-BR': 'Análises', 'en': 'Analytics', 'es': 'Análisis' },
   'nav.invites': { 'pt-BR': 'Convites', 'en': 'Invites', 'es': 'Invitaciones' },
   'nav.settings': { 'pt-BR': 'Configurações', 'en': 'Settings', 'es': 'Configuración' },
   'nav.myProjects': { 'pt-BR': 'Meus projetos', 'en': 'My projects', 'es': 'Mis proyectos' },

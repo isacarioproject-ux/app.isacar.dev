@@ -43,7 +43,7 @@ import {
 } from 'lucide-react'
 
 // Email autorizado para ver analytics de onboarding
-const ADMIN_EMAIL = 'isacar.io.project@gmail.com'
+const ADMIN_EMAIL = 'isacar.dev@gmail.com'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'

@@ -1290,7 +1290,7 @@ export const BudgetManagerPage = () => {
             className="min-w-[280px]"
           >
             <div className="h-full flex flex-col p-2 md:p-4 overflow-hidden">
-              <div className="w-full h-full flex flex-col">
+              <div className="w-full h-full max-h-[280px] md:max-h-[320px] flex flex-col">
                 <h3 className="text-xs md:text-sm font-semibold mb-2 text-center flex-shrink-0">{t('budget.financialEvolution')}</h3>
                 <ChartContainer
                   config={{

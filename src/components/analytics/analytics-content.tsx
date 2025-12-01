@@ -180,7 +180,7 @@ export function AnalyticsContent({ embedded = false }: AnalyticsContentProps) {
   }
 
   return (
-    <div className={embedded ? "space-y-3 p-3" : "container mx-auto p-6 space-y-6"}>
+    <div className={embedded ? "space-y-3 p-3" : "container mx-auto p-6 px-4 md:px-16 space-y-6"}>
       {/* Header */}
       {!embedded && (
         <div className="flex items-center justify-between">

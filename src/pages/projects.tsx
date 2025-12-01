@@ -145,7 +145,7 @@ export default function ProjectsPage() {
   )
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 px-4 md:px-16">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

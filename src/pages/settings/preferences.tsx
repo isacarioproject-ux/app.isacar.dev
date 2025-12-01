@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Smartphone, LogOut, Trash2, Save, Loader2, Settings } from 'lucide-react'
+import { Smartphone, LogOut, Trash2, Save, Loader2, Settings, HelpCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '@/hooks/use-i18n'
@@ -49,11 +50,7 @@ export default function PreferencesPage() {
     setCurrentLanguage(locale)
   }, [locale])
 
-  useEffect(() => {
-    loadPreferences()
-  }, [])
-
-  const loadPreferences = async () => {
+  const loadPreferences = useCallback(async () => {
     try {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
@@ -85,7 +82,11 @@ export default function PreferencesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadPreferences()
+  }, [loadPreferences])
 
   const handleLanguageChange = (newLanguage: string) => {
     const lang = newLanguage as 'pt-BR' | 'en' | 'es'
@@ -150,17 +151,33 @@ export default function PreferencesPage() {
   const PreferenceItem = ({ 
     label, 
     description, 
-    children 
+    children,
+    tooltip
   }: { 
     label: string
     description: string
     children: React.ReactNode
+    tooltip?: string
   }) => (
     <div className="flex items-start justify-between gap-4 py-2">
       <div className="space-y-0.5 flex-1 min-w-0">
-        <Label className="font-medium cursor-pointer text-sm">
-          {label}
-        </Label>
+        <div className="flex items-center gap-1.5">
+          <Label className="font-medium cursor-pointer text-sm">
+            {label}
+          </Label>
+          {tooltip && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[250px] text-xs">
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
       </div>
       <div className="shrink-0">
@@ -240,6 +257,7 @@ export default function PreferencesPage() {
               <PreferenceItem
                 label={t('settings.twoFactor')}
                 description={t('settings.twoFactorDesc')}
+                tooltip="Adiciona uma camada extra de segurança exigindo um código do seu celular além da senha ao fazer login."
               >
                 <Switch
                   checked={security.twoFactor}
@@ -268,6 +286,7 @@ export default function PreferencesPage() {
               <PreferenceItem
                 label={t('settings.sessionTimeout')}
                 description={t('settings.sessionTimeoutDesc')}
+                tooltip="Tempo de inatividade antes de ser desconectado automaticamente. Menor tempo = mais seguro."
               >
                 <Select
                   value={security.sessionTimeout}
@@ -289,6 +308,7 @@ export default function PreferencesPage() {
               <PreferenceItem
                 label={t('settings.loginNotifications')}
                 description={t('settings.loginNotificationsDesc')}
+                tooltip="Receba um alerta por email sempre que sua conta for acessada de um novo dispositivo ou localização."
               >
                 <Switch
                   checked={security.loginNotifications}
@@ -300,6 +320,7 @@ export default function PreferencesPage() {
               <PreferenceItem
                 label={t('settings.suspiciousActivity')}
                 description={t('settings.suspiciousActivityDesc')}
+                tooltip="Monitora tentativas de login falhas, acessos de locais incomuns e outras atividades suspeitas na sua conta."
               >
                 <Switch
                   checked={security.suspiciousActivity}

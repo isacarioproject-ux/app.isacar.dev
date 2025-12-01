@@ -166,7 +166,7 @@ export default function ProjectManagerPage() {
                   </p>
                 </motion.div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pb-4 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 md:px-16 pb-4 pt-2">
                   {projects.map((project, index) => (
                     <motion.div
                       key={project.id}

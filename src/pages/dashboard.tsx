@@ -126,7 +126,7 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       {/* Container responsivo - mobile scroll, desktop h-full */}
-      <div className="w-full p-2 md:h-full md:overflow-hidden">
+      <div className="w-full p-2 md:px-16 md:h-full md:overflow-hidden">
             {error ? (
               <Card className="border-destructive/50 bg-destructive/5">
                 <CardContent className="flex flex-col items-center justify-center py-12">

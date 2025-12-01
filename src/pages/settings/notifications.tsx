@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import { Save, Loader2, Bell } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Save, Loader2, Bell, HelpCircle } from 'lucide-react'
 import { useI18n } from '@/hooks/use-i18n'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -68,11 +69,7 @@ export default function NotificationsPage() {
     system_updates: true,
   })
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
@@ -97,7 +94,12 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Carregar settings ao montar - com key única para forçar re-render no mobile
+  useEffect(() => {
+    loadSettings()
+  }, [loadSettings])
 
   const handleSave = async () => {
     try {
@@ -156,17 +158,33 @@ export default function NotificationsPage() {
   const NotificationItem = ({ 
     title, 
     description, 
-    settingKey 
+    settingKey,
+    tooltip
   }: { 
     title: string
     description: string
     settingKey: keyof NotificationSettings
+    tooltip?: string
   }) => (
     <div className="flex items-start justify-between gap-4 py-2">
       <div className="space-y-0.5 flex-1 min-w-0">
-        <Label htmlFor={settingKey} className="font-medium cursor-pointer text-sm">
-          {title}
-        </Label>
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor={settingKey} className="font-medium cursor-pointer text-sm">
+            {title}
+          </Label>
+          {tooltip && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[250px] text-xs">
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
       </div>
       <Switch
@@ -250,31 +268,37 @@ export default function NotificationsPage() {
                 title={t('notifications.newProjects')}
                 description={t('notifications.newProjectsDesc')}
                 settingKey="email_projects"
+                tooltip="Receba um email quando um novo projeto for criado no seu workspace ou quando você for adicionado a um projeto existente."
               />
               <NotificationItem
                 title={t('notifications.documents')}
                 description={t('notifications.documentsDesc')}
                 settingKey="email_documents"
+                tooltip="Receba emails quando documentos forem criados, editados ou compartilhados com você."
               />
               <NotificationItem
                 title={t('notifications.team')}
                 description={t('notifications.teamDesc')}
                 settingKey="email_team"
+                tooltip="Receba emails sobre atividades da equipe: novos membros, mudanças de permissão e convites."
               />
               <NotificationItem
                 title={t('notifications.deadlines')}
                 description={t('notifications.deadlinesDesc')}
                 settingKey="email_deadlines"
+                tooltip="Receba lembretes por email sobre prazos de tarefas que estão próximos ou vencidos."
               />
               <NotificationItem
                 title={t('notifications.mentions')}
                 description={t('notifications.mentionsDesc')}
                 settingKey="email_mentions"
+                tooltip="Receba um email quando alguém mencionar você (@seu_nome) em comentários ou discussões."
               />
               <NotificationItem
                 title={t('notifications.security')}
                 description={t('notifications.securityDesc')}
                 settingKey="email_security"
+                tooltip="Alertas críticos de segurança: novos logins, mudanças de senha, tentativas suspeitas. Recomendamos manter ativo."
               />
             </div>
           </div>
@@ -287,31 +311,37 @@ export default function NotificationsPage() {
                 title={t('notifications.projects')}
                 description={t('notifications.projectsDesc')}
                 settingKey="app_projects"
+                tooltip="Notificações push no navegador sobre atualizações em projetos que você participa."
               />
               <NotificationItem
                 title={t('notifications.documents')}
                 description={t('notifications.documentsDesc')}
                 settingKey="app_documents"
+                tooltip="Notificações em tempo real quando documentos são modificados ou compartilhados."
               />
               <NotificationItem
                 title={t('notifications.team')}
                 description={t('notifications.teamDesc')}
                 settingKey="app_team"
+                tooltip="Alertas sobre mudanças na equipe: novos membros, saídas e alterações de função."
               />
               <NotificationItem
                 title={t('notifications.deadlines')}
                 description={t('notifications.deadlinesDesc')}
                 settingKey="app_deadlines"
+                tooltip="Pop-ups de lembrete no app quando um prazo está próximo ou já passou."
               />
               <NotificationItem
                 title={t('notifications.mentions')}
                 description={t('notifications.mentionsDesc')}
                 settingKey="app_mentions"
+                tooltip="Alertas instantâneos quando você é mencionado em qualquer lugar do sistema."
               />
               <NotificationItem
                 title={t('notifications.comments')}
                 description={t('notifications.commentsDesc')}
                 settingKey="app_comments"
+                tooltip="Notificações quando alguém comenta em itens que você criou ou está acompanhando."
               />
             </div>
           </div>
@@ -324,16 +354,19 @@ export default function NotificationsPage() {
                 title={t('notifications.newsletter')}
                 description={t('notifications.newsletterDesc')}
                 settingKey="marketing_newsletter"
+                tooltip="Newsletter mensal com dicas, novidades e conteúdo exclusivo sobre produtividade."
               />
               <NotificationItem
                 title={t('notifications.productUpdates')}
                 description={t('notifications.productUpdatesDesc')}
                 settingKey="marketing_updates"
+                tooltip="Anúncios sobre novas funcionalidades, melhorias e atualizações importantes do produto."
               />
               <NotificationItem
                 title={t('notifications.tips')}
                 description={t('notifications.tipsDesc')}
                 settingKey="marketing_tips"
+                tooltip="Dicas personalizadas de como usar melhor o ISACAR baseado no seu uso."
               />
             </div>
           </div>
@@ -346,11 +379,13 @@ export default function NotificationsPage() {
                 title={t('notifications.maintenance')}
                 description={t('notifications.maintenanceDesc')}
                 settingKey="system_maintenance"
+                tooltip="Avisos sobre manutenções programadas e indisponibilidades do sistema. Recomendamos manter ativo."
               />
               <NotificationItem
                 title={t('notifications.systemUpdates')}
                 description={t('notifications.systemUpdatesDesc')}
                 settingKey="system_updates"
+                tooltip="Informações sobre atualizações de sistema, correções de bugs e melhorias de performance."
               />
             </div>
           </div>

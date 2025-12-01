@@ -11,7 +11,7 @@ import { PWAInstallButton } from '@/components/pwa-install-button'
 import { Search } from 'lucide-react'
 import { User } from '@supabase/supabase-js'
 import { useI18n } from '@/hooks/use-i18n'
-import { SidebarSkeleton } from '@/components/loading-skeleton'
+import { SidebarSkeleton, HeaderSkeleton } from '@/components/loading-skeleton'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -80,28 +80,32 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="flex h-screen w-full">
         {loading ? <SidebarSkeleton /> : <AppSidebar />}
         <main className="flex flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out">
-          {/* Header sempre visível - sem skeleton para evitar barra duplicada */}
-          <header className="sticky top-0 z-50 flex h-10 items-center gap-3 border-b border-border/40 bg-sidebar px-3">
-            {/* Toggle sidebar - visível apenas em mobile */}
-            <SidebarTrigger className="-ml-1 md:hidden" />
-            <div className="flex flex-1 items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSearchOpen(true)}
-                className="relative h-7 w-auto justify-start text-xs text-muted-foreground md:w-48 lg:w-56"
-              >
-                <Search className="mr-2 h-3.5 w-3.5" />
-                <span className="hidden md:inline-flex">Buscar...</span>
-                <kbd className="pointer-events-none absolute right-1 top-1 hidden h-3.5 select-none items-center gap-1 rounded border bg-muted px-1 font-mono text-[9px] font-medium opacity-100 md:flex">
-                  <span>⌘K</span>
-                </kbd>
-              </Button>
-              <PWAInstallButton />
-              <ThemeToggle />
-              <LanguageSwitcher />
-            </div>
-          </header>
+          {/* Header com skeleton durante loading */}
+          {loading ? (
+            <HeaderSkeleton />
+          ) : (
+            <header className="sticky top-0 z-50 flex h-10 items-center gap-3 border-b border-border/40 bg-sidebar px-3">
+              {/* Toggle sidebar - visível apenas em mobile */}
+              <SidebarTrigger className="-ml-1 md:hidden" />
+              <div className="flex flex-1 items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchOpen(true)}
+                  className="relative h-7 w-auto justify-start text-xs text-muted-foreground md:w-48 lg:w-56"
+                >
+                  <Search className="mr-2 h-3.5 w-3.5" />
+                  <span className="hidden md:inline-flex">Buscar...</span>
+                  <kbd className="pointer-events-none absolute right-1 top-1 hidden h-3.5 select-none items-center gap-1 rounded border bg-muted px-1 font-mono text-[9px] font-medium opacity-100 md:flex">
+                    <span>⌘K</span>
+                  </kbd>
+                </Button>
+                <PWAInstallButton />
+                <ThemeToggle />
+                <LanguageSwitcher />
+              </div>
+            </header>
+          )}
           <div className="relative flex-1 overflow-y-auto">
             {children}
           </div>

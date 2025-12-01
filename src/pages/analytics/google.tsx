@@ -30,7 +30,7 @@ export default function GoogleAnalyticsPage() {
         </div>
 
         {/* Conteúdo */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto px-4 md:px-16 py-4">
           <AnalyticsContent key={refreshKey} embedded />
         </div>
       </div>

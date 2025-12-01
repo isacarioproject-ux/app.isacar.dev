@@ -332,21 +332,146 @@ export default function IntegrationsPage() {
                 </p>
               </div>
 
-              {/* Dialog de Configurações (aberto pelo botão nas tabs) */}
-              <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-                {/* Dialog de Configurações Internas */}
-                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Settings2 className="h-5 w-5 text-purple-600" />
-                      Sistema de Integrações Internas
-                    </DialogTitle>
-                    <DialogDescription>
-                      Configure como os módulos internos se comunicam entre si
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-6 py-4">
+              {/* Layout quando DESCONECTADO - só botão centralizado */}
+              {!isGoogleConnected && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center py-12 md:py-20"
+                >
+                  <div className="max-w-md w-full">
+                    <GoogleIntegrationCard />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Layout quando CONECTADO - Tabs estilo project-manager */}
+              {isGoogleConnected && (
+                <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
+                  <Tabs value={activeGoogleTab} onValueChange={setActiveGoogleTab} className="flex flex-col h-full">
+                    {/* Tabs e botão de configurações na mesma linha */}
+                    <div className="flex items-center justify-between shrink-0 py-2">
+                      <TabsList variant="transparent" className="border-0 p-0 gap-1">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <TabsTrigger 
+                              value="connection" 
+                              className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
+                            >
+                              <Link2 className="h-4 w-4" />
+                              <span>Conexão</span>
+                            </TabsTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p className="font-medium">Status da Conexão</p>
+                            <p className="text-muted-foreground text-xs">Gerenciar conexão com Google</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <TabsTrigger 
+                              value="gmail" 
+                              className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
+                            >
+                              <Mail className="h-4 w-4" />
+                              <span className="hidden sm:inline">Gmail</span>
+                            </TabsTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p className="font-medium">Gmail</p>
+                            <p className="text-muted-foreground text-xs">Escanear faturas e recibos do email</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <TabsTrigger 
+                              value="calendar" 
+                              className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
+                            >
+                              <Calendar className="h-4 w-4" />
+                              <span className="hidden sm:inline">Agenda</span>
+                            </TabsTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p className="font-medium">Google Agenda</p>
+                            <p className="text-muted-foreground text-xs">Sincronizar tarefas com calendário</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <TabsTrigger 
+                              value="sheets" 
+                              className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
+                            >
+                              <FileSpreadsheet className="h-4 w-4" />
+                              <span className="hidden sm:inline">Planilhas</span>
+                            </TabsTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p className="font-medium">Google Planilhas</p>
+                            <p className="text-muted-foreground text-xs">Exportar dados financeiros</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TabsList>
+
+                      {/* Botão de configurações */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-2"
+                            >
+                              <Settings2 className="h-4 w-4" />
+                              <span className="hidden sm:inline">Configurações</span>
+                            </Button>
+                          </DialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p>Configurações do sistema de integrações internas</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    {/* Conteúdo das Tabs */}
+                    <div className="flex-1 overflow-auto py-4 md:py-6">
+                      <TabsContent value="connection" className="m-0">
+                        <div className="max-w-xl">
+                          <GoogleIntegrationCard />
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="gmail" className="m-0">
+                        <GmailInvoiceScanner />
+                      </TabsContent>
+
+                      <TabsContent value="calendar" className="m-0">
+                        <CalendarSyncPanel />
+                      </TabsContent>
+
+                      <TabsContent value="sheets" className="m-0">
+                        <SheetsExportDialog />
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+
+                  {/* Dialog Content para Configurações */}
+                  <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Settings2 className="h-5 w-5 text-purple-600" />
+                        Sistema de Integrações Internas
+                      </DialogTitle>
+                      <DialogDescription>
+                        Configure como os módulos internos se comunicam entre si
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6 py-4">
                       {/* Sistema Principal */}
                       <div className="space-y-3">
                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
@@ -447,133 +572,7 @@ export default function IntegrationsPage() {
                       </div>
                     </div>
                   </DialogContent>
-              </Dialog>
-
-              {/* Layout quando DESCONECTADO - só botão centralizado */}
-              {!isGoogleConnected && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col items-center justify-center py-12 md:py-20"
-                >
-                  <div className="max-w-md w-full">
-                    <GoogleIntegrationCard />
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Layout quando CONECTADO - Tabs estilo project-manager */}
-              {isGoogleConnected && (
-                <Tabs value={activeGoogleTab} onValueChange={setActiveGoogleTab} className="flex flex-col h-full">
-                  {/* Tabs e botão de configurações na mesma linha */}
-                  <div className="flex items-center justify-between shrink-0 py-2">
-                    <TabsList variant="transparent" className="border-0 p-0 gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <TabsTrigger 
-                            value="connection" 
-                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
-                          >
-                            <Link2 className="h-4 w-4" />
-                            <span>Conexão</span>
-                          </TabsTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="font-medium">Status da Conexão</p>
-                          <p className="text-muted-foreground text-xs">Gerenciar conexão com Google</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <TabsTrigger 
-                            value="gmail" 
-                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
-                          >
-                            <Mail className="h-4 w-4" />
-                            <span className="hidden sm:inline">Gmail</span>
-                          </TabsTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="font-medium">Gmail</p>
-                          <p className="text-muted-foreground text-xs">Escanear faturas e recibos do email</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <TabsTrigger 
-                            value="calendar" 
-                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
-                          >
-                            <Calendar className="h-4 w-4" />
-                            <span className="hidden sm:inline">Agenda</span>
-                          </TabsTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="font-medium">Google Agenda</p>
-                          <p className="text-muted-foreground text-xs">Sincronizar tarefas com calendário</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <TabsTrigger 
-                            value="sheets" 
-                            className="text-sm gap-1.5 data-[state=active]:bg-secondary hover:bg-secondary/60 rounded-md transition-colors px-3 py-1.5"
-                          >
-                            <FileSpreadsheet className="h-4 w-4" />
-                            <span className="hidden sm:inline">Planilhas</span>
-                          </TabsTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p className="font-medium">Google Planilhas</p>
-                          <p className="text-muted-foreground text-xs">Exportar dados financeiros</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TabsList>
-
-                    {/* Botão de configurações */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-2"
-                          >
-                            <Settings2 className="h-4 w-4" />
-                            <span className="hidden sm:inline">Configurações</span>
-                          </Button>
-                        </DialogTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p>Configurações do sistema de integrações internas</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-
-                  {/* Conteúdo das Tabs */}
-                  <div className="flex-1 overflow-auto py-4 md:py-6">
-                    <TabsContent value="connection" className="m-0">
-                      <div className="max-w-xl">
-                        <GoogleIntegrationCard />
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="gmail" className="m-0">
-                      <GmailInvoiceScanner />
-                    </TabsContent>
-
-                    <TabsContent value="calendar" className="m-0">
-                      <CalendarSyncPanel />
-                    </TabsContent>
-
-                    <TabsContent value="sheets" className="m-0">
-                      <SheetsExportDialog />
-                    </TabsContent>
-                  </div>
-                </Tabs>
+                </Dialog>
               )}
             </TooltipProvider>
           </div>

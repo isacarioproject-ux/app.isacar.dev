@@ -23,6 +23,79 @@ const translations: Translations = {
   'nav.analytics': { 'pt-BR': 'Analytics', 'en': 'Analytics', 'es': 'Análisis' },
   'nav.invites': { 'pt-BR': 'Convites', 'en': 'Invites', 'es': 'Invitaciones' },
   'nav.settings': { 'pt-BR': 'Configurações', 'en': 'Settings', 'es': 'Configuración' },
+  'nav.myProjects': { 'pt-BR': 'Meus projetos', 'en': 'My projects', 'es': 'Mis proyectos' },
+  'nav.manager': { 'pt-BR': 'Meu gerenciador', 'en': 'My manager', 'es': 'Mi gestor' },
+  'nav.integrations': { 'pt-BR': 'Integrações', 'en': 'Integrations', 'es': 'Integraciones' },
+
+  // ===== SIDEBAR =====
+  'sidebar.tasks': { 'pt-BR': 'Meu trabalho', 'en': 'My work', 'es': 'Mi trabajo' },
+  'sidebar.finance': { 'pt-BR': 'Minha finança', 'en': 'My finance', 'es': 'Mis finanzas' },
+  'sidebar.projects': { 'pt-BR': 'Meus projetos', 'en': 'My projects', 'es': 'Mis proyectos' },
+  'sidebar.budget': { 'pt-BR': 'Meu gerenciador', 'en': 'My manager', 'es': 'Mi gestor' },
+  'sidebar.recent': { 'pt-BR': 'Atividade recente', 'en': 'Recent activity', 'es': 'Actividad reciente' },
+
+  // ===== QUICK ADD DIALOG =====
+  'quickAdd.workspaceCurrent': { 'pt-BR': 'Workspace Atual', 'en': 'Current Workspace', 'es': 'Workspace Actual' },
+  'quickAdd.workspacesOther': { 'pt-BR': 'Outros Workspaces', 'en': 'Other Workspaces', 'es': 'Otros Workspaces' },
+  'quickAdd.noWorkspaces': { 'pt-BR': 'Nenhum outro workspace disponível', 'en': 'No other workspace available', 'es': 'Ningún otro workspace disponible' },
+  'quickAdd.addDescription': { 'pt-BR': 'Adicionar descrição', 'en': 'Add description', 'es': 'Añadir descripción' },
+  'quickAdd.description': { 'pt-BR': 'Descrição', 'en': 'Description', 'es': 'Descripción' },
+  'quickAdd.assignees': { 'pt-BR': 'Responsáveis', 'en': 'Assignees', 'es': 'Responsables' },
+  'quickAdd.noMembersFound': { 'pt-BR': 'Nenhum membro encontrado', 'en': 'No members found', 'es': 'Ningún miembro encontrado' },
+  'quickAdd.selectDate': { 'pt-BR': 'Selecionar data', 'en': 'Select date', 'es': 'Seleccionar fecha' },
+  'quickAdd.today': { 'pt-BR': 'Hoje', 'en': 'Today', 'es': 'Hoy' },
+  'quickAdd.tomorrow': { 'pt-BR': 'Amanhã', 'en': 'Tomorrow', 'es': 'Mañana' },
+  'quickAdd.weekend': { 'pt-BR': 'Este final de semana', 'en': 'This weekend', 'es': 'Este fin de semana' },
+  'quickAdd.nextWeek': { 'pt-BR': 'Semana que vem', 'en': 'Next week', 'es': 'La próxima semana' },
+  'quickAdd.me': { 'pt-BR': 'Eu', 'en': 'Me', 'es': 'Yo' },
+  'quickAdd.taskTypes': { 'pt-BR': 'Tipos de tarefa', 'en': 'Task types', 'es': 'Tipos de tarea' },
+  'quickAdd.edit': { 'pt-BR': 'Editar', 'en': 'Edit', 'es': 'Editar' },
+  'quickAdd.milestone': { 'pt-BR': 'Marco', 'en': 'Milestone', 'es': 'Hito' },
+  'quickAdd.meetingNote': { 'pt-BR': 'Anotação da reunião', 'en': 'Meeting note', 'es': 'Nota de reunión' },
+  'quickAdd.formResponse': { 'pt-BR': 'Resposta do formulário', 'en': 'Form response', 'es': 'Respuesta del formulario' },
+
+  // ===== REALTIME =====
+  'realtime.live': { 'pt-BR': 'Ao vivo', 'en': 'Live', 'es': 'En vivo' },
+
+  // ===== FINANCE ICONS =====
+  'finance.changeIcon': { 'pt-BR': 'Alterar ícone', 'en': 'Change icon', 'es': 'Cambiar icono' },
+  'finance.iconUpdated': { 'pt-BR': 'Ícone atualizado!', 'en': 'Icon updated!', 'es': '¡Icono actualizado!' },
+
+  // ===== ONBOARDING =====
+  'onboarding.skip': { 'pt-BR': 'Pular', 'en': 'Skip', 'es': 'Omitir' },
+  'onboarding.skipForNow': { 'pt-BR': 'Pular por enquanto', 'en': 'Skip for now', 'es': 'Omitir por ahora' },
+  'onboarding.task.title': { 'pt-BR': '🚀 Crie sua primeira tarefa!', 'en': '🚀 Create your first task!', 'es': '🚀 ¡Crea tu primera tarea!' },
+  'onboarding.task.subtitle': { 'pt-BR': 'Comece organizando seu trabalho', 'en': 'Start organizing your work', 'es': 'Comienza a organizar tu trabajo' },
+  'onboarding.task.whatToDo': { 'pt-BR': 'O que você precisa fazer?', 'en': 'What do you need to do?', 'es': '¿Qué necesitas hacer?' },
+  'onboarding.task.placeholder': { 'pt-BR': 'Ex: Finalizar proposta para cliente...', 'en': 'Ex: Finish proposal for client...', 'es': 'Ej: Finalizar propuesta para cliente...' },
+  'onboarding.task.titleRequired': { 'pt-BR': 'Digite um título para a tarefa', 'en': 'Enter a title for the task', 'es': 'Ingresa un título para la tarea' },
+  'onboarding.task.created': { 'pt-BR': '🎉 Primeira tarefa criada!', 'en': '🎉 First task created!', 'es': '🎉 ¡Primera tarea creada!' },
+  'onboarding.task.error': { 'pt-BR': 'Erro ao criar tarefa', 'en': 'Error creating task', 'es': 'Error al crear tarea' },
+  'onboarding.task.firstExperience': { 'pt-BR': 'Primeira experiência!', 'en': 'First experience!', 'es': '¡Primera experiencia!' },
+  'onboarding.task.firstExperienceDesc': { 'pt-BR': 'Complete todos os campos para criar uma tarefa completa. Depois você ainda vai experimentar Finanças e Projetos!', 'en': 'Complete all fields to create a full task. Then you will also try Finance and Projects!', 'es': '¡Completa todos los campos para crear una tarea completa. Después también probarás Finanzas y Proyectos!' },
+  'onboarding.task.doLater': { 'pt-BR': 'Fazer depois', 'en': 'Do later', 'es': 'Hacer después' },
+  'onboarding.task.createTask': { 'pt-BR': 'Criar tarefa', 'en': 'Create task', 'es': 'Crear tarea' },
+  'onboarding.task.loggedAs': { 'pt-BR': 'Você está conectado como', 'en': 'You are logged in as', 'es': 'Estás conectado como' },
+  'onboarding.task.switchUser': { 'pt-BR': 'Entrar com outro usuário', 'en': 'Login with another user', 'es': 'Entrar con otro usuario' },
+  'onboarding.step': { 'pt-BR': 'Passo', 'en': 'Step', 'es': 'Paso' },
+  'onboarding.of': { 'pt-BR': 'de', 'en': 'of', 'es': 'de' },
+  'onboarding.next': { 'pt-BR': 'Próximo', 'en': 'Next', 'es': 'Siguiente' },
+  'onboarding.back': { 'pt-BR': 'Voltar', 'en': 'Back', 'es': 'Volver' },
+  'onboarding.finish': { 'pt-BR': 'Finalizar', 'en': 'Finish', 'es': 'Finalizar' },
+  'onboarding.configRequired': { 'pt-BR': 'Configuração Necessária', 'en': 'Configuration Required', 'es': 'Configuración Requerida' },
+  'onboarding.tableNotFound': { 'pt-BR': 'A tabela de onboarding não foi encontrada no banco de dados', 'en': 'Onboarding table not found in database', 'es': 'La tabla de onboarding no fue encontrada en la base de datos' },
+  'onboarding.reloadPage': { 'pt-BR': 'Recarregar Página', 'en': 'Reload Page', 'es': 'Recargar Página' },
+
+  // ===== TASKS SETTINGS =====
+  'tasks.settings.title': { 'pt-BR': 'Configurações de Tarefas', 'en': 'Task Settings', 'es': 'Configuración de Tareas' },
+  'tasks.settings.description': { 'pt-BR': 'Personalize o comportamento das tarefas', 'en': 'Customize task behavior', 'es': 'Personaliza el comportamiento de las tareas' },
+  'tasks.settings.autoSave': { 'pt-BR': 'Salvamento automático', 'en': 'Auto-save', 'es': 'Guardado automático' },
+  'tasks.settings.autoSaveDesc': { 'pt-BR': 'Salvar alterações automaticamente', 'en': 'Save changes automatically', 'es': 'Guardar cambios automáticamente' },
+  'tasks.settings.notifications': { 'pt-BR': 'Notificações', 'en': 'Notifications', 'es': 'Notificaciones' },
+  'tasks.settings.notificationsDesc': { 'pt-BR': 'Receber notificações de tarefas', 'en': 'Receive task notifications', 'es': 'Recibir notificaciones de tareas' },
+  'tasks.settings.showCompleted': { 'pt-BR': 'Mostrar concluídas', 'en': 'Show completed', 'es': 'Mostrar completadas' },
+  'tasks.settings.showCompletedDesc': { 'pt-BR': 'Exibir tarefas concluídas na lista', 'en': 'Show completed tasks in the list', 'es': 'Mostrar tareas completadas en la lista' },
+  'tasks.settings.autoSaved': { 'pt-BR': 'As configurações são salvas automaticamente', 'en': 'Settings are saved automatically', 'es': 'La configuración se guarda automáticamente' },
 
   // ===== PWA INSTALL =====
   'pwa.installApp': { 'pt-BR': 'Instalar App', 'en': 'Install App', 'es': 'Instalar App' },
@@ -62,6 +135,9 @@ const translations: Translations = {
   'common.saving': { 'pt-BR': 'Salvando...', 'en': 'Saving...', 'es': 'Guardando...' },
   'common.undo': { 'pt-BR': 'Desfazer', 'en': 'Undo', 'es': 'Deshacer' },
   'common.redo': { 'pt-BR': 'Refazer', 'en': 'Redo', 'es': 'Rehacer' },
+  'common.selectDate': { 'pt-BR': 'Selecionar data', 'en': 'Select date', 'es': 'Seleccionar fecha' },
+  'common.skipping': { 'pt-BR': 'Pulando...', 'en': 'Skipping...', 'es': 'Omitiendo...' },
+  'common.creating': { 'pt-BR': 'Criando...', 'en': 'Creating...', 'es': 'Creando...' },
   'common.select': { 'pt-BR': 'Selecionar', 'en': 'Select', 'es': 'Seleccionar' },
   'common.move': { 'pt-BR': 'Mover', 'en': 'Move', 'es': 'Mover' },
   'common.now': { 'pt-BR': 'Agora', 'en': 'Now', 'es': 'Ahora' },
@@ -1051,6 +1127,7 @@ const translations: Translations = {
   'finance.table.descriptionExample': { 'pt-BR': 'Ex: Almoço', 'en': 'Ex: Lunch', 'es': 'Ej: Almuerzo' },
   'finance.table.value': { 'pt-BR': 'Valor', 'en': 'Value', 'es': 'Valor' },
   'finance.table.date': { 'pt-BR': 'Data', 'en': 'Date', 'es': 'Fecha' },
+  'finance.table.period': { 'pt-BR': 'Período', 'en': 'Period', 'es': 'Período' },
   'finance.table.payment': { 'pt-BR': 'Pagamento', 'en': 'Payment', 'es': 'Pago' },
   'finance.table.status': { 'pt-BR': 'Status', 'en': 'Status', 'es': 'Estado' },
   'finance.table.save': { 'pt-BR': 'Salvar', 'en': 'Save', 'es': 'Guardar' },
@@ -1069,7 +1146,6 @@ const translations: Translations = {
   'finance.sidebar.tools': { 'pt-BR': 'Ferramentas', 'en': 'Tools', 'es': 'Herramientas' },
   'finance.sidebar.comingSoon': { 'pt-BR': '(Breve)', 'en': '(Coming Soon)', 'es': '(Próximamente)' },
   'finance.table.name': { 'pt-BR': 'Nome', 'en': 'Name', 'es': 'Nombre' },
-  'finance.table.period': { 'pt-BR': 'Período', 'en': 'Period', 'es': 'Período' },
   'finance.table.income': { 'pt-BR': 'Receitas', 'en': 'Income', 'es': 'Ingresos' },
   'finance.table.expenses': { 'pt-BR': 'Despesas', 'en': 'Expenses', 'es': 'Gastos' },
   'finance.table.balance': { 'pt-BR': 'Saldo', 'en': 'Balance', 'es': 'Saldo' },
@@ -1437,6 +1513,9 @@ const translations: Translations = {
   'projects.featureInDevelopment': { 'pt-BR': 'Funcionalidade em desenvolvimento', 'en': 'Feature in development', 'es': 'Funcionalidad en desarrollo' },
   'projects.deleted': { 'pt-BR': 'Projeto excluído com sucesso', 'en': 'Project deleted successfully', 'es': 'Proyecto eliminado exitosamente' },
   'projects.errorDelete': { 'pt-BR': 'Erro ao excluir projeto', 'en': 'Error deleting project', 'es': 'Error al eliminar proyecto' },
+  'projects.delete': { 'pt-BR': 'Excluir projeto', 'en': 'Delete project', 'es': 'Eliminar proyecto' },
+  'projects.noProjects': { 'pt-BR': 'Nenhum projeto ainda', 'en': 'No projects yet', 'es': 'Sin proyectos aún' },
+  'projects.noProjectsDesc': { 'pt-BR': 'Projetos organizam tarefas, documentos e progresso', 'en': 'Projects organize tasks, documents and progress', 'es': 'Los proyectos organizan tareas, documentos y progreso' },
   'projects.created': { 'pt-BR': 'Projeto criado com sucesso!', 'en': 'Project created successfully!', 'es': '¡Proyecto creado exitosamente!' },
   'projects.errorCreate': { 'pt-BR': 'Erro ao criar projeto', 'en': 'Error creating project', 'es': 'Error al crear proyecto' },
   'projects.enterName': { 'pt-BR': 'Digite um nome para o projeto', 'en': 'Enter a project name', 'es': 'Ingresa un nombre para el proyecto' },
@@ -1739,11 +1818,6 @@ const translations: Translations = {
   'sheets.creatingFinance': { 'pt-BR': 'Criando planilha financeira...', 'en': 'Creating financial spreadsheet...', 'es': 'Creando hoja de cálculo financiera...' },
   'sheets.creatingTasks': { 'pt-BR': 'Criando planilha de tasks...', 'en': 'Creating tasks spreadsheet...', 'es': 'Creando hoja de cálculo de tareas...' },
 
-  // ===== SIDEBAR NAVIGATION =====
-  'nav.myProjects': { 'pt-BR': 'Meus Projetos', 'en': 'My Projects', 'es': 'Mis Proyectos' },
-  'nav.manager': { 'pt-BR': 'Gerenciador', 'en': 'Manager', 'es': 'Gestor' },
-  'nav.integrations': { 'pt-BR': 'Integrações', 'en': 'Integrations', 'es': 'Integraciones' },
-
   // ===== BILLING =====
   'billing.percentUsed': { 'pt-BR': '% usado', 'en': '% used', 'es': '% usado' },
   'workspace.createDescription': { 'pt-BR': 'Crie um workspace para colaborar com sua equipe', 'en': 'Create a workspace to collaborate with your team', 'es': 'Crea un espacio para colaborar con tu equipo' },
@@ -1898,6 +1972,8 @@ const translations: Translations = {
   'finance.viewer.close': { 'pt-BR': 'Fechar', 'en': 'Close', 'es': 'Cerrar' },
   'finance.viewer.removeCover': { 'pt-BR': 'Remover capa', 'en': 'Remove cover', 'es': 'Quitar portada' },
   'finance.viewer.month': { 'pt-BR': 'Mês', 'en': 'Month', 'es': 'Mes' },
+  'finance.viewer.selectMonth': { 'pt-BR': 'Mês', 'en': 'Month', 'es': 'Mes' },
+  'finance.viewer.selectYear': { 'pt-BR': 'Ano', 'en': 'Year', 'es': 'Año' },
   
   // Finance Search
   'finance.search.title': { 'pt-BR': 'Buscar', 'en': 'Search', 'es': 'Buscar' },

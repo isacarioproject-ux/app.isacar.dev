@@ -13,9 +13,11 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
+import { useI18n } from '@/hooks/use-i18n'
 
 export function FirstTaskStep({ onNext }: OnboardingStepProps) {
   const { user } = useAuth()
+  const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [startDate, setStartDate] = useState<Date>()
   const [dueDate, setDueDate] = useState<Date>()
@@ -31,7 +33,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
 
   const handleCreate = async () => {
     if (!title.trim()) {
-      toast.error('Digite um título para a tarefa')
+      toast.error(t('onboarding.task.titleRequired'))
       return
     }
 
@@ -77,7 +79,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
       }
 
       console.log('✅ Tarefa criada com sucesso com todos os dados!')
-      toast.success('🎉 Primeira tarefa criada!')
+      toast.success(t('onboarding.task.created'))
       
       onNext({ 
         createdFirstTask: true,
@@ -85,7 +87,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
       })
     } catch (error: any) {
       console.error('❌ Erro ao criar tarefa:', error)
-      toast.error(`Erro ao criar tarefa: ${error.message || 'Erro desconhecido'}`)
+      toast.error(`${t('onboarding.task.error')}: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -119,18 +121,18 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
 
         {/* Header - SEM ÍCONE */}
         <div className="text-center space-y-0.5">
-          <h2 className="text-base font-semibold text-gray-900">🚀 Crie sua primeira tarefa!</h2>
-          <p className="text-xs text-gray-600">Comece organizando seu trabalho</p>
+          <h2 className="text-base font-semibold text-gray-900">{t('onboarding.task.title')}</h2>
+          <p className="text-xs text-gray-600">{t('onboarding.task.subtitle')}</p>
         </div>
 
         {/* Formulário - SEM CARD */}
         <div className="space-y-3">
         {/* Título */}
         <div className="space-y-2">
-          <Label htmlFor="task-title">O que você precisa fazer?</Label>
+          <Label htmlFor="task-title">{t('onboarding.task.whatToDo')}</Label>
           <Input
             id="task-title"
-            placeholder="Ex: Finalizar proposta para cliente..."
+            placeholder={t('onboarding.task.placeholder')}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             disabled={loading}
@@ -143,16 +145,16 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5" />
-              Status
+              {t('tasks.status')}
             </Label>
             <Select value={status} onValueChange={setStatus} disabled={loading}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todo">A Fazer</SelectItem>
-                <SelectItem value="in_progress">Em Progresso</SelectItem>
-                <SelectItem value="done">Concluída</SelectItem>
+                <SelectItem value="todo">{t('tasks.status.todo')}</SelectItem>
+                <SelectItem value="in_progress">{t('tasks.status.inProgress')}</SelectItem>
+                <SelectItem value="done">{t('tasks.status.done')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -160,17 +162,17 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Flag className="h-3.5 w-3.5" />
-              Prioridade
+              {t('tasks.priority')}
             </Label>
             <Select value={priority} onValueChange={setPriority} disabled={loading}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Baixa</SelectItem>
-                <SelectItem value="medium">Média</SelectItem>
-                <SelectItem value="high">Alta</SelectItem>
-                <SelectItem value="urgent">Urgente</SelectItem>
+                <SelectItem value="low">{t('tasks.priority.low')}</SelectItem>
+                <SelectItem value="medium">{t('tasks.priority.medium')}</SelectItem>
+                <SelectItem value="high">{t('tasks.priority.high')}</SelectItem>
+                <SelectItem value="urgent">{t('tasks.priority.urgent')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -179,7 +181,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
         {/* Datas */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="start-date">Data Início</Label>
+            <Label htmlFor="start-date">{t('tasks.startDate')}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -191,7 +193,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
                   onClick={() => console.log('Clicou Data Início')}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : 'Selecionar data'}
+                  {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : t('common.selectDate')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 z-50" align="start">
@@ -212,7 +214,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="due-date">Prazo</Label>
+            <Label htmlFor="due-date">{t('tasks.dueDate')}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -224,7 +226,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
                   onClick={() => console.log('Clicou Prazo')}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dueDate ? format(dueDate, "dd/MM/yyyy", { locale: ptBR }) : 'Selecionar data'}
+                  {dueDate ? format(dueDate, "dd/MM/yyyy", { locale: ptBR }) : t('common.selectDate')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 z-50" align="start">
@@ -249,10 +251,10 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
         <div className="bg-gradient-to-r from-primary/10 to-accent/50 p-4 rounded-lg text-sm space-y-1">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <p className="font-medium">Primeira experiência!</p>
+            <p className="font-medium">{t('onboarding.task.firstExperience')}</p>
           </div>
           <p className="text-muted-foreground text-xs">
-            Complete todos os campos para criar uma tarefa completa. Depois você ainda vai experimentar Finanças e Projetos!
+            {t('onboarding.task.firstExperienceDesc')}
           </p>
         </div>
 
@@ -264,7 +266,7 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
             disabled={loading || skipping}
             className="h-10 text-sm font-medium border-gray-300 hover:bg-gray-100 bg-white/60"
           >
-            {skipping ? 'Pulando...' : 'Fazer depois'}
+            {skipping ? t('common.skipping') : t('onboarding.task.doLater')}
           </Button>
           <Button 
             onClick={handleCreate} 
@@ -274,10 +276,10 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Criando...
+                {t('common.creating')}
               </>
             ) : (
-              'Criar tarefa'
+              t('onboarding.task.createTask')
             )}
           </Button>
         </div>
@@ -286,14 +288,14 @@ export function FirstTaskStep({ onNext }: OnboardingStepProps) {
 
       {/* Info do usuário no canto inferior esquerdo */}
       <div className="fixed bottom-4 left-4 text-sm text-gray-600 space-y-2 z-20">
-        <p className="text-xs">Você está conectado como <span className="font-medium">{user?.email}</span></p>
+        <p className="text-xs">{t('onboarding.task.loggedAs')} <span className="font-medium">{user?.email}</span></p>
         <Button
           variant="ghost"
           size="sm"
           onClick={handleLogout}
           className="h-7 px-2 text-xs text-gray-500 hover:text-gray-700"
         >
-          Entrar com outro usuário
+          {t('onboarding.task.switchUser')}
         </Button>
       </div>
 

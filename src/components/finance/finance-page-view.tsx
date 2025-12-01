@@ -606,11 +606,11 @@ export const FinancePageView = () => {
             </p>
           </div>
         ) : (
-          <div className="p-6">
-            <Table>
+          <div className="px-16 py-6">
+            <Table className="[&_tr]:border-0">
               {/* Header - APENAS DESKTOP */}
               <TableHeader className="hidden md:table-header-group">
-                <TableRow className="hover:bg-transparent border-b">
+                <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[50px]"></TableHead>
                   <TableHead>{t('finance.table.name')}</TableHead>
                   <TableHead className="w-[120px]">{t('finance.table.type')}</TableHead>
@@ -685,27 +685,20 @@ export const FinancePageView = () => {
                       </TableCell>
 
                       {/* DESKTOP: Layout completo (todas as colunas) */}
-                      <TableCell className="hidden md:table-cell border-b">
+                      <TableCell className="hidden md:table-cell">
                         <span className="text-2xl">{doc.icon || getDocumentIcon(doc.template_type)}</span>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell border-b">
-                        <div className="flex flex-col">
-                          <span className="font-medium text-sm truncate max-w-[200px]">
-                            {doc.name}
-                          </span>
-                          {doc.reference_month && doc.reference_year && (
-                            <span className="text-xs text-muted-foreground">
-                              {String(doc.reference_month).padStart(2, '0')}/{doc.reference_year}
-                            </span>
-                          )}
-                        </div>
+                      <TableCell className="hidden md:table-cell">
+                        <span className="font-medium text-sm truncate max-w-[200px] block">
+                          {doc.name}
+                        </span>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell border-b">
+                      <TableCell className="hidden md:table-cell">
                         <Badge variant="outline" className="text-xs">
                           {doc.template_type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell border-b">
+                      <TableCell className="hidden md:table-cell">
                         {doc.reference_month && doc.reference_year ? (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />
@@ -715,25 +708,25 @@ export const FinancePageView = () => {
                           <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-right border-b">
+                      <TableCell className="hidden md:table-cell text-right">
                         <span className="font-mono text-xs font-medium text-green-600">
                           {formatCurrency(Number(doc.total_income || 0))}
                         </span>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-right border-b">
+                      <TableCell className="hidden md:table-cell text-right">
                         <span className="font-mono text-xs font-medium text-red-600">
                           {formatCurrency(Number(doc.total_expenses || 0))}
                         </span>
                       </TableCell>
                       <TableCell
                         className={cn(
-                          'hidden md:table-cell text-right font-mono text-xs font-semibold border-b',
+                          'hidden md:table-cell text-right font-mono text-xs font-semibold',
                           Number(doc.balance || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                         )}
                       >
                         {formatCurrency(Number(doc.balance || 0))}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell border-b">
+                      <TableCell className="hidden md:table-cell">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <Button size="icon" variant="ghost" className="h-8 w-8">

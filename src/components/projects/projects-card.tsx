@@ -169,6 +169,27 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
               <h3 className="font-semibold text-sm truncate">
                 {cardName}
               </h3>
+
+              {/* Badge Ao Vivo - Workspace */}
+              {currentWorkspace && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Badge 
+                    variant="secondary" 
+                    className="text-[10px] h-5 px-1.5 gap-1 bg-green-500/10 text-green-600 border-green-500/20 hidden sm:flex"
+                  >
+                    <motion.div
+                      className="w-1.5 h-1.5 rounded-full bg-green-500"
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    {t('realtime.live')}
+                  </Badge>
+                </motion.div>
+              )}
             </div>
 
             {/* Botões de Ação - Sempre visíveis */}
@@ -226,9 +247,9 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                 className="flex flex-col items-center justify-center h-full text-center py-16 px-6"
               >
                 <FolderKanban className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p className="text-sm font-medium mb-2">Nenhum projeto ainda</p>
+                <p className="text-sm font-medium mb-2">{t('projects.noProjects')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Projetos organizam tarefas, documentos e progresso
+                  {t('projects.noProjectsDesc')}
                 </p>
               </motion.div>
             ) : (
@@ -282,7 +303,7 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                           }}
                         >
                           <Trash2 className="mr-2 h-3.5 w-3.5" />
-                          Excluir projeto
+                          {t('projects.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -485,7 +506,7 @@ export function ProjectsCard({ workspaceId, dragHandleProps }: ProjectsCardProps
                           }}
                         >
                           <Trash2 className="mr-2 h-3.5 w-3.5" />
-                          Excluir projeto
+                          {t('projects.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

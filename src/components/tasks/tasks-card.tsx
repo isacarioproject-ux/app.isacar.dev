@@ -288,7 +288,7 @@ export function TasksCard({ className, dragHandleProps }: TasksCardProps) {
                             animate={{ opacity: [1, 0.5, 1] }}
                             transition={{ duration: 2, repeat: Infinity }}
                           />
-                          <span className="hidden sm:inline">Ao vivo</span>
+                          <span className="hidden sm:inline">{t('realtime.live')}</span>
                         </Badge>
                       </span>
                     </TooltipTrigger>

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, AlertCircle, Database } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
+import { useI18n } from '@/hooks/use-i18n'
 import { WelcomeStep } from './steps/welcome-step'
 import { UserTypeStep } from './steps/user-type-step'
 import { GoalsStep } from './steps/goals-step'
@@ -34,6 +35,7 @@ const STEPS = [
 ]
 
 export function OnboardingContainer() {
+  const { t } = useI18n()
   const { user } = useAuth()
   const [tableExists, setTableExists] = useState<boolean | null>(null)
   const [checking, setChecking] = useState(true)
@@ -176,15 +178,16 @@ export function OnboardingContainer() {
         />
       )}
 
-      {/* Botão X - esconder nos passos 1-12 */}
-      {currentStep !== 1 && currentStep !== 2 && currentStep !== 3 && currentStep !== 4 && currentStep !== 5 && currentStep !== 6 && currentStep !== 7 && currentStep !== 8 && currentStep !== 9 && currentStep !== 10 && currentStep !== 11 && currentStep !== 12 && (
+      {/* Botão Pular - visível em todos os passos exceto o primeiro e o último */}
+      {currentStep > 1 && currentStep < totalSteps && (
         <Button
           variant="ghost"
-          size="icon"
-          className="absolute top-4 right-4 z-10"
+          size="sm"
+          className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground gap-1"
           onClick={skip}
         >
-          <X className="h-4 w-4" />
+          {t('onboarding.skip')}
+          <X className="h-3.5 w-3.5" />
         </Button>
       )}
 

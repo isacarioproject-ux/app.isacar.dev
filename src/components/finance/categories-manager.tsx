@@ -110,11 +110,11 @@ export const CategoriesManager = ({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // ✅ Campos válidos na tabela: id, user_id, workspace_id, name, type, color, icon, monthly_budget, parent_category_id
       const { error } = await supabase.from('finance_categories').insert({
         user_id: user.id,
         workspace_id: currentWorkspace?.id || null,
         name: newCategory.name.trim(),
-        description: newCategory.description.trim() || null,
         type: newCategory.type,
         color: newCategory.color,
         icon: newCategory.icon || null,

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Flag, 
   Tag, 
   Sparkles, 
@@ -20,7 +20,9 @@ import {
   FolderOpen,
   Plus,
   Bell,
-  CheckSquare
+  CheckSquare,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import {
   Popover,
@@ -37,6 +39,8 @@ import { useI18n } from '@/hooks/use-i18n';
 import { supabase } from '@/lib/supabase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getUsers } from '@/lib/tasks/tasks-storage';
+import { Calendar } from '@/components/ui/calendar';
+import { useDateFnsLocale } from '@/hooks/use-date-fns-locale';
 import type { User } from '@/types/tasks';
 
 interface QuickAddTaskDialogProps {
@@ -60,6 +64,7 @@ export function QuickAddTaskDialog({
 }: QuickAddTaskDialogProps) {
   const { t } = useI18n();
   const { currentWorkspace } = useWorkspace();
+  const dateFnsLocale = useDateFnsLocale();
   const [activeTab, setActiveTab] = useState<'tarefa' | 'lembrete'>(initialTab);
   const [taskName, setTaskName] = useState('');
   const [selectedList, setSelectedList] = useState('lista-pessoal');
@@ -639,7 +644,7 @@ export function QuickAddTaskDialog({
             <Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-1 px-2 py-1 text-xs border rounded hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <Calendar className="size-3" />
+                  <CalendarIcon className="size-3" />
                   <span>
                     {selectedDate === 'hoje' ? 'Hoje' : 
                      selectedDate === 'amanhã' ? 'Amanhã' :
@@ -711,43 +716,21 @@ export function QuickAddTaskDialog({
                       Semana que vem
                     </button>
                   </div>
-                  {/* Calendar */}
-                  <div className="p-4 min-w-[280px]">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="font-medium">novembro 2025</span>
-                      <div className="flex gap-1">
-                        <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">Hoje</button>
-                        <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">‹</button>
-                        <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">›</button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-7 gap-1 text-center text-xs">
-                      <div className="text-gray-500">do</div>
-                      <div className="text-gray-500">2ª</div>
-                      <div className="text-gray-500">3ª</div>
-                      <div className="text-gray-500">4ª</div>
-                      <div className="text-gray-500">5ª</div>
-                      <div className="text-gray-500">6ª</div>
-                      <div className="text-gray-500">sá</div>
-                      {/* Days */}
-                      {[26,27,28,29,30,31,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,1,2,3,4,5,6].map((day, i) => (
-                        <button 
-                          key={i}
-                          onClick={() => {
-                            const date = new Date(2025, 10, day); // novembro 2025
-                            setSelectedDateTag(date);
-                            setSelectedDate(date.toISOString());
-                            setIsDatePopoverOpen(false);
-                          }}
-                          className={`p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                            day === 7 ? 'bg-blue-600 text-white' : 
-                            (i < 6 || i > 34) ? 'text-gray-400' : ''
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
+                  {/* Calendar Component */}
+                  <div className="p-2">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDateTag}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedDateTag(date);
+                          setSelectedDate(date.toISOString());
+                          setIsDatePopoverOpen(false);
+                        }
+                      }}
+                      locale={dateFnsLocale}
+                      className="rounded-md"
+                    />
                   </div>
                 </div>
               </PopoverContent>

@@ -39,8 +39,8 @@ const GoogleAnalyticsPage = lazy(() => import('@/pages/analytics/google'))
 const TaskViewPage = lazy(() => import('@/pages/task-view'))
 const TaskSharePage = lazy(() => import('@/pages/task-share'))
 
-// Loader minimalista para lazy loading de páginas
-const PageLoader = () => <InitialPreload />
+// Loader minimalista para lazy loading de páginas - usando null para transição suave
+const PageLoader = () => null
 
 function App() {
   // Inicializar serviços de lembrete

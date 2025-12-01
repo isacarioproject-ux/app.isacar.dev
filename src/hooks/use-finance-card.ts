@@ -57,12 +57,23 @@ export const useFinanceCard = (workspaceId?: string) => {
         return
       }
 
-      // Buscar TODOS os documentos do usuário (sem filtro de workspace)
-      const { data, error } = await supabase
+      // ✅ Buscar documentos COM FILTRO de workspace para isolamento correto
+      // Pessoal: workspace_id IS NULL
+      // Colaborativo: workspace_id = currentWorkspace.id
+      let query = supabase
         .from('finance_documents')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+
+      if (currentWorkspace?.id) {
+        // Workspace colaborativo - filtrar pelo workspace específico
+        query = query.eq('workspace_id', currentWorkspace.id)
+      } else {
+        // Conta pessoal - filtrar onde workspace_id é null
+        query = query.is('workspace_id', null)
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false })
       
       console.log('✅ [useFinanceCard] Documentos encontrados:', data?.length || 0)
       console.log('📊 [useFinanceCard] Workspace atual:', currentWorkspace?.id)

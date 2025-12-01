@@ -20,6 +20,18 @@ import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import {
   ArrowLeft, Calendar, TrendingUp, TrendingDown, DollarSign, Plus,
@@ -578,11 +590,34 @@ export const FinanceViewer = ({
           )}
 
           {/* Ícone emoji - clicável para editar */}
-          {iconEmoji && (
-            <div className="text-5xl sm:text-6xl md:text-8xl mb-4 sm:mb-5 leading-none cursor-default select-none hover:scale-105 transition-transform">
-              {iconEmoji}
-            </div>
-          )}
+          <div className="mb-4 sm:mb-5">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="text-5xl sm:text-6xl md:text-8xl leading-none cursor-pointer select-none hover:scale-105 transition-transform focus:outline-none">
+                  {iconEmoji || '📄'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3" align="start">
+                <div className="grid grid-cols-6 gap-2">
+                  {['📊', '💰', '💵', '📈', '🏦', '💳', '🎯', '📋', '💼', '📁', '🧾', '💎', '📄', '💹', '🏠', '🚗', '✈️', '🍔'].map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={async () => {
+                        setIconEmoji(emoji)
+                        await supabase
+                          .from('finance_documents')
+                          .update({ icon: emoji })
+                          .eq('id', docId)
+                      }}
+                      className="text-2xl hover:scale-125 transition-transform p-1 rounded hover:bg-muted"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
           {/* Título editável - estilo Notion */}
           <Input
@@ -592,17 +627,53 @@ export const FinanceViewer = ({
             className="text-3xl sm:text-4xl md:text-5xl font-bold border-none px-0 mb-1 sm:mb-2 h-auto py-0 focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/20 tracking-tight"
           />
 
-          {/* Período de referência - badge moderno */}
-          {(referenceMonth || referenceYear) && (
-            <div className="inline-flex items-center gap-1.5 mb-3 sm:mb-4 px-2.5 py-1 rounded-full bg-muted/50 text-xs sm:text-sm text-muted-foreground">
-              <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              <span className="font-medium">
-                {referenceMonth && referenceYear && `${referenceMonth}/${referenceYear}`}
-                {!referenceMonth && referenceYear && `${referenceYear}`}
-                {referenceMonth && !referenceYear && `${t('finance.viewer.month')} ${referenceMonth}`}
-              </span>
-            </div>
-          )}
+          {/* Período de referência - estilo Notion (sem borders) */}
+          <div className="flex items-center gap-1 mb-4 text-muted-foreground/60 hover:text-muted-foreground transition-colors group">
+            <Calendar className="h-4 w-4" />
+            <Select
+              value={referenceMonth?.toString() || ''}
+              onValueChange={async (value) => {
+                const month = value ? parseInt(value) : null
+                setReferenceMonth(month)
+                await supabase
+                  .from('finance_documents')
+                  .update({ reference_month: month })
+                  .eq('id', docId)
+              }}
+            >
+              <SelectTrigger className="w-auto h-auto p-0 border-0 shadow-none bg-transparent text-sm font-light focus:ring-0 [&>svg]:hidden">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
+                  <SelectItem key={m} value={m.toString()}>
+                    {new Date(2024, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long' })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span>/</span>
+            <Select
+              value={referenceYear?.toString() || ''}
+              onValueChange={async (value) => {
+                const year = value ? parseInt(value) : null
+                setReferenceYear(year)
+                await supabase
+                  .from('finance_documents')
+                  .update({ reference_year: year })
+                  .eq('id', docId)
+              }}
+            >
+              <SelectTrigger className="w-auto h-auto p-0 border-0 shadow-none bg-transparent text-sm font-light focus:ring-0 [&>svg]:hidden">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                {[2023,2024,2025,2026,2027,2028].map(y => (
+                  <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Descrição editável - estilo Notion */}
           <Input

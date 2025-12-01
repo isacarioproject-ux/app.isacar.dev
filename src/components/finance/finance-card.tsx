@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useI18n } from '@/hooks/use-i18n'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import {
   Dialog,
@@ -36,16 +36,15 @@ import {
   Trash2,
   Wallet,
   TrendingUp,
+  TrendingDown,
   Download,
-  Sparkles,
-  FileSpreadsheet,
   GripVertical,
   Tag,
-  Target,
-  ArrowLeft,
   Layers,
   X,
   Calendar,
+  Pencil,
+  ArrowLeft,
 } from 'lucide-react'
 import { useWorkspace } from '@/contexts/workspace-context'
 import { useFinanceCard } from '@/hooks/use-finance-card'
@@ -73,23 +72,8 @@ const formatCurrency = (value: number) => {
   }).format(value)
 }
 
-// Helper function para ícone do documento
-const getDocumentIcon = (type: string) => {
-  switch (type) {
-    case 'budget':
-      return '💰'
-    case 'expenses':
-      return '📊'
-    case 'income':
-      return '💵'
-    case 'report':
-      return '📈'
-    case 'accounts':
-      return '🏦'
-    default:
-      return '📄'
-  }
-}
+// Ícones removidos da tabela para visual mais limpo
+// O período de referência agora mostra mês/ano do banco
 
 export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) {
   const { t } = useI18n()
@@ -271,7 +255,7 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                       ease: "easeInOut"
                     }}
                   />
-                  Ao vivo ({memberCount})
+                  {t('realtime.live')} ({memberCount})
                 </Badge>
               </motion.div>
             )}
@@ -396,112 +380,80 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
             </div>
           ) : (
             <div className="max-h-[300px] overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40%]">{t('finance.table.name')}</TableHead>
-                  <TableHead className="w-[20%] text-right">{t('finance.table.value')}</TableHead>
-                  <TableHead className="w-[20%]">{t('finance.table.date')}</TableHead>
-                  <TableHead className="w-[20%] text-right">{t('finance.table.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="space-y-1">
                 {documents.map((doc) => {
-                  // Usar valores do banco ao invés de calcular de blocks
                   const total = (doc.total_income || 0) - (doc.total_expenses || 0)
-
-                  // Usar data de atualização do documento
-                  const firstDate = doc.updated_at
-
                   return (
-                  <TableRow
+                  <div
                     key={doc.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-3 px-2 py-2 cursor-pointer hover:bg-muted/30 rounded-lg transition-colors group"
                     onClick={() => {
                       setSelectedDocId(doc.id)
                       setIsExpanded(true)
                     }}
                   >
-                    {/* Ícone + Nome */}
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl flex-shrink-0">{doc.icon || getDocumentIcon(doc.template_type)}</span>
-                        <span className="text-sm truncate max-w-[120px]">
-                          {doc.name}
-                        </span>
-                      </div>
-                    </TableCell>
+                    {/* Nome */}
+                    <span className="text-sm font-medium truncate flex-1">
+                      {doc.name}
+                    </span>
 
                     {/* Valor Total */}
-                    <TableCell className="text-right">
-                      <span className={cn(
-                        "text-sm font-medium",
-                        total > 0 ? "text-green-600 dark:text-green-400" : total < 0 ? "text-red-600 dark:text-red-400" : "text-gray-500"
-                      )}>
-                        {new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL'
-                        }).format(total)}
-                      </span>
-                    </TableCell>
+                    <span className={cn(
+                      "text-sm font-medium tabular-nums",
+                      total > 0 ? "text-green-600 dark:text-green-400" : total < 0 ? "text-red-600 dark:text-red-400" : "text-gray-500"
+                    )}>
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                      }).format(total)}
+                    </span>
 
-                    {/* Data */}
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {firstDate ? new Date(firstDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '-'}
-                      </span>
-                    </TableCell>
+                    {/* Período */}
+                    <span className="text-xs text-muted-foreground hidden sm:block">
+                      {doc.reference_month && doc.reference_year 
+                        ? `${String(doc.reference_month).padStart(2, '0')}/${doc.reference_year}`
+                        : '-'}
+                    </span>
 
                     {/* Ações */}
-                    <TableCell className="text-right">
-                      <TooltipProvider>
-                      <div className="flex items-center justify-end gap-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                            >
-                              <MoreVertical className="h-3.5 w-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation()
-                              handleDuplicateDocument(doc.id, doc.name)
-                            }}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              {t('finance.card.duplicate')}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation()
-                              toast.info(t('finance.card.comingSoon'))
-                            }}>
-                              <Download className="mr-2 h-4 w-4" />
-                              {t('finance.export')}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteDocument(doc.id, doc.name)
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              {t('finance.table.delete')}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      </TooltipProvider>
-                    </TableCell>
-                  </TableRow>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation()
+                          handleDuplicateDocument(doc.id, doc.name)
+                        }}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          {t('finance.card.duplicate')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation()
+                          toast.info(t('finance.card.comingSoon'))
+                        }}>
+                          <Download className="mr-2 h-4 w-4" />
+                          {t('finance.export')}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteDocument(doc.id, doc.name)
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          {t('finance.table.delete')}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                   )
                 })}
-              </TableBody>
-              </Table>
+            </div>
             </div>
           )}
       </CardContent>
@@ -778,7 +730,7 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                 <Table>
                   {/* Header - APENAS DESKTOP */}
                   <TableHeader className="hidden md:table-header-group">
-                    <TableRow className="hover:bg-transparent border-b">
+                    <TableRow className="hover:bg-transparent ">
                       <TableHead className="w-[50px]"></TableHead>
                       <TableHead>{t('finance.table.name')}</TableHead>
                       <TableHead className="w-[120px]">{t('finance.table.type')}</TableHead>
@@ -797,11 +749,11 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                         className="cursor-pointer hover:bg-muted/50 transition-colors border-none"
                         onClick={() => setSelectedDocId(doc.id)}
                       >
-                        {/* MOBILE: Layout limpo (ícone + nome + menu) */}
+                        {/* MOBILE: Layout limpo */}
                         <TableCell className="md:hidden font-medium border-none" colSpan={3}>
                           <div className="flex items-center gap-2">
                             <span className="text-xl flex-shrink-0">
-                              {doc.icon || getDocumentIcon(doc.template_type)}
+                              {doc.icon || '📄'}
                             </span>
                             <span className="text-sm truncate flex-1">
                               {doc.name}
@@ -843,28 +795,21 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                           </div>
                         </TableCell>
 
-                        {/* DESKTOP: Layout completo (todas as colunas) */}
-                        <TableCell className="hidden md:table-cell border-b">
-                          <span className="text-2xl">{doc.icon || getDocumentIcon(doc.template_type)}</span>
+                        {/* DESKTOP: Layout completo */}
+                        <TableCell className="hidden md:table-cell">
+                          <span className="text-2xl">{doc.icon || '📄'}</span>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell border-b">
-                          <div className="flex flex-col">
-                            <span className="font-medium text-sm truncate max-w-[200px]">
-                              {doc.name}
-                            </span>
-                            {doc.reference_month && doc.reference_year && (
-                              <span className="text-xs text-muted-foreground">
-                                {String(doc.reference_month).padStart(2, '0')}/{doc.reference_year}
-                              </span>
-                            )}
-                          </div>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="font-medium text-sm truncate max-w-[200px] block">
+                            {doc.name}
+                          </span>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell border-b">
+                        <TableCell className="hidden md:table-cell">
                           <Badge variant="outline" className="text-xs">
                             {doc.template_type}
                           </Badge>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell border-b">
+                        <TableCell className="hidden md:table-cell ">
                           {doc.reference_month && doc.reference_year ? (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Calendar className="h-3 w-3" />
@@ -874,25 +819,25 @@ export function FinanceCard({ workspaceId, dragHandleProps }: FinanceCardProps) 
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-right border-b">
+                        <TableCell className="hidden md:table-cell text-right ">
                           <span className="font-mono text-xs font-medium text-green-600">
                             {formatCurrency(Number(doc.total_income || 0))}
                           </span>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-right border-b">
+                        <TableCell className="hidden md:table-cell text-right ">
                           <span className="font-mono text-xs font-medium text-red-600">
                             {formatCurrency(Number(doc.total_expenses || 0))}
                           </span>
                         </TableCell>
                         <TableCell
                           className={cn(
-                            'hidden md:table-cell text-right font-mono text-xs font-semibold border-b',
+                            'hidden md:table-cell text-right font-mono text-xs font-semibold ',
                             Number(doc.balance || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                           )}
                         >
                           {formatCurrency(Number(doc.balance || 0))}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell border-b">
+                        <TableCell className="hidden md:table-cell ">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button size="icon" variant="ghost" className="h-8 w-8">

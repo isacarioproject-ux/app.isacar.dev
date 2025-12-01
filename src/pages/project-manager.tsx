@@ -94,8 +94,17 @@ export default function ProjectManagerPage() {
         {pageMode === 'list' && (
           <div className="flex items-center justify-between gap-2 px-[5px] py-0.5 border-b border-border">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <FolderKanban className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              <h2 className="text-sm font-semibold truncate">Projetos</h2>
+              {loading ? (
+                <>
+                  <Skeleton className="h-4 w-4 rounded" />
+                  <Skeleton className="h-4 w-20" />
+                </>
+              ) : (
+                <>
+                  <FolderKanban className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <h2 className="text-sm font-semibold truncate">Projetos</h2>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-0.5">
@@ -104,6 +113,7 @@ export default function ProjectManagerPage() {
                 variant="ghost" 
                 className="h-7 w-7"
                 onClick={() => setPageMode('create')}
+                disabled={loading}
               >
                 <Plus className="h-3.5 w-3.5" />
               </Button>

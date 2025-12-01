@@ -175,8 +175,8 @@ Este documento detalha os problemas identificados na plataforma ISACAR e o plano
 ### Fase 3 - Melhorias (P2-P3)
 - [x] 3.1 Integrar settings reais nas tasks ✅ (01/12/2025) - Persistência em localStorage
 - [x] 3.2 Traduzir textos hardcoded ✅ (01/12/2025) - "Ao vivo", quickAdd.*, onboarding.*, tasks.settings.*, projects.*
-- [ ] 3.3 Melhorar UX de notificações (Pendente - requer permissão do navegador)
-- [ ] 3.4 Documentar lembrete por localização (Pendente - feature futura)
+- [x] 3.3 Notificações UX ✅ (01/12/2025) - Helper notifications.ts + integração com settings + i18n
+- [x] 3.4 Lembrete por localização ✅ (01/12/2025) - Helper geolocation.ts + toggle em settings + i18n (skeleton pronto)
 - [x] 3.5 Badge "Ao vivo" no projects-card ✅ (01/12/2025) - Quando em workspace
 
 ---

@@ -97,6 +97,25 @@ const translations: Translations = {
   'tasks.settings.showCompletedDesc': { 'pt-BR': 'Exibir tarefas concluídas na lista', 'en': 'Show completed tasks in the list', 'es': 'Mostrar tareas completadas en la lista' },
   'tasks.settings.autoSaved': { 'pt-BR': 'As configurações são salvas automaticamente', 'en': 'Settings are saved automatically', 'es': 'La configuración se guarda automáticamente' },
 
+  // ===== TASKS NOTIFICATIONS =====
+  'tasks.notifications.title': { 'pt-BR': 'Notificações de tarefas', 'en': 'Task notifications', 'es': 'Notificaciones de tareas' },
+  'tasks.notifications.description': { 'pt-BR': 'Receba lembretes das suas tarefas no navegador', 'en': 'Receive task reminders in your browser', 'es': 'Recibe recordatorios de tus tareas en el navegador' },
+  'tasks.notifications.explain': { 'pt-BR': 'O navegador vai pedir sua permissão para enviar notificações', 'en': 'The browser will ask for your permission to send notifications', 'es': 'El navegador pedirá tu permiso para enviar notificaciones' },
+  'tasks.notifications.enabled': { 'pt-BR': 'Notificações ativadas!', 'en': 'Notifications enabled!', 'es': '¡Notificaciones activadas!' },
+  'tasks.notifications.denied': { 'pt-BR': 'Permissão de notificações negada. Ative nas configurações do navegador.', 'en': 'Notification permission denied. Enable in browser settings.', 'es': 'Permiso de notificaciones denegado. Actívalo en la configuración del navegador.' },
+  'tasks.notifications.unsupported': { 'pt-BR': 'Seu navegador não suporta notificações', 'en': 'Your browser does not support notifications', 'es': 'Tu navegador no soporta notificaciones' },
+
+  // ===== TASKS LOCATION =====
+  'tasks.location.title': { 'pt-BR': 'Lembrete por localização', 'en': 'Location reminder', 'es': 'Recordatorio por ubicación' },
+  'tasks.location.description': { 'pt-BR': 'Receba lembretes ao chegar em um local', 'en': 'Get reminders when you arrive at a location', 'es': 'Recibe recordatorios al llegar a un lugar' },
+  'tasks.location.enabled': { 'pt-BR': 'Lembretes por localização ativados!', 'en': 'Location reminders enabled!', 'es': '¡Recordatorios por ubicación activados!' },
+  'tasks.location.unsupported': { 'pt-BR': 'Seu dispositivo não suporta localização', 'en': 'Your device does not support location', 'es': 'Tu dispositivo no soporta ubicación' },
+  'tasks.location.denied': { 'pt-BR': 'Permissão de localização negada', 'en': 'Location permission denied', 'es': 'Permiso de ubicación denegado' },
+  'tasks.location.error': { 'pt-BR': 'Não foi possível obter sua localização', 'en': 'Could not get your location', 'es': 'No se pudo obtener tu ubicación' },
+  'tasks.location.useCurrent': { 'pt-BR': 'Usar minha localização atual', 'en': 'Use my current location', 'es': 'Usar mi ubicación actual' },
+  'tasks.location.label': { 'pt-BR': 'Nome do local', 'en': 'Location name', 'es': 'Nombre del lugar' },
+  'tasks.location.radius': { 'pt-BR': 'Raio (metros)', 'en': 'Radius (meters)', 'es': 'Radio (metros)' },
+
   // ===== PWA INSTALL =====
   'pwa.installApp': { 'pt-BR': 'Instalar App', 'en': 'Install App', 'es': 'Instalar App' },
   'pwa.installIsacar': { 'pt-BR': 'Instalar ISACAR', 'en': 'Install ISACAR', 'es': 'Instalar ISACAR' },
